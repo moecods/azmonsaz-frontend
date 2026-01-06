@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* RTL Support for Persian */
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Ensure RTL layout for all elements */
+html[dir="rtl"] * {
+  direction: rtl;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -23,4 +38,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* MUI RTL helper: allow direction class on html/body */
+.dir-rtl {
+  direction: rtl;
+}
+.dir-ltr {
+  direction: ltr;
 }
