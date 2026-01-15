@@ -14,9 +14,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { dataService } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
+import { usePartners } from '@/hooks';
 import { Partner } from '@/types';
 import BusinessIcon from '@mui/icons-material/Business';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -27,10 +25,7 @@ export default function PartnersPage() {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
 
   // Fetch partners
-  const { data: partnersData, isLoading: partnersLoading, error } = useQuery({
-    queryKey: queryKeys.partners,
-    queryFn: () => dataService.getPartners(),
-  });
+  const { data: partnersData, isLoading: partnersLoading, error } = usePartners();
 
   const handleCreateExam = (partner: Partner) => {
     // Generate deep link for exam creation
@@ -38,7 +33,7 @@ export default function PartnersPage() {
     router.push(deepLink);
   };
 
-  const partners = Array.isArray(partnersData?.data) ? partnersData.data : [];
+  const partners = partnersData?.data || [];
 
   if (partnersLoading) {
     return (

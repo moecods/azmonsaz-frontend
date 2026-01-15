@@ -10,7 +10,7 @@ import AnalyticsIcon from "@mui/icons-material/Analytics";
 import GroupIcon from "@mui/icons-material/Group";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks";
 
 export default function Home() {
   const router = useRouter();

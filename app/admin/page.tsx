@@ -37,11 +37,9 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { partnerSchema, userSchema, PartnerFormData, UserFormData } from '@/lib/validation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dataService } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
+import { usePartners, useUsers, useCreatePartner, useUpdatePartner, useTogglePartnerActive, useCreateUser, useUpdateUser, useToggleUserActive } from '@/hooks';
 import { Partner, User, UserRole } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -81,7 +79,6 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [partnerPage, setPartnerPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
-  const queryClient = useQueryClient();
   const { logout, user } = useAuth();
   const router = useRouter();
 
@@ -113,57 +110,19 @@ export default function AdminPage() {
   });
 
   // Fetch partners (only when partners tab is active or on initial load)
-  const { data: partnersData, isLoading: partnersLoading } = useQuery({
-    queryKey: [...queryKeys.partners, partnerPage],
-    queryFn: () => dataService.getPartners({ page: partnerPage, per_page: 15 }),
-    enabled: tabValue === 0, // Only fetch when partners tab is selected
-  });
+  const { data: partnersData, isLoading: partnersLoading } = usePartners(
+    tabValue === 0 ? { page: partnerPage, per_page: 15 } : undefined
+  );
 
   // Fetch users (only when users tab is active)
-  const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: [...queryKeys.users, userPage],
-    queryFn: () => dataService.getUsers({ page: userPage, per_page: 15 }),
-    enabled: tabValue === 1, // Only fetch when users tab is selected
-  });
+  const { data: usersData, isLoading: usersLoading } = useUsers(
+    tabValue === 1 ? { page: userPage, per_page: 15 } : undefined
+  );
 
   // Partner mutations
-  const createPartnerMutation = useMutation({
-    mutationFn: (data: PartnerFormData) => dataService.createPartner(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partners });
-      setPartnerOpen(false);
-      setEditingPartner(null);
-      partnerForm.reset({
-        name: '',
-        website_url: '',
-        callback_url: '',
-        is_active: true,
-      });
-    },
-  });
-
-  const updatePartnerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; website_url?: string | null; callback_url?: string } }) => 
-      dataService.updatePartner(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partners });
-      setPartnerOpen(false);
-      setEditingPartner(null);
-      partnerForm.reset({
-        name: '',
-        website_url: '',
-        callback_url: '',
-        is_active: true,
-      });
-    },
-  });
-
-  const togglePartnerActiveMutation = useMutation({
-    mutationFn: (id: number) => dataService.togglePartnerActive(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.partners });
-    },
-  });
+  const createPartnerMutation = useCreatePartner();
+  const updatePartnerMutation = useUpdatePartner();
+  const togglePartnerActiveMutation = useTogglePartnerActive();
 
   // Reset page to 1 when switching tabs
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -176,42 +135,9 @@ export default function AdminPage() {
   };
 
   // User mutations
-  const createUserMutation = useMutation({
-    mutationFn: (data: UserFormData) => dataService.createUser(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      setUserOpen(false);
-      setEditingUser(null);
-      userForm.reset({
-        name: '',
-        email: '',
-        role: 'content_manager',
-      });
-    },
-  });
-
-  const updateUserMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; phone_number?: string; password?: string; role?: string } }) => 
-      dataService.updateUser(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      setUserOpen(false);
-      setEditingUser(null);
-      userForm.reset({
-        name: '',
-        email: '',
-        password: '',
-        role: 'content_manager',
-      });
-    },
-  });
-
-  const toggleUserActiveMutation = useMutation({
-    mutationFn: (id: number) => dataService.toggleUserActive(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-    },
-  });
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const toggleUserActiveMutation = useToggleUserActive();
 
   const handleOpenCreatePartner = () => {
     setEditingPartner(null);
@@ -290,21 +216,49 @@ export default function AdminPage() {
   const onSubmitPartner = (data: PartnerFormData) => {
     if (editingPartner) {
       // Send name, website_url, and callback_url for updates (is_active is handled by toggle)
-      updatePartnerMutation.mutate({ 
-        id: editingPartner.id, 
-        data: {
+      updatePartnerMutation.mutate(
+        { 
+          id: editingPartner.id, 
+          data: {
+            name: data.name,
+            website_url: data.website_url || null,
+            callback_url: data.callback_url,
+          }
+        },
+        {
+          onSuccess: () => {
+            setPartnerOpen(false);
+            setEditingPartner(null);
+            partnerForm.reset({
+              name: '',
+              website_url: '',
+              callback_url: '',
+              is_active: true,
+            });
+          },
+        }
+      );
+    } else {
+      // Send name, website_url, and callback_url for creation (is_active defaults to true on backend)
+      createPartnerMutation.mutate(
+        {
           name: data.name,
           website_url: data.website_url || null,
           callback_url: data.callback_url,
+        },
+        {
+          onSuccess: () => {
+            setPartnerOpen(false);
+            setEditingPartner(null);
+            partnerForm.reset({
+              name: '',
+              website_url: '',
+              callback_url: '',
+              is_active: true,
+            });
+          },
         }
-      });
-    } else {
-      // Send name, website_url, and callback_url for creation (is_active defaults to true on backend)
-      createPartnerMutation.mutate({
-        name: data.name,
-        website_url: data.website_url || null,
-        callback_url: data.callback_url,
-      });
+      );
     }
   };
 
@@ -320,28 +274,56 @@ export default function AdminPage() {
       if (data.password && data.password.trim() !== '') {
         updateData.password = data.password;
       }
-      updateUserMutation.mutate({ id: editingUser.id, data: updateData });
+      updateUserMutation.mutate(
+        { id: editingUser.id, data: updateData },
+        {
+          onSuccess: () => {
+            setUserOpen(false);
+            setEditingUser(null);
+            userForm.reset({
+              name: '',
+              phone_number: '',
+              password: '',
+              role: 'content_manager',
+            });
+          },
+        }
+      );
     } else {
       // For creation, password is required
       if (!data.password || data.password.trim() === '') {
         userForm.setError('password', { message: 'رمز عبور برای کاربران جدید الزامی است' });
         return;
       }
-      createUserMutation.mutate({
-        name: data.name,
-        phone_number: data.phone_number,
-        password: data.password,
-        role: data.role,
-      });
+      createUserMutation.mutate(
+        {
+          name: data.name,
+          phone_number: data.phone_number,
+          password: data.password,
+          role: data.role,
+        },
+        {
+          onSuccess: () => {
+            setUserOpen(false);
+            setEditingUser(null);
+            userForm.reset({
+              name: '',
+              phone_number: '',
+              password: '',
+              role: 'content_manager',
+            });
+          },
+        }
+      );
     }
   };
 
 
 
-  const partners = partnersData?.data?.data || [];
-  const partnersMeta = partnersData?.data?.meta;
-  const users = usersData?.data?.data || [];
-  const usersMeta = usersData?.data?.meta;
+  const partners = partnersData?.data || [];
+  const partnersMeta = partnersData?.meta;
+  const users = usersData?.data || [];
+  const usersMeta = usersData?.meta;
 
   return (
     <ProtectedRoute requiredRole="admin">
@@ -397,12 +379,12 @@ export default function AdminPage() {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>نام</TableCell>
-                        <TableCell>آدرس وب‌سایت</TableCell>
-                        <TableCell>آدرس بازگشت</TableCell>
-                        <TableCell>وضعیت</TableCell>
-                        <TableCell>تاریخ ایجاد</TableCell>
-                        <TableCell>عملیات</TableCell>
+                        <TableCell key="partner-name">نام</TableCell>
+                        <TableCell key="partner-website">آدرس وب‌سایت</TableCell>
+                        <TableCell key="partner-callback">آدرس بازگشت</TableCell>
+                        <TableCell key="partner-status">وضعیت</TableCell>
+                        <TableCell key="partner-created">تاریخ ایجاد</TableCell>
+                        <TableCell key="partner-actions">عملیات</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -493,12 +475,12 @@ export default function AdminPage() {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>نام</TableCell>
-                        <TableCell>شماره تلفن</TableCell>
-                        <TableCell>نقش</TableCell>
-                        <TableCell>وضعیت</TableCell>
-                        <TableCell>تاریخ ایجاد</TableCell>
-                        <TableCell>عملیات</TableCell>
+                        <TableCell key="user-name">نام</TableCell>
+                        <TableCell key="user-phone">شماره تلفن</TableCell>
+                        <TableCell key="user-role">نقش</TableCell>
+                        <TableCell key="user-status">وضعیت</TableCell>
+                        <TableCell key="user-created">تاریخ ایجاد</TableCell>
+                        <TableCell key="user-actions">عملیات</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

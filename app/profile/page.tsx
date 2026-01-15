@@ -17,10 +17,8 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/useAuth';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { dataService } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
+import { useAuth } from '@/hooks';
+import { useUpdateUser } from '@/hooks';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const profileSchema = z.object({
@@ -32,7 +30,6 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
@@ -47,32 +44,31 @@ export default function ProfilePage() {
     },
   });
 
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: { email?: string | null }) => {
-      if (!user) throw new Error('User not found');
-      return dataService.updateUser(user.id, {
-        email: data.email ?? undefined,
-      });
-    },
-    onSuccess: () => {
-      setSuccessMessage('ایمیل با موفقیت به‌روزرسانی شد');
-      queryClient.invalidateQueries({ queryKey: queryKeys.user(user!.id) });
-      // Refresh auth user data
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-    },
-    onError: (error: any) => {
-      console.error('Failed to update profile:', error);
-    },
-  });
+  const updateProfileMutation = useUpdateUser();
 
   const onSubmit = async (data: ProfileFormData) => {
+    if (!user) return;
+    
     setSuccessMessage(null);
-    updateProfileMutation.mutate({
-      email: data.email || null,
-    });
+    updateProfileMutation.mutate(
+      {
+        id: user.id,
+        data: {
+          email: data.email || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setSuccessMessage('ایمیل با موفقیت به‌روزرسانی شد');
+          setTimeout(() => {
+            setSuccessMessage(null);
+          }, 3000);
+        },
+        onError: (error: any) => {
+          console.error('Failed to update profile:', error);
+        },
+      }
+    );
   };
 
   if (!user) {

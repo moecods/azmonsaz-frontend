@@ -25,9 +25,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
-import { useQuery } from '@tanstack/react-query';
-import { dataService } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
+import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, QuestionType, Difficulty } from '@/types';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
@@ -64,26 +62,15 @@ export default function QuestionSelector({ onAddQuestion }: QuestionSelectorProp
   });
 
   // Fetch questions from the question bank
-  const { data: questionsData, isLoading: questionsLoading } = useQuery({
-    queryKey: queryKeys.questions({
-      search: searchTerm || undefined,
-      category_id: selectedCategory || undefined,
-      difficulty: selectedDifficulty || undefined,
-      per_page: 20,
-    }),
-    queryFn: () => dataService.getQuestions({
-      search: searchTerm || undefined,
-      category_id: selectedCategory || undefined,
-      difficulty: selectedDifficulty || undefined,
-      per_page: 20,
-    }),
+  const { data: questionsData, isLoading: questionsLoading } = useQuestions({
+    search: searchTerm || undefined,
+    category_id: selectedCategory || undefined,
+    difficulty: selectedDifficulty || undefined,
+    per_page: 20,
   });
 
   // Fetch categories
-  const { data: categoriesData } = useQuery({
-    queryKey: queryKeys.categories,
-    queryFn: () => dataService.getCategories(),
-  });
+  const { data: categoriesData } = useQuestionCategories();
 
   const handleAddFromBank = (question: Question) => {
     const examQuestion: ExamQuestion = {
@@ -115,8 +102,8 @@ export default function QuestionSelector({ onAddQuestion }: QuestionSelectorProp
     reset();
   };
 
-  const questions = questionsData?.data?.data || [];
-  const categories = categoriesData?.data || [];
+  const questions = questionsData?.data || [];
+  const categories = categoriesData || [];
 
   return (
     <Card>

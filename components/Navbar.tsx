@@ -2,7 +2,7 @@
 
 import { AppBar, Toolbar, Typography, Button, Box, IconButton } from "@mui/material";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
 

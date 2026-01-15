@@ -21,9 +21,8 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { examSchema, ExamFormData } from '@/lib/validation';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { dataService, isUsingMockData } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
+import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam } from '@/hooks';
+import { isUsingMockData } from '@/lib/data-service';
 import { deepLinkParamsSchema } from '@/lib/validation';
 import { ExamQuestion } from '@/types';
 import QuestionSelector from '@/components/QuestionSelector';
@@ -65,83 +64,95 @@ function CreateExamContent() {
   });
 
   // Fetch partner information if partner_id is provided
-  const { data: partnerData } = useQuery({
-    queryKey: queryKeys.partner(parseInt(deepLinkParams.partner_id)),
-    queryFn: () => dataService.getPartner(parseInt(deepLinkParams.partner_id)),
-    enabled: !!deepLinkParams.partner_id && validationResult.success,
-  });
+  const { data: partnerData } = usePartner(
+    validationResult.success && deepLinkParams.partner_id 
+      ? parseInt(deepLinkParams.partner_id) 
+      : null
+  );
 
   // Fetch existing exam if exam_id is provided
-  const { data: existingExam } = useQuery({
-    queryKey: queryKeys.exam(parseInt(deepLinkParams.exam_id!)),
-    queryFn: () => dataService.getExam(parseInt(deepLinkParams.exam_id!)),
-    enabled: !!deepLinkParams.exam_id && validationResult.success,
-  });
+  const { data: existingExam } = useExam(
+    validationResult.success && deepLinkParams.exam_id 
+      ? parseInt(deepLinkParams.exam_id) 
+      : null
+  );
 
   // Create exam mutation
-  const createExamMutation = useMutation({
-    mutationFn: (data: ExamFormData) => {
-      if (existingExam?.data) {
-        return dataService.updateExam(existingExam.data.id, {
-          title: data.title,
-          description: data.description,
-          subject: data.subject,
-          questions: examQuestions,
-        });
-      } else {
-        return dataService.createExam({
-          title: data.title,
-          description: data.description,
-          subject: data.subject,
-          partner_id: parseInt(deepLinkParams.partner_id),
-          callback_url: deepLinkParams.callback_url,
-        });
-      }
-    },
-    onSuccess: (response) => {
-      // Redirect to callback URL with exam ID
-      const examId = response.data.id;
-      const callbackUrl = new URL(deepLinkParams.callback_url);
-      callbackUrl.searchParams.set('exam_id', examId.toString());
-      callbackUrl.searchParams.set('status', 'completed');
-      window.location.href = callbackUrl.toString();
-    },
-    onError: (error) => {
-      console.error('Failed to create/update exam:', error);
-    },
-  });
-
-  // Complete exam mutation
-  const completeExamMutation = useMutation({
-    mutationFn: (examId: number) => dataService.completeExam(examId),
-    onSuccess: (response) => {
-      // Redirect to callback URL with PDF download link
-      const callbackUrl = new URL(deepLinkParams.callback_url);
-      callbackUrl.searchParams.set('exam_id', response.data.callback_url);
-      callbackUrl.searchParams.set('pdf_url', response.data.pdf_url);
-      callbackUrl.searchParams.set('status', 'completed');
-      window.location.href = callbackUrl.toString();
-    },
-  });
+  const createExamMutation = useCreateExam();
+  const updateExamMutation = useUpdateExam();
+  const completeExamMutation = useCompleteExam();
 
   // Load existing exam data
   useEffect(() => {
-    if (existingExam?.data) {
-      setValue('title', existingExam.data.title);
-      setValue('description', existingExam.data.description || '');
-      setValue('subject', existingExam.data.subject || '');
-      setExamQuestions(existingExam.data.questions || []);
+    if (existingExam) {
+      setValue('title', existingExam.title);
+      setValue('description', existingExam.description || '');
+      setValue('subject', existingExam.subject || '');
+      setExamQuestions(existingExam.questions || []);
     }
   }, [existingExam, setValue]);
 
   const onSubmit = (data: ExamFormData) => {
     setIsLoading(true);
-    createExamMutation.mutate(data);
+    
+    if (existingExam) {
+      updateExamMutation.mutate({
+        id: existingExam.id,
+        data: {
+          title: data.title,
+          description: data.description,
+          subject: data.subject,
+        },
+      }, {
+        onSuccess: (response) => {
+          // Redirect to callback URL with exam ID
+          const examId = response.id;
+          const callbackUrl = new URL(deepLinkParams.callback_url);
+          callbackUrl.searchParams.set('exam_id', examId.toString());
+          callbackUrl.searchParams.set('status', 'completed');
+          window.location.href = callbackUrl.toString();
+        },
+        onError: (error) => {
+          console.error('Failed to update exam:', error);
+          setIsLoading(false);
+        },
+      });
+    } else {
+      createExamMutation.mutate({
+        title: data.title,
+        description: data.description,
+        subject: data.subject,
+        partner_id: parseInt(deepLinkParams.partner_id),
+        callback_url: deepLinkParams.callback_url,
+      }, {
+        onSuccess: (response) => {
+          // Redirect to callback URL with exam ID
+          const examId = response.id;
+          const callbackUrl = new URL(deepLinkParams.callback_url);
+          callbackUrl.searchParams.set('exam_id', examId.toString());
+          callbackUrl.searchParams.set('status', 'completed');
+          window.location.href = callbackUrl.toString();
+        },
+        onError: (error) => {
+          console.error('Failed to create exam:', error);
+          setIsLoading(false);
+        },
+      });
+    }
   };
 
   const handleCompleteExam = () => {
-    if (existingExam?.data) {
-      completeExamMutation.mutate(existingExam.data.id);
+    if (existingExam) {
+      completeExamMutation.mutate(existingExam.id, {
+        onSuccess: (response) => {
+          // Redirect to callback URL with PDF download link
+          const callbackUrl = new URL(deepLinkParams.callback_url);
+          callbackUrl.searchParams.set('exam_id', response.callback_url);
+          callbackUrl.searchParams.set('pdf_url', response.pdf_url);
+          callbackUrl.searchParams.set('status', 'completed');
+          window.location.href = callbackUrl.toString();
+        },
+      });
     }
   };
 
@@ -186,9 +197,9 @@ function CreateExamContent() {
               🧪 Using mock data for development. Partner ID: {deepLinkParams.partner_id}
             </Alert>
           )}
-          {partnerData?.data && (
+          {partnerData && (
             <Typography color="text.secondary">
-              Partner: {partnerData.data.name}
+              Partner: {partnerData.name}
             </Typography>
           )}
         </Box>
@@ -266,14 +277,14 @@ function CreateExamContent() {
           >
             {isLoading ? 'Saving...' : 'Save Exam'}
           </Button>
-          {existingExam?.data && (
+          {existingExam && (
             <Button
               variant="contained"
               color="success"
               onClick={handleCompleteExam}
-              disabled={isLoading || examQuestions.length === 0}
+              disabled={isLoading || examQuestions.length === 0 || completeExamMutation.isPending}
             >
-              Complete Exam
+              {completeExamMutation.isPending ? 'Completing...' : 'Complete Exam'}
             </Button>
           )}
         </Stack>

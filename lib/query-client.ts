@@ -28,22 +28,26 @@ export const queryClient = new QueryClient({
 // Query keys for consistent caching
 export const queryKeys = {
   // Exam queries
-  exams: ['exams'] as const,
+  exams: (params?: Record<string, unknown>) => ['exams', params] as const,
   exam: (id: number) => ['exams', id] as const,
   
   // Question queries
   questions: (params?: Record<string, unknown>) => ['questions', params] as const,
   question: (id: number) => ['questions', id] as const,
+  questionCategories: () => ['question-categories'] as const,
   
   // Category queries
   categories: ['categories'] as const,
   category: (id: number) => ['categories', id] as const,
   
   // Partner queries
-  partners: ['partners'] as const,
+  partners: (params?: Record<string, unknown>) => ['partners', params] as const,
   partner: (id: number) => ['partners', id] as const,
   
   // User queries
-  users: ['users'] as const,
+  users: (params?: Record<string, unknown>) => ['users', params] as const,
   user: (id: number) => ['users', id] as const,
+  
+  // Auth queries
+  me: () => ['auth', 'me'] as const,
 } as const;

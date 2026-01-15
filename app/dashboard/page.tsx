@@ -6,7 +6,7 @@ import SchoolIcon from "@mui/icons-material/School";
 import QuizIcon from "@mui/icons-material/Quiz";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks";
 
 export default function DashboardPage() {
   const router = useRouter();
