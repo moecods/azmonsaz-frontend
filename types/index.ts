@@ -113,7 +113,7 @@ export interface Exam {
   title: string;
   description?: string;
   subject?: string;
-  partner_id: number;
+  partner_id?: number | null;
   partner?: Partner;
   questions: ExamQuestion[];
   status: ExamStatus;
@@ -141,8 +141,15 @@ export interface CreateExamRequest {
   title: string;
   description?: string;
   subject?: string;
-  partner_id: number;
-  callback_url: string;
+  type?: 'offline' | 'online';
+  callback_url?: string; // Optional for creator users
+  partner_id?: number; // Optional for creator users
+  meta?: {
+    duration_minutes?: number;
+    passing_score?: number;
+    max_attempts?: number;
+    instructions?: string;
+  };
 }
 
 export interface UpdateExamRequest {

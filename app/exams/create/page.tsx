@@ -21,7 +21,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { examSchema, ExamFormData } from '@/lib/validation';
-import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam } from '@/hooks';
+import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam, useAuth } from '@/hooks';
 import { isUsingMockData } from '@/lib/data-service';
 import { deepLinkParamsSchema } from '@/lib/validation';
 import { ExamQuestion } from '@/types';
@@ -32,8 +32,12 @@ import ExamQuestionList from '@/components/ExamQuestionList';
 function CreateExamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user is creator/admin/content_manager (can create exams without partner)
+  const isCreator = user?.roles?.some(role => ['admin', 'content_manager', 'creator'].includes(role)) || false;
 
   // Parse deep link parameters
   const deepLinkParams = {
@@ -42,8 +46,9 @@ function CreateExamContent() {
     exam_id: searchParams.get('exam_id') || undefined,
   };
 
+  // For creator users, deep link parameters are optional
   // In mock data mode, we don't need to validate deep link parameters
-  const validationResult = isUsingMockData() 
+  const validationResult = isUsingMockData() || isCreator
     ? { success: true, data: deepLinkParams }
     : deepLinkParamsSchema.safeParse(deepLinkParams);
 
@@ -118,20 +123,34 @@ function CreateExamContent() {
         },
       });
     } else {
-      createExamMutation.mutate({
+      const examData: any = {
         title: data.title,
         description: data.description,
         subject: data.subject,
-        partner_id: parseInt(deepLinkParams.partner_id),
-        callback_url: deepLinkParams.callback_url,
-      }, {
+        type: 'offline', // Default type
+      };
+
+      // Only add partner_id and callback_url if they exist (for partner-based exams)
+      if (deepLinkParams.partner_id && validationResult.success) {
+        examData.partner_id = parseInt(deepLinkParams.partner_id);
+      }
+      if (deepLinkParams.callback_url && validationResult.success) {
+        examData.callback_url = deepLinkParams.callback_url;
+      }
+
+      createExamMutation.mutate(examData, {
         onSuccess: (response) => {
-          // Redirect to callback URL with exam ID
-          const examId = response.id;
-          const callbackUrl = new URL(deepLinkParams.callback_url);
-          callbackUrl.searchParams.set('exam_id', examId.toString());
-          callbackUrl.searchParams.set('status', 'completed');
-          window.location.href = callbackUrl.toString();
+          // If callback_url exists, redirect to it
+          if (deepLinkParams.callback_url && validationResult.success) {
+            const examId = response.id;
+            const callbackUrl = new URL(deepLinkParams.callback_url);
+            callbackUrl.searchParams.set('exam_id', examId.toString());
+            callbackUrl.searchParams.set('status', 'completed');
+            window.location.href = callbackUrl.toString();
+          } else {
+            // For creator users, redirect to exam edit page
+            router.push(`/exams/edit?exam_id=${response.id}`);
+          }
         },
         onError: (error) => {
           console.error('Failed to create exam:', error);
@@ -175,7 +194,8 @@ function CreateExamContent() {
     setExamQuestions(updatedQuestions);
   };
 
-  if (!validationResult.success && !isUsingMockData()) {
+  // Only show error if not creator and validation failed
+  if (!validationResult.success && !isUsingMockData() && !isCreator) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="error">
