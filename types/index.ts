@@ -5,13 +5,14 @@ export interface User {
   name: string;
   phone_number: string;
   email?: string | null;
-  role: UserRole;
+  roles: string[];
+  permissions: string[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export type UserRole = 'admin' | 'content_manager' | 'partner_user';
+export type UserRole = 'admin' | 'content_manager' | 'creator';
 
 export interface AuthUser {
   id: number;

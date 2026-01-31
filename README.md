@@ -170,15 +170,20 @@ The application includes comprehensive RTL support for Persian/Farsi:
 
 ### Testing
 
+برای اطلاعات کامل درباره تست‌نویسی، به [TESTING_GUIDE.md](./TESTING_GUIDE.md) مراجعه کنید.
+
 ```bash
-# Run tests (when implemented)
-npm test
+# Run tests in watch mode (recommended for development)
+npm run test
 
-# Run tests in watch mode
-npm run test:watch
+# Run tests with UI
+npm run test:ui
 
-# Run tests with coverage
+# Run tests with coverage report
 npm run test:coverage
+
+# Run tests once (for CI/CD)
+npm run test:run
 ```
 
 ## Deployment
@@ -218,12 +223,25 @@ The application can be deployed to any platform that supports Next.js:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Documentation
+
+برای اطلاعات بیشتر، به مستندات زیر مراجعه کنید:
+
+- **[STATUS_REPORT.md](./STATUS_REPORT.md)** - گزارش وضعیت پروژه و کارهای انجام شده
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - راهنمای کامل تست‌نویسی
+- **[STORYBOOK_SETUP.md](./STORYBOOK_SETUP.md)** - راهنمای راه‌اندازی و استفاده از Storybook
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - راهنمای رفع مشکلات رایج
+- **[MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md)** - راهنمای استفاده از Mock Data
+- **[PACKAGES_TO_INSTALL.md](./PACKAGES_TO_INSTALL.md)** - لیست پکیج‌های مورد نیاز
+- **[services/README.md](./services/README.md)** - مستندات Service Layer
+- **[docs/UI_STANDARDS.md](./docs/UI_STANDARDS.md)** - استانداردهای UI/UX
+
 ## Support
 
 For support and questions:
 - Create an issue in the GitHub repository
 - Contact the development team
-- Check the documentation wiki
+- Check the documentation files above
 
 ## Roadmap
 

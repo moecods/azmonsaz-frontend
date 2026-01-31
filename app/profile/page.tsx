@@ -110,12 +110,32 @@ export default function ProfilePage() {
 
                 <Box>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    نقش
+                    نقش‌ها
                   </Typography>
-                  <Typography variant="body1">
-                    {user.role === 'admin' ? 'مدیر' :
-                     user.role === 'content_manager' ? 'مدیر محتوا' : 'کاربر شریک'}
-                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    {user.roles && user.roles.length > 0 ? (
+                      user.roles.map((role) => (
+                        <Chip
+                          key={role}
+                          label={
+                            role === 'admin' ? 'مدیر' :
+                            role === 'content_manager' ? 'مدیر محتوا' :
+                            role === 'creator' ? 'سازنده' : role
+                          }
+                          size="small"
+                          color={
+                            role === 'admin' ? 'error' :
+                            role === 'content_manager' ? 'primary' :
+                            role === 'creator' ? 'success' : 'default'
+                          }
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        بدون نقش
+                      </Typography>
+                    )}
+                  </Stack>
                 </Box>
 
                 {successMessage && (

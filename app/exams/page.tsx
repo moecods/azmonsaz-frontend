@@ -8,54 +8,52 @@ import {
   CardContent,
   Chip,
   Container,
-  Grid,
   Stack,
   Typography,
   Alert,
   CircularProgress,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Grid,
   IconButton,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { dataService } from '@/lib/data-service';
-import { queryKeys } from '@/lib/query-client';
-import { Exam } from '@/types';
+import { useExams } from '@/hooks/useExams';
+import { useRouter } from 'next/navigation';
 import SchoolIcon from '@mui/icons-material/School';
 import EditIcon from '@mui/icons-material/Edit';
-import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
-import QuizIcon from '@mui/icons-material/Quiz';
-import { useRouter } from 'next/navigation';
+import SearchIcon from '@mui/icons-material/Search';
+import { ExamListItem } from '@/services/exams/ExamService';
 
 export default function ExamsPage() {
   const router = useRouter();
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'draft'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'online' | 'offline'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Note: In a real implementation, you would fetch exams from the API
-  // For now, we'll show a placeholder since we don't have an endpoint for listing all exams
-  const { data: examsData, isLoading: examsLoading, error } = useQuery({
-    queryKey: ['exams-list'],
-    queryFn: async () => {
-      // This would be replaced with actual API call
-      // return dataService.getExams();
-      return { data: [] };
-    },
+  const { data, isLoading, error } = useExams({
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    type: typeFilter !== 'all' ? typeFilter : undefined,
+    search: searchQuery || undefined,
+    per_page: 20,
   });
 
-  const handleEditExam = (exam: Exam) => {
-    // Generate deep link for exam editing
-    const deepLink = `/exams/create?partner_id=${exam.partner_id}&callback_url=${encodeURIComponent(exam.partner?.callback_url || '')}&exam_id=${exam.id}`;
-    router.push(deepLink);
+  const exams: ExamListItem[] = data?.data || [];
+  const meta = data?.meta;
+
+  const handleViewExam = (examId: number) => {
+    router.push(`/exams/${examId}`);
   };
 
-  const handleDownloadPDF = (exam: Exam) => {
-    if (exam.pdf_url) {
-      window.open(exam.pdf_url, '_blank');
-    }
+  const handleEditExam = (examId: number) => {
+    router.push(`/exams/edit?exam_id=${examId}`);
   };
 
-  const exams: Exam[] = examsData?.data || [];
-
-  if (examsLoading) {
+  if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box display="flex" justifyContent="center" p={3}>
@@ -69,7 +67,7 @@ export default function ExamsPage() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load exams. Please try again later.
+          {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
         </Alert>
       </Container>
     );
@@ -80,176 +78,194 @@ export default function ExamsPage() {
       <Stack spacing={4}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            All Exams
+            مدیریت آزمون‌ها
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            View and manage all created exams.
+            مشاهده و مدیریت آزمون‌های ایجاد شده
           </Typography>
           
-          {/* Quick Actions */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => router.push('/exams/custom')}
-              sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
-            >
-              Create Custom Exam
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<QuizIcon />}
-              onClick={() => router.push('/exams/create')}
-            >
-              Traditional Builder
-            </Button>
-          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => router.push('/exams/create')}
+            sx={{ mb: 3 }}
+          >
+            ایجاد آزمون جدید
+          </Button>
         </Box>
 
+        {/* Filters */}
+        <Card>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  placeholder="جستجو در عنوان آزمون..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>وضعیت</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="وضعیت"
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                  >
+                    <MenuItem value="all">همه</MenuItem>
+                    <MenuItem value="draft">پیش‌نویس</MenuItem>
+                    <MenuItem value="completed">تکمیل شده</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>نوع</InputLabel>
+                  <Select
+                    value={typeFilter}
+                    label="نوع"
+                    onChange={(e) => setTypeFilter(e.target.value as any)}
+                  >
+                    <MenuItem value="all">همه</MenuItem>
+                    <MenuItem value="offline">آفلاین</MenuItem>
+                    <MenuItem value="online">آنلاین</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Exams List */}
         {exams.length === 0 ? (
           <Card>
             <CardContent>
               <Box textAlign="center" py={4}>
                 <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No exams created yet
+                  آزمونی یافت نشد
                 </Typography>
                 <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  Start by creating your first exam using our custom builder or partner websites.
+                  برای شروع، اولین آزمون خود را ایجاد کنید.
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                  <Button
-                    variant="contained"
-                    onClick={() => router.push('/exams/custom')}
-                    startIcon={<AddIcon />}
-                    sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
-                  >
-                    Create Custom Exam
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => router.push('/partners')}
-                    startIcon={<SchoolIcon />}
-                  >
-                    Use Partner Sites
-                  </Button>
-                </Box>
+                <Button
+                  variant="contained"
+                  onClick={() => router.push('/exams/create')}
+                  startIcon={<AddIcon />}
+                >
+                  ایجاد آزمون جدید
+                </Button>
               </Box>
             </CardContent>
           </Card>
         ) : (
-          <Box 
-            sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-              gap: 3 
-            }}
-          >
-            {exams.map((exam) => (
-              <Card 
-                key={exam.id}
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Stack spacing={2}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <SchoolIcon color="primary" />
-                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                        {exam.title}
-                      </Typography>
-                      <Chip 
-                        label={exam.status} 
-                        color={
-                          exam.status === 'completed' ? 'success' :
-                          exam.status === 'published' ? 'primary' : 'default'
-                        }
-                        size="small"
-                      />
-                    </Stack>
+          <>
+            <Box 
+              sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+                gap: 3 
+              }}
+            >
+              {exams.map((exam) => (
+                <Card 
+                  key={exam.id}
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4,
+                    },
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Stack spacing={2}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <SchoolIcon color="primary" />
+                        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                          {exam.title}
+                        </Typography>
+                        <Chip 
+                          label={exam.status === 'completed' ? 'تکمیل شده' : 'پیش‌نویس'} 
+                          color={exam.status === 'completed' ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </Stack>
 
-                    {exam.description && (
+                      <Stack direction="row" spacing={1}>
+                        <Chip 
+                          label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} 
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Stack>
+
+                      {exam.partner && (
+                        <Typography variant="body2" color="text.secondary">
+                          شریک: {exam.partner.name}
+                        </Typography>
+                      )}
+
+                      {exam.creator && (
+                        <Typography variant="body2" color="text.secondary">
+                          ایجادکننده: {exam.creator.name}
+                        </Typography>
+                      )}
+
                       <Typography variant="body2" color="text.secondary">
-                        {exam.description}
+                        تاریخ ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR')}
                       </Typography>
-                    )}
 
-                    {exam.subject && (
-                      <Typography variant="body2" color="text.secondary">
-                        Subject: {exam.subject}
-                      </Typography>
-                    )}
+                      {exam.completed_at && (
+                        <Typography variant="body2" color="text.secondary">
+                          تاریخ تکمیل: {new Date(exam.completed_at).toLocaleDateString('fa-IR')}
+                        </Typography>
+                      )}
 
-                    <Typography variant="body2" color="text.secondary">
-                      Questions: {exam.questions?.length || 0}
-                    </Typography>
-
-                    {exam.partner && (
-                      <Typography variant="body2" color="text.secondary">
-                        Partner: {exam.partner.name}
-                      </Typography>
-                    )}
-
-                    <Typography variant="body2" color="text.secondary">
-                      Created: {new Date(exam.created_at).toLocaleDateString()}
-                    </Typography>
-
-                    <Stack direction="row" spacing={1} sx={{ mt: 'auto' }}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleEditExam(exam)}
-                        startIcon={<EditIcon />}
-                      >
-                        Edit
-                      </Button>
-                      {exam.pdf_url && (
+                      <Stack direction="row" spacing={1} sx={{ mt: 'auto', pt: 2 }}>
                         <Button
                           variant="outlined"
                           size="small"
-                          onClick={() => handleDownloadPDF(exam)}
-                          startIcon={<DownloadIcon />}
+                          onClick={() => handleViewExam(exam.id)}
+                          startIcon={<VisibilityIcon />}
+                          fullWidth
                         >
-                          PDF
+                          مشاهده
                         </Button>
-                      )}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleEditExam(exam.id)}
+                          startIcon={<EditIcon />}
+                          fullWidth
+                        >
+                          ویرایش
+                        </Button>
+                      </Stack>
                     </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        )}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
 
-        <Card>
-          <CardContent>
-            <Stack spacing={2}>
-              <Typography variant="h6">
-                Exam Management
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Create new exams using partner websites
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Edit existing exams to modify questions and settings
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Download PDF versions of completed exams
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Track exam status and completion
-              </Typography>
-            </Stack>
-          </CardContent>
-        </Card>
+            {/* Pagination Info */}
+            {meta && meta.total > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  نمایش {exams.length} از {meta.total} آزمون
+                </Typography>
+              </Box>
+            )}
+          </>
+        )}
       </Stack>
     </Container>
   );

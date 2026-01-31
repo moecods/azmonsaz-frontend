@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SchoolIcon from "@mui/icons-material/School";
 import QuizIcon from "@mui/icons-material/Quiz";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks";
 
@@ -77,8 +78,26 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
+            <Card sx={{ height: '100%', textAlign: 'center', p: 3 }}>
+              <CardContent>
+                <ListAltIcon sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+                <Typography variant="h5" gutterBottom>
+                  مدیریت آزمون‌ها
+                </Typography>
+                <Typography color="text.secondary" sx={{ mb: 3 }}>
+                  مشاهده و مدیریت آزمون‌های ایجاد شده، شرکت‌کنندگان و نتایج.
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  fullWidth
+                  onClick={() => router.push('/exams')}
+                >
+                  مشاهده آزمون‌ها
+                </Button>
+              </CardContent>
+            </Card>
 
-            {(user?.role === 'admin' || user?.role === 'content_manager') && (
+            {(user?.roles?.includes('admin') || user?.roles?.includes('content_manager')) && (
               <Card sx={{ height: '100%', textAlign: 'center', p: 3 }}>
                 <CardContent>
                   <AdminPanelSettingsIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />

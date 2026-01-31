@@ -14,8 +14,9 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useExamBySignedUrl, useAddQuestionToExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/useExams';
+import { examService } from '@/services';
 import QuestionSelector from '@/components/QuestionSelector';
 import ExamQuestionList from '@/components/ExamQuestionList';
 import { ExamQuestion } from '@/types';
@@ -57,8 +58,24 @@ function EditExamContent() {
   const [participationUrl, setParticipationUrl] = useState<string | null>(null);
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
 
-  // Fetch exam data using signed URL
-  const { data: examData, isLoading, error, refetch } = useExamBySignedUrl(showUrl);
+  // Fetch exam data - use signed URL if available, otherwise use direct API for creator/admin
+  const { data: examDataBySignedUrl } = useExamBySignedUrl(showUrl);
+  const { data: examDataByDirect, isLoading: isLoadingDirect, error: errorDirect } = useQuery({
+    queryKey: ['exam', 'edit', examId],
+    queryFn: async () => {
+      if (!examId || showUrl) return null; // Use signed URL if available
+      const response = await examService.getExamForEdit(parseInt(examId));
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch exam');
+      }
+      return response.data;
+    },
+    enabled: !!examId && !showUrl, // Only fetch if examId exists and no signed URL
+  });
+
+  const examData = showUrl ? examDataBySignedUrl : examDataByDirect;
+  const isLoading = showUrl ? false : isLoadingDirect;
+  const error = showUrl ? undefined : errorDirect;
   const exam = examData as ExamData | undefined;
 
   // Convert exam_questions to ExamQuestion format
@@ -201,7 +218,8 @@ function EditExamContent() {
     completeExamMutation.mutate();
   };
 
-  if (!showUrl && !isCompleted) {
+  // Allow editing if examId is provided (for creator/admin) or if showUrl is provided (for signed access)
+  if (!showUrl && !examId && !isCompleted) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">لینک معتبر نیست. لطفاً از لینک ارائه شده توسط سیستم استفاده کنید.</Alert>

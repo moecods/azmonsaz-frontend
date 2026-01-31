@@ -83,7 +83,11 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(data);
-      router.push('/dashboard');
+      // Use replace instead of push to avoid back button issues
+      // The delay ensures query cache is updated
+      setTimeout(() => {
+        router.replace('/dashboard');
+      }, 150);
     } catch (err: any) {
       setError(err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
     }
@@ -109,7 +113,11 @@ export default function LoginPage() {
     setError(null);
     try {
       await verifyOtp(data);
-      router.push('/dashboard');
+      // Use replace instead of push to avoid back button issues
+      // The delay ensures query cache is updated
+      setTimeout(() => {
+        router.replace('/dashboard');
+      }, 150);
     } catch (err: any) {
       setError(err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
     }

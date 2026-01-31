@@ -1,6 +1,42 @@
 # راهنمای رفع مشکلات
 
-## مشکل: PostCSS Config Error در Vitest
+## مشکلات عمومی
+
+### مشکل: vitest: command not found
+
+اگر این خطا را می‌بینید:
+
+```bash
+npm install
+npm run test
+```
+
+یا از npx استفاده کنید:
+
+```bash
+npx vitest
+```
+
+### مشکل: Import errors در تست‌ها
+
+اگر با خطاهای import مواجه شدید:
+
+1. مطمئن شوید که path aliases در `vitest.config.mjs` و `tsconfig.json` یکسان هستند
+2. مطمئن شوید که `@/` به root directory اشاره می‌کند
+
+### مشکل: CSS imports در تست‌ها
+
+اگر با خطاهای CSS import مواجه شدید، در `vitest.config.mjs` اضافه کنید:
+
+```js
+css: {
+  postcss: false,
+}
+```
+
+## مشکلات Vitest
+
+### مشکل: PostCSS Config Error در Vitest
 
 اگر با خطای زیر مواجه شدید:
 
@@ -34,7 +70,7 @@ export default {
 };
 ```
 
-## مشکل: CJS Build Deprecated Warning
+### مشکل: CJS Build Deprecated Warning
 
 اگر warning زیر را می‌بینید:
 
@@ -44,35 +80,44 @@ The CJS build of Vite's Node API is deprecated
 
 این فقط یک warning است و مشکلی ایجاد نمی‌کند. برای رفع آن، مطمئن شوید که از `.mjs` برای config files استفاده می‌کنید.
 
-## مشکل: vitest: command not found
+## مشکلات CORS
 
-اگر این خطا را می‌بینید:
+### مشکل: CORS Error
 
-```bash
-npm install
-npm run test
+اگر با خطای CORS مواجه شدید:
+
+```
+Access to fetch at 'http://localhost:3000/' (redirected from 'http://azmonsaz.test/api/questions') 
+from origin 'http://localhost:3000' has been blocked by CORS policy
 ```
 
-یا از npx استفاده کنید:
+**راه حل‌ها:**
 
-```bash
-npx vitest
-```
+1. **بررسی `.env.local`**:
+   ```env
+   NEXT_PUBLIC_API_URL=http://azmonsaz.test/api
+   ```
+   یا اگر از Laravel built-in server استفاده می‌کنید:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000/api
+   ```
 
-## مشکل: Import errors در تست‌ها
+2. **Restart کردن Next.js dev server** بعد از تغییر environment variable
 
-اگر با خطاهای import مواجه شدید:
+3. **بررسی Laravel backend**:
+   ```bash
+   curl http://azmonsaz.test/api/question-categories
+   ```
 
-1. مطمئن شوید که path aliases در `vitest.config.mjs` و `tsconfig.json` یکسان هستند
-2. مطمئن شوید که `@/` به root directory اشاره می‌کند
+4. **Clear کردن Laravel cache**:
+   ```bash
+   cd azmonsaz
+   php artisan config:clear
+   php artisan cache:clear
+   php artisan route:clear
+   ```
 
-## مشکل: CSS imports در تست‌ها
+5. **بررسی CORS middleware** در Laravel
 
-اگر با خطاهای CSS import مواجه شدید، در `vitest.config.mjs` اضافه کنید:
-
-```js
-css: {
-  postcss: false,
-}
-```
+6. **Clear کردن browser cache** (hard refresh: Cmd+Shift+R / Ctrl+Shift+R)
 

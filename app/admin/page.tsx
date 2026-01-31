@@ -105,7 +105,7 @@ export default function AdminPage() {
       name: '',
       phone_number: '',
       password: '',
-      role: 'content_manager',
+      role: 'creator',
     },
   });
 
@@ -178,11 +178,14 @@ export default function AdminPage() {
 
   const handleOpenEditUser = (user: User) => {
     setEditingUser(user);
+    const firstRole = user.roles?.[0] || 'creator';
     userForm.reset({
       name: user.name,
       phone_number: user.phone_number,
       password: '', // Don't pre-fill password
-      role: user.role,
+      role: (firstRole === 'admin' || firstRole === 'content_manager' || firstRole === 'creator') 
+        ? firstRole 
+        : 'creator' as 'admin' | 'content_manager' | 'creator',
     });
     setUserOpen(true);
   };
@@ -489,17 +492,28 @@ export default function AdminPage() {
                           <TableCell>{user.name}</TableCell>
                           <TableCell>{user.phone_number}</TableCell>
                           <TableCell>
-                            <Chip 
-                              label={
-                                user.role === 'admin' ? 'مدیر' :
-                                user.role === 'content_manager' ? 'مدیر محتوا' : 'کاربر شریک'
-                              } 
-                              color={
-                                user.role === 'admin' ? 'error' :
-                                user.role === 'content_manager' ? 'primary' : 'default'
-                              }
-                              size="small"
-                            />
+                            {user.roles && user.roles.length > 0 ? (
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                                {user.roles.map((role) => (
+                                  <Chip
+                                    key={role}
+                                    label={
+                                      role === 'admin' ? 'مدیر' :
+                                      role === 'content_manager' ? 'مدیر محتوا' :
+                                      role === 'creator' ? 'سازنده' : role
+                                    }
+                                    color={
+                                      role === 'admin' ? 'error' :
+                                      role === 'content_manager' ? 'primary' :
+                                      role === 'creator' ? 'success' : 'default'
+                                    }
+                                    size="small"
+                                  />
+                                ))}
+                              </Stack>
+                            ) : (
+                              <Chip label="بدون نقش" size="small" color="default" />
+                            )}
                           </TableCell>
                           <TableCell>
                             <Chip 

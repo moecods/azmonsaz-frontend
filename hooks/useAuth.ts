@@ -60,8 +60,10 @@ export function useLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      // Set user data in cache
+      // Set user data in cache and refetch to ensure consistency
       queryClient.setQueryData(queryKeys.me(), data.user);
+      // Invalidate to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.me() });
     },
   });
 }
@@ -118,8 +120,10 @@ export function useOtpLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      // Set user data in cache
+      // Set user data in cache and refetch to ensure consistency
       queryClient.setQueryData(queryKeys.me(), data.user);
+      // Invalidate to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.me() });
     },
   });
 

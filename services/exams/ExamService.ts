@@ -29,6 +29,13 @@ export class ExamService {
   }
 
   /**
+   * Get exam for editing (for creator/admin - no signed URL required)
+   */
+  async getExamForEdit(id: number): Promise<ApiResponse<Exam>> {
+    return this.apiClient.get<Exam>(`/exams/${id}/edit-data`);
+  }
+
+  /**
    * Get exam by signed URL (for public access)
    */
   async getExamBySignedUrl(signedUrl: string): Promise<ApiResponse<Exam>> {
@@ -127,5 +134,236 @@ export class ExamService {
   ): Promise<ApiResponse<void>> {
     return this.apiClient.delete(`/exams/${examId}/questions/${questionId}`);
   }
+
+  /**
+   * Get list of exams (filtered by user role)
+   */
+  async getExams(params?: {
+    per_page?: number;
+    status?: 'completed' | 'draft';
+    type?: 'online' | 'offline';
+    search?: string;
+    page?: number;
+  }): Promise<ApiResponse<{
+    data: ExamListItem[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+
+    const url = `/exams${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.apiClient.get(url);
+  }
+
+  /**
+   * Get exam details with participants (for creator/admin)
+   */
+  async getExamWithParticipants(id: number): Promise<ApiResponse<ExamWithParticipants>> {
+    return this.apiClient.get<ExamWithParticipants>(`/exams/${id}/manage`);
+  }
+
+  /**
+   * Get available exams for logged-in user (exams they are registered for)
+   */
+  async getAvailableExams(): Promise<ApiResponse<{ data: AvailableExam[] }>> {
+    return this.apiClient.get<{ data: AvailableExam[] }>('/exams/available');
+  }
+
+  /**
+   * Get exam info by participation link (public access)
+   */
+  async getExamInfo(id: number): Promise<ApiResponse<ExamInfo>> {
+    return this.apiClient.get<ExamInfo>(`/exams/${id}/info`);
+  }
+
+  /**
+   * Register user for exam
+   */
+  async registerForExam(id: number): Promise<ApiResponse<ExamRegistration>> {
+    return this.apiClient.post<ExamRegistration>(`/exams/${id}/register`);
+  }
+
+  /**
+   * Start exam (begin taking the exam)
+   */
+  async startExam(id: number): Promise<ApiResponse<ExamStartResponse>> {
+    return this.apiClient.post<ExamStartResponse>(`/exams/${id}/start`);
+  }
+
+  /**
+   * Save answer during exam
+   */
+  async saveAnswer(id: number, data: { exam_question_id: number; answer: any }): Promise<ApiResponse<{ saved: boolean }>> {
+    return this.apiClient.post<{ saved: boolean }>(`/exams/${id}/save-answer`, data);
+  }
+
+  /**
+   * Submit exam (complete the exam)
+   */
+  async submitExam(id: number): Promise<ApiResponse<ExamSubmissionResult>> {
+    return this.apiClient.post<ExamSubmissionResult>(`/exams/${id}/submit`);
+  }
+
+  /**
+   * Get user's exam result with detailed answers and ranking
+   */
+  async getMyExamResult(id: number): Promise<ApiResponse<ExamResultDetail>> {
+    return this.apiClient.get<ExamResultDetail>(`/exams/${id}/my-result`);
+  }
+}
+
+export interface ExamListItem {
+  id: number;
+  title: string;
+  type: 'online' | 'offline';
+  partner_id: number | null;
+  partner?: {
+    id: number;
+    name: string;
+  } | null;
+  created_by: number | null;
+  creator?: {
+    id: number;
+    name: string;
+  } | null;
+  status: 'completed' | 'draft';
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamParticipant {
+  id: number;
+  name: string | null;
+  phone_number: string | null;
+  email: string | null;
+  score: number | null;
+  total_points: number | null;
+  passed: boolean;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ExamWithParticipants {
+  id: number;
+  title: string;
+  type: 'online' | 'offline';
+  meta: Record<string, unknown>;
+  partner_id: number | null;
+  partner?: {
+    id: number;
+    name: string;
+  } | null;
+  created_by: number | null;
+  creator?: {
+    id: number;
+    name: string;
+  } | null;
+  status: 'completed' | 'draft';
+  completed_at: string | null;
+  participation_link: string | null;
+  questions_count: number;
+  participants_count: number;
+  participants: ExamParticipant[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AvailableExam {
+  id: number;
+  title: string;
+  type: 'online' | 'offline';
+  meta: Record<string, unknown>;
+  status: 'registered' | 'started' | 'completed';
+  registered_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  creator?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+export interface ExamInfo {
+  id: number;
+  title: string;
+  type: 'online' | 'offline';
+  meta: Record<string, unknown>;
+  questions_count: number;
+  creator?: {
+    id: number;
+    name: string;
+  } | null;
+  is_registered: boolean;
+  registration_status: 'registered' | 'started' | 'completed' | null;
+  can_start: boolean;
+}
+
+export interface ExamRegistration {
+  id: number;
+  exam_id: number;
+  status: 'registered';
+  registered_at: string;
+}
+
+export interface ExamStartResponse {
+  exam: {
+    id: number;
+    title: string;
+    type: 'online' | 'offline';
+    meta: Record<string, unknown>;
+  };
+  questions: Array<{
+    id: number;
+    payload: Record<string, unknown>;
+  }>;
+  started_at: string;
+}
+
+export interface ExamSubmissionResult {
+  score: number;
+  total_points: number;
+  passed: boolean;
+  completed_at: string;
+}
+
+export interface ExamResultDetail {
+  exam: {
+    id: number;
+    title: string;
+    type: 'online' | 'offline';
+    meta: Record<string, unknown>;
+  };
+  result: {
+    score: number;
+    total_points: number;
+    passed: boolean;
+    percentage: number;
+    rank: number;
+    total_participants: number;
+    started_at: string | null;
+    completed_at: string | null;
+  };
+  questions: Array<{
+    id: number;
+    question_text: string;
+    type: string;
+    options?: Array<{ text: string; is_correct?: boolean }>;
+    correct_answer: number | number[] | string;
+    your_answer: number | number[] | string | null;
+    is_correct: boolean;
+    points_earned: number;
+    points_total: number;
+  }>;
 }
 

@@ -121,9 +121,24 @@ export const Default: Story = {
 - مطمئن شوید که همه dependencies نصب شده‌اند
 - پورت 6006 را بررسی کنید که آزاد باشد
 
+### مشکل: `__dirname is not defined`
+- مشکل: در ESM modules، `__dirname` به صورت خودکار تعریف نمی‌شود
+- حل: استفاده از `fileURLToPath` و `import.meta.url` برای تعریف `__dirname`
+
 ### مشکل: Import errors
 - مطمئن شوید که path aliases در `.storybook/main.ts` به درستی تنظیم شده‌اند
 
 ### مشکل: MUI components کار نمی‌کنند
 - مطمئن شوید که `ThemeRegistry` در decorators اضافه شده است
+
+### مشکل: Addons نصب نشده
+- اگر addons زیر نصب نشده باشند، از `main.ts` حذف کنید:
+  - `@storybook/addon-essentials`
+  - `@storybook/addon-interactions`
+  - `@storybook/addon-links`
+  - `@storybook/addon-viewport`
+- یا آنها را نصب کنید:
+  ```bash
+  npm install --save-dev @storybook/addon-essentials @storybook/addon-interactions @storybook/addon-links @storybook/addon-viewport
+  ```
 

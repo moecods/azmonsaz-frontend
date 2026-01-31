@@ -148,7 +148,7 @@ export const userSchema = z.object({
   phone_number: z.string().min(1, 'شماره تلفن الزامی است').regex(/^(\+98|0)?9\d{9}$/, 'شماره تلفن معتبر نیست. فرمت صحیح: 09123456789 یا +989123456789'),
   email: z.string().email('ایمیل معتبر نیست').max(255, 'ایمیل نمی‌تواند بیشتر از 255 کاراکتر باشد').optional().nullable(),
   password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد').optional(),
-  role: z.enum(['admin', 'content_manager', 'partner_user']),
+  role: z.enum(['admin', 'content_manager', 'creator']),
 });
 
 // Question category validation schemas
