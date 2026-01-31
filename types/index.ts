@@ -18,7 +18,8 @@ export interface AuthUser {
   name: string;
   phone_number: string;
   email?: string | null;
-  role: UserRole;
+  roles: string[];
+  permissions: string[];
   is_active: boolean;
 }
 
@@ -27,9 +28,42 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterCredentials {
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface OtpLoginRequest {
+  phone_number: string;
+}
+
+export interface OtpLoginVerify {
+  phone_number: string;
+  code: string;
+}
+
+export interface ForgotPasswordRequest {
+  phone_number: string;
+}
+
+export interface ResetPasswordRequest {
+  phone_number: string;
+  code: string;
+  password: string;
+  password_confirmation: string;
+}
+
 export interface LoginResponse {
   user: AuthUser;
   token: string;
+}
+
+export interface OtpRequestResponse {
+  message: string;
+  debug_code?: string; // Only in development
 }
 
 export interface Partner {

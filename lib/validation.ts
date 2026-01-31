@@ -93,10 +93,53 @@ export const partnerSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
+// Phone number regex pattern (reusable)
+const phoneNumberRegex = /^(\+98|0)?9\d{9}$/;
+const phoneNumberError = 'شماره تلفن معتبر نیست. فرمت صحیح: 09123456789 یا +989123456789';
+
 // Login validation schema
 export const loginSchema = z.object({
-  phone_number: z.string().min(1, 'شماره تلفن الزامی است').regex(/^(\+98|0)?9\d{9}$/, 'شماره تلفن معتبر نیست. فرمت صحیح: 09123456789 یا +989123456789'),
+  phone_number: z.string().min(1, 'شماره تلفن الزامی است').regex(phoneNumberRegex, phoneNumberError),
   password: z.string().min(1, 'رمز عبور الزامی است'),
+});
+
+// Register validation schema
+export const registerSchema = z.object({
+  first_name: z.string().min(1, 'نام الزامی است').max(100, 'نام نمی‌تواند بیشتر از 100 کاراکتر باشد'),
+  last_name: z.string().min(1, 'نام خانوادگی الزامی است').max(100, 'نام خانوادگی نمی‌تواند بیشتر از 100 کاراکتر باشد'),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد'),
+  password_confirmation: z.string().min(1, 'تایید رمز عبور الزامی است'),
+}).refine((data) => data.password === data.password_confirmation, {
+  message: 'تایید رمز عبور با رمز عبور یکسان نیست',
+  path: ['password_confirmation'],
+});
+
+// OTP Login Request schema
+export const otpLoginRequestSchema = z.object({
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+});
+
+// OTP Login Verify schema
+export const otpLoginVerifySchema = z.object({
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  code: z.string().min(1, 'کد یکبار مصرف الزامی است').max(10, 'کد یکبار مصرف معتبر نیست'),
+});
+
+// Forgot Password Request schema
+export const forgotPasswordSchema = z.object({
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+});
+
+// Reset Password schema
+export const resetPasswordSchema = z.object({
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  code: z.string().min(1, 'کد یکبار مصرف الزامی است').max(10, 'کد یکبار مصرف معتبر نیست'),
+  password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد'),
+  password_confirmation: z.string().min(1, 'تایید رمز عبور الزامی است'),
+}).refine((data) => data.password === data.password_confirmation, {
+  message: 'تایید رمز عبور با رمز عبور یکسان نیست',
+  path: ['password_confirmation'],
 });
 
 // User validation schemas
@@ -126,6 +169,11 @@ export type QuestionFormData = z.infer<typeof questionSchema>;
 export type ExamFormData = z.infer<typeof examSchema>;
 export type PartnerFormData = z.infer<typeof partnerSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
+export type OtpLoginRequestFormData = z.infer<typeof otpLoginRequestSchema>;
+export type OtpLoginVerifyFormData = z.infer<typeof otpLoginVerifySchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type UserFormData = z.infer<typeof userSchema>;
 export type QuestionCategoryFormData = z.infer<typeof questionCategorySchema>;
 export type DeepLinkParams = z.infer<typeof deepLinkParamsSchema>;
