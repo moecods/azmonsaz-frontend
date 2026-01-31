@@ -210,7 +210,7 @@ function CreateExamContent() {
       <Stack spacing={4}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            {existingExam?.data ? 'Edit Exam' : 'Create New Exam'}
+            {existingExam ? 'Edit Exam' : 'Create New Exam'}
           </Typography>
           {isUsingMockData() && (
             <Alert severity="info" sx={{ mb: 2 }}>
