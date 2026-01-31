@@ -90,15 +90,24 @@ export default function LoginPage() {
         router.replace('/dashboard');
       }, 150);
     } catch (err: any) {
+      console.error('Login error:', err);
       // Extract error message from ApiError with validation errors
-      if (err instanceof ApiError && err.errors) {
-        // Get first error message from errors object
-        const firstErrorKey = Object.keys(err.errors)[0];
-        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
-        setError(firstErrorMessage || err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
-      } else {
-        setError(err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
+      let errorMessage = 'ورود ناموفق بود. لطفا دوباره تلاش کنید.';
+      
+      if (err instanceof ApiError) {
+        if (err.errors) {
+          // Get first error message from errors object
+          const firstErrorKey = Object.keys(err.errors)[0];
+          const firstErrorMessage = err.errors[firstErrorKey]?.[0];
+          errorMessage = firstErrorMessage || err.message || errorMessage;
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
       }
+      
+      setError(errorMessage);
     }
   };
 
