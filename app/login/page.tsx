@@ -30,12 +30,13 @@ import {
   ForgotPasswordFormData,
 } from '@/lib/validation';
 import { useAuth, useOtpLogin, useForgotPassword } from '@/hooks';
+import { ApiError } from '@/services';
 
 type LoginTab = 'password' | 'otp' | 'forgot';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoggingIn } = useAuth();
+  const { loginAsync, isLoggingIn } = useAuth();
   const { requestOtp, verifyOtp, isRequestingOtp, isVerifyingOtp } = useOtpLogin();
   const { requestOtp: requestForgotOtp, isRequestingOtp: isRequestingForgotOtp } = useForgotPassword();
   
@@ -82,14 +83,22 @@ export default function LoginPage() {
   const handlePasswordLogin = async (data: LoginFormData) => {
     setError(null);
     try {
-      await login(data);
+      await loginAsync(data);
       // Use replace instead of push to avoid back button issues
       // The delay ensures query cache is updated
       setTimeout(() => {
         router.replace('/dashboard');
       }, 150);
     } catch (err: any) {
-      setError(err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
+      // Extract error message from ApiError with validation errors
+      if (err instanceof ApiError && err.errors) {
+        // Get first error message from errors object
+        const firstErrorKey = Object.keys(err.errors)[0];
+        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
+        setError(firstErrorMessage || err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
+      } else {
+        setError(err.message || 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
+      }
     }
   };
 
@@ -105,7 +114,14 @@ export default function LoginPage() {
       }
       otpVerifyForm.setValue('phone_number', data.phone_number);
     } catch (err: any) {
-      setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      // Extract error message from ApiError with validation errors
+      if (err instanceof ApiError && err.errors) {
+        const firstErrorKey = Object.keys(err.errors)[0];
+        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
+        setError(firstErrorMessage || err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      } else {
+        setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      }
     }
   };
 
@@ -119,7 +135,14 @@ export default function LoginPage() {
         router.replace('/dashboard');
       }, 150);
     } catch (err: any) {
-      setError(err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
+      // Extract error message from ApiError with validation errors
+      if (err instanceof ApiError && err.errors) {
+        const firstErrorKey = Object.keys(err.errors)[0];
+        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
+        setError(firstErrorMessage || err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
+      } else {
+        setError(err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
+      }
     }
   };
 
@@ -134,7 +157,14 @@ export default function LoginPage() {
         setDebugCode(result.debug_code);
       }
     } catch (err: any) {
-      setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      // Extract error message from ApiError with validation errors
+      if (err instanceof ApiError && err.errors) {
+        const firstErrorKey = Object.keys(err.errors)[0];
+        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
+        setError(firstErrorMessage || err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      } else {
+        setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      }
     }
   };
 
