@@ -17,8 +17,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Grid,
   IconButton,
+  Pagination,
 } from '@mui/material';
 import { useExams } from '@/hooks/useExams';
 import { useRouter } from 'next/navigation';
@@ -28,17 +28,20 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import { ExamListItem } from '@/services/exams/ExamService';
+import Breadcrumb from '@/components/Breadcrumb';
 
 export default function ExamsPage() {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'draft'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, error } = useExams({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     search: searchQuery || undefined,
+    page,
     per_page: 20,
   });
 
@@ -76,6 +79,7 @@ export default function ExamsPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={4}>
+        <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
           <Typography variant="h4" gutterBottom>
             مدیریت آزمون‌ها
@@ -97,47 +101,50 @@ export default function ExamsPage() {
         {/* Filters */}
         <Card>
           <CardContent>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  placeholder="جستجو در عنوان آزمون..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                placeholder="جستجو در عنوان آزمون..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                }}
+              />
+              <FormControl fullWidth>
+                <InputLabel>وضعیت</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="وضعیت"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as any);
+                    setPage(1);
                   }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>وضعیت</InputLabel>
-                  <Select
-                    value={statusFilter}
-                    label="وضعیت"
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                  >
-                    <MenuItem value="all">همه</MenuItem>
-                    <MenuItem value="draft">پیش‌نویس</MenuItem>
-                    <MenuItem value="completed">تکمیل شده</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>نوع</InputLabel>
-                  <Select
-                    value={typeFilter}
-                    label="نوع"
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
-                  >
-                    <MenuItem value="all">همه</MenuItem>
-                    <MenuItem value="offline">آفلاین</MenuItem>
-                    <MenuItem value="online">آنلاین</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                >
+                  <MenuItem value="all">همه</MenuItem>
+                  <MenuItem value="draft">پیش‌نویس</MenuItem>
+                  <MenuItem value="completed">تکمیل شده</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>نوع</InputLabel>
+                <Select
+                  value={typeFilter}
+                  label="نوع"
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value as any);
+                    setPage(1);
+                  }}
+                >
+                  <MenuItem value="all">همه</MenuItem>
+                  <MenuItem value="offline">آفلاین</MenuItem>
+                  <MenuItem value="online">آنلاین</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
           </CardContent>
         </Card>
 
@@ -193,11 +200,13 @@ export default function ExamsPage() {
                         <Typography variant="h6" sx={{ flexGrow: 1 }}>
                           {exam.title}
                         </Typography>
-                        <Chip 
-                          label={exam.status === 'completed' ? 'تکمیل شده' : 'پیش‌نویس'} 
-                          color={exam.status === 'completed' ? 'success' : 'default'}
-                          size="small"
-                        />
+                        {exam.status !== 'completed' && (
+                          <Chip 
+                            label="پیش‌نویس" 
+                            color="default"
+                            size="small"
+                          />
+                        )}
                       </Stack>
 
                       <Stack direction="row" spacing={1}>
@@ -220,13 +229,23 @@ export default function ExamsPage() {
                         </Typography>
                       )}
 
-                      <Typography variant="body2" color="text.secondary">
-                        تاریخ ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR')}
-                      </Typography>
-
-                      {exam.completed_at && (
+                      {(exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta) && (
                         <Typography variant="body2" color="text.secondary">
-                          تاریخ تکمیل: {new Date(exam.completed_at).toLocaleDateString('fa-IR')}
+                          تاریخ شروع: {new Date((exam.meta as any).start_at).toLocaleDateString('fa-IR', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </Typography>
+                      )}
+
+                      {(exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta) && (
+                        <Typography variant="body2" color="text.secondary">
+                          تاریخ پایان: {new Date((exam.meta as any).end_at).toLocaleDateString('fa-IR', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </Typography>
                       )}
 
@@ -256,12 +275,21 @@ export default function ExamsPage() {
               ))}
             </Box>
 
-            {/* Pagination Info */}
-            {meta && meta.total > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  نمایش {exams.length} از {meta.total} آزمون
-                </Typography>
+            {/* Pagination */}
+            {meta && meta.last_page > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Stack spacing={2} alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    نمایش {((meta.current_page - 1) * meta.per_page) + 1} تا {Math.min(meta.current_page * meta.per_page, meta.total)} از {meta.total} آزمون
+                  </Typography>
+                  <Pagination
+                    count={meta.last_page}
+                    page={meta.current_page}
+                    onChange={(_, newPage) => setPage(newPage)}
+                    color="primary"
+                    size="large"
+                  />
+                </Stack>
               </Box>
             )}
           </>

@@ -56,33 +56,9 @@ export default function Navbar() {
               >
                 داشبورد
               </Button>
-              <Button
-                variant="text"
-                startIcon={<SchoolIcon />}
-                onClick={() => router.push('/exams')}
-                sx={{ display: { xs: 'none', sm: 'block' } }}
-              >
-                آزمون‌ها
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => router.push('/exams/available')}
-                sx={{ display: { xs: 'none', sm: 'block' } }}
-              >
-                آزمون‌های من
-              </Button>
               <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
                 {user?.name}
               </Typography>
-              {user?.roles?.includes('admin') && (
-                <Button
-                  variant="text"
-                  onClick={() => router.push('/admin')}
-                  sx={{ display: { xs: 'none', sm: 'block' } }}
-                >
-                  پنل مدیریت
-                </Button>
-              )}
               <Button
                 variant="outlined"
                 startIcon={<LogoutIcon />}

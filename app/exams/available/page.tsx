@@ -19,11 +19,13 @@ import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import Breadcrumb from '@/components/Breadcrumb';
 
 export default function AvailableExamsPage() {
   const router = useRouter();
   const { data, isLoading, error } = useAvailableExams();
 
+  // Backend already filters to only show completed exams
   const exams = data?.data || [];
 
   const getStatusColor = (status: string) => {
@@ -90,6 +92,7 @@ export default function AvailableExamsPage() {
     <ProtectedRoute>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Stack spacing={4}>
+          <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
           <Box>
             <Typography variant="h4" gutterBottom>
               آزمون‌های من
@@ -164,26 +167,40 @@ export default function AvailableExamsPage() {
                           {exam.meta && typeof exam.meta === 'object' && 'duration_minutes' in exam.meta && (
                             <Chip
                               icon={<AccessTimeIcon />}
-                              label={`${exam.meta.duration_minutes} دقیقه`}
+                              label={`${(exam.meta as any).duration_minutes} دقیقه`}
                               size="small"
                               variant="outlined"
                             />
                           )}
                         </Stack>
 
-                      <Typography variant="body2" color="text.secondary">
-                        تاریخ ثبت‌نام: {new Date(exam.registered_at).toLocaleDateString('fa-IR')}
-                      </Typography>
-
-                      {exam.started_at && (
+                      {(exam.exam_start_at || (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta)) && (
                         <Typography variant="body2" color="text.secondary">
-                          تاریخ شروع: {new Date(exam.started_at).toLocaleDateString('fa-IR')}
+                          تاریخ شروع آزمون: {new Date(
+                            exam.exam_start_at || 
+                            (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta 
+                              ? (exam.meta as any).start_at 
+                              : '')
+                          ).toLocaleDateString('fa-IR', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </Typography>
                       )}
 
-                      {exam.completed_at && (
+                      {(exam.exam_end_at || (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta)) && (
                         <Typography variant="body2" color="text.secondary">
-                          تاریخ تکمیل: {new Date(exam.completed_at).toLocaleDateString('fa-IR')}
+                          تاریخ پایان آزمون: {new Date(
+                            exam.exam_end_at || 
+                            (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta 
+                              ? (exam.meta as any).end_at 
+                              : '')
+                          ).toLocaleDateString('fa-IR', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </Typography>
                       )}
 

@@ -43,9 +43,15 @@ export function QuestionTable({
     {
       id: 'type',
       label: 'نوع',
-      render: (value) => (
-        <Chip label={value.replace('_', ' ')} size="small" color="primary" />
-      ),
+      render: (value) => {
+        const typeLabels: Record<string, string> = {
+          'multiple_choice': 'چند گزینه‌ای',
+          'true_false': 'صحیح/غلط',
+          'multiple_select': 'چند گزینه‌ای (چند پاسخ)',
+          'essay': 'تشریحی',
+        };
+        return <Chip label={typeLabels[value] || value} size="small" color="primary" />;
+      },
     },
     {
       id: 'category',
@@ -56,9 +62,14 @@ export function QuestionTable({
       id: 'difficulty',
       label: 'سطح دشواری',
       render: (value) => {
+        const difficultyLabels: Record<string, string> = {
+          'easy': 'آسان',
+          'medium': 'متوسط',
+          'hard': 'سخت',
+        };
         const color =
           value === 'easy' ? 'success' : value === 'medium' ? 'warning' : 'error';
-        return <Chip label={value} size="small" color={color} />;
+        return <Chip label={difficultyLabels[value] || value} size="small" color={color} />;
       },
     },
     {

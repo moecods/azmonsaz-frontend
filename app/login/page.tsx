@@ -221,35 +221,35 @@ export default function LoginPage() {
               {/* Password Login Tab */}
               {activeTab === 'password' && (
                 <form onSubmit={passwordForm.handleSubmit(handlePasswordLogin)}>
-                  <Stack spacing={3}>
-                    <Controller
-                      name="phone_number"
+                <Stack spacing={3}>
+                  <Controller
+                    name="phone_number"
                       control={passwordForm.control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="شماره تلفن"
-                          type="tel"
-                          fullWidth
-                          placeholder="09123456789"
-                          autoComplete="tel"
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="شماره تلفن"
+                        type="tel"
+                        fullWidth
+                        placeholder="09123456789"
+                        autoComplete="tel"
                           error={!!passwordForm.formState.errors.phone_number}
                           helperText={passwordForm.formState.errors.phone_number?.message || 'فرمت: 09123456789 یا +989123456789'}
                           disabled={isLoggingIn}
-                        />
-                      )}
-                    />
+                      />
+                    )}
+                  />
 
-                    <Controller
-                      name="password"
+                  <Controller
+                    name="password"
                       control={passwordForm.control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="رمز عبور"
-                          type="password"
-                          fullWidth
-                          autoComplete="current-password"
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="رمز عبور"
+                        type="password"
+                        fullWidth
+                        autoComplete="current-password"
                           error={!!passwordForm.formState.errors.password}
                           helperText={passwordForm.formState.errors.password?.message}
                           disabled={isLoggingIn}
@@ -348,15 +348,15 @@ export default function LoginPage() {
                               error={!!otpVerifyForm.formState.errors.code}
                               helperText={otpVerifyForm.formState.errors.code?.message}
                               disabled={isVerifyingOtp}
-                            />
-                          )}
-                        />
+                      />
+                    )}
+                  />
 
-                        <Button
-                          type="submit"
-                          variant="contained"
-                          fullWidth
-                          size="large"
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    size="large"
                           disabled={isVerifyingOtp}
                         >
                           {isVerifyingOtp ? 'در حال ورود...' : 'تایید و ورود'}
@@ -370,7 +370,7 @@ export default function LoginPage() {
                             setOtpSent(false);
                             setDebugCode(null);
                           }}
-                        >
+                  >
                           تغییر شماره تلفن
                         </Button>
                       </Stack>
@@ -428,9 +428,9 @@ export default function LoginPage() {
                       onClick={() => setActiveTab('password')}
                     >
                       بازگشت به صفحه ورود
-                    </Button>
-                  </Stack>
-                </form>
+                  </Button>
+                </Stack>
+              </form>
               )}
 
               <Divider />

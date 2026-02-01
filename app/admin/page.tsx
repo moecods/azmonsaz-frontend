@@ -48,6 +48,7 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
+import Breadcrumb from '@/components/Breadcrumb';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -79,13 +80,7 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [partnerPage, setPartnerPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
-  const { logout, user } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
+  const { user } = useAuth();
 
   // Partner form
   const partnerForm = useForm<PartnerFormData>({
@@ -332,16 +327,9 @@ export default function AdminPage() {
     <ProtectedRoute requiredRole="admin">
       <Box sx={{ p: 3 }}>
         <Stack spacing={3}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
+          <Box>
             <Typography variant="h4">پنل مدیریت</Typography>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="body2" color="text.secondary">
-                {user?.name}
-              </Typography>
-              <Button variant="outlined" color="error" onClick={handleLogout}>
-                خروج
-              </Button>
-            </Box>
           </Box>
 
         <Card>

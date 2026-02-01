@@ -78,21 +78,42 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
+            {(user?.roles?.includes('admin') || user?.roles?.includes('content_manager') || user?.roles?.includes('creator')) && (
+              <Card sx={{ height: '100%', textAlign: 'center', p: 3 }}>
+                <CardContent>
+                  <ListAltIcon sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+                  <Typography variant="h5" gutterBottom>
+                    مدیریت آزمون‌ها
+                  </Typography>
+                  <Typography color="text.secondary" sx={{ mb: 3 }}>
+                    مشاهده و مدیریت آزمون‌های ایجاد شده، شرکت‌کنندگان و نتایج.
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth
+                    onClick={() => router.push('/exams')}
+                  >
+                    مشاهده آزمون‌ها
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             <Card sx={{ height: '100%', textAlign: 'center', p: 3 }}>
               <CardContent>
-                <ListAltIcon sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+                <SchoolIcon sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
                 <Typography variant="h5" gutterBottom>
-                  مدیریت آزمون‌ها
+                  آزمون‌های من
                 </Typography>
                 <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  مشاهده و مدیریت آزمون‌های ایجاد شده، شرکت‌کنندگان و نتایج.
+                  مشاهده آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید یا می‌توانید شرکت کنید.
                 </Typography>
                 <Button 
                   variant="outlined" 
                   fullWidth
-                  onClick={() => router.push('/exams')}
+                  onClick={() => router.push('/exams/available')}
                 >
-                  مشاهده آزمون‌ها
+                  مشاهده آزمون‌های من
                 </Button>
               </CardContent>
             </Card>

@@ -83,6 +83,23 @@ export const examSchema = z.object({
   description: z.string().optional(),
   subject: z.string().optional(),
   questions: z.array(examQuestionSchema).min(1, 'At least one question is required'),
+  // Meta fields
+  duration_minutes: z.number().int().positive('مدت زمان باید عدد مثبت باشد').optional().nullable(),
+  passing_score: z.number().int().min(0, 'نمره قبولی باید بین 0 تا 100 باشد').max(100, 'نمره قبولی باید بین 0 تا 100 باشد').optional().nullable(),
+  max_attempts: z.number().int().positive('حداکثر تلاش باید عدد مثبت باشد').optional().nullable(),
+  instructions: z.string().max(1000, 'دستورالعمل نمی‌تواند بیشتر از 1000 کاراکتر باشد').optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  start_at: z.string().datetime('فرمت تاریخ شروع معتبر نیست').optional().nullable(),
+  end_at: z.string().datetime('فرمت تاریخ پایان معتبر نیست').optional().nullable(),
+}).refine((data) => {
+  // If both start_at and end_at are provided, end_at must be after start_at
+  if (data.start_at && data.end_at) {
+    return new Date(data.end_at) > new Date(data.start_at);
+  }
+  return true;
+}, {
+  message: 'تاریخ پایان باید بعد از تاریخ شروع باشد',
+  path: ['end_at'],
 });
 
 // Partner validation schemas

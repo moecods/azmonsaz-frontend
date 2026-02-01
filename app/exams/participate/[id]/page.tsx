@@ -77,6 +77,20 @@ export default function ExamParticipatePage() {
     );
   }
 
+  const now = new Date();
+  const startAt = examInfo?.start_at ? new Date(examInfo.start_at) : null;
+  const endAt = examInfo?.end_at ? new Date(examInfo.end_at) : null;
+  const isBeforeStart = startAt && now < startAt;
+  const isAfterEnd = endAt && now > endAt;
+  const isDuringExam = !isBeforeStart && !isAfterEnd;
+
+  // Type-safe meta checks
+  const meta = examInfo?.meta;
+  const hasDurationMinutes = meta && typeof meta === 'object' && 'duration_minutes' in meta;
+  const hasPassingScore = meta && typeof meta === 'object' && 'passing_score' in meta;
+  const durationMinutes = hasDurationMinutes ? (meta as any).duration_minutes : null;
+  const passingScore = hasPassingScore ? (meta as any).passing_score : null;
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Stack spacing={4}>
@@ -99,6 +113,54 @@ export default function ExamParticipatePage() {
                 </Box>
               </Stack>
 
+              {/* Time Information */}
+              {(startAt || endAt) && (
+                <Box>
+                  <Divider sx={{ my: 2 }} />
+                  <Stack spacing={1}>
+                    {startAt ? (
+                      <Typography variant="body2" color="text.secondary">
+                        <AccessTimeIcon sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                        زمان شروع: {startAt.toLocaleString('fa-IR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+                    ) : null}
+                    {endAt ? (
+                      <Typography variant="body2" color="text.secondary">
+                        <AccessTimeIcon sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                        زمان پایان: {endAt.toLocaleString('fa-IR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+                    ) : null}
+                    {isBeforeStart ? (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        آزمون هنوز شروع نشده است. لطفاً در زمان مشخص شده وارد شوید.
+                      </Alert>
+                    ) : null}
+                    {isAfterEnd ? (
+                      <Alert severity="warning" sx={{ mt: 1 }}>
+                        زمان آزمون به پایان رسیده است. شما می‌توانید نتایج را مشاهده کنید.
+                      </Alert>
+                    ) : null}
+                    {isDuringExam ? (
+                      <Alert severity="success" sx={{ mt: 1 }}>
+                        آزمون در حال برگزاری است. می‌توانید وارد شوید و آزمون بدهید.
+                      </Alert>
+                    ) : null}
+                  </Stack>
+                </Box>
+              )}
+
               <Divider />
 
               {examInfo.creator && (
@@ -117,23 +179,23 @@ export default function ExamParticipatePage() {
                 <Typography variant="body1">{examInfo.questions_count}</Typography>
               </Box>
 
-              {examInfo.meta?.duration_minutes && (
+              {hasDurationMinutes && durationMinutes && (
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <AccessTimeIcon color="action" />
                     <Typography variant="body2" color="text.secondary">
-                      زمان آزمون: {examInfo.meta.duration_minutes} دقیقه
+                      زمان آزمون: {durationMinutes} دقیقه
                     </Typography>
                   </Stack>
                 </Box>
               )}
 
-              {examInfo.meta?.passing_score && (
+              {hasPassingScore && passingScore && (
                 <Box>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     نمره قبولی
                   </Typography>
-                  <Typography variant="body1">{examInfo.meta.passing_score}%</Typography>
+                  <Typography variant="body1">{passingScore}%</Typography>
                 </Box>
               )}
 

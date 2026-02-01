@@ -91,12 +91,18 @@ export default function TakeExamPage() {
 
     try {
       const response = await startExamMutation.mutateAsync(examId);
-      setQuestions(response.questions || []);
+      // Map API response questions to local Question interface
+      const mappedQuestions: Question[] = (response.questions || []).map((q) => ({
+        id: q.id,
+        payload: q.payload as Question['payload'],
+      }));
+      setQuestions(mappedQuestions);
       setExamStarted(true);
       
       // Set timer if duration is available
-      if (response.exam?.meta?.duration_minutes) {
-        setTimeRemaining(response.exam.meta.duration_minutes * 60);
+      const durationMinutes = response.exam?.meta?.duration_minutes;
+      if (durationMinutes && typeof durationMinutes === 'number') {
+        setTimeRemaining(durationMinutes * 60);
       }
     } catch (error) {
       // Error handled by mutation
@@ -320,7 +326,7 @@ export default function TakeExamPage() {
                                     : [];
                                   const newAnswer = e.target.checked
                                     ? [...current, index]
-                                    : current.filter((i) => i !== index);
+                                    : current.filter((i: number) => i !== index);
                                   handleAnswerChange(currentQuestion.id, newAnswer);
                                 }}
                               />

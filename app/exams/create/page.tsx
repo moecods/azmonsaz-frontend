@@ -1,5 +1,7 @@
 "use client";
 
+import 'react-multi-date-picker/styles/layouts/mobile.css';
+import 'react-multi-date-picker/styles/colors/purple.css';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -17,6 +19,9 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Chip,
+  Autocomplete,
+  Divider,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +32,12 @@ import { deepLinkParamsSchema } from '@/lib/validation';
 import { ExamQuestion } from '@/types';
 import QuestionSelector from '@/components/QuestionSelector';
 import ExamQuestionList from '@/components/ExamQuestionList';
+import Breadcrumb from '@/components/Breadcrumb';
+import DatePicker from 'react-multi-date-picker';
+import persian from 'react-date-object/locales/persian_fa';
+import persianCalendar from 'react-date-object/calendars/persian';
+import TimePicker from 'react-multi-date-picker/plugins/time_picker';
+import type { Value, DateObject } from 'react-multi-date-picker';
 
 
 function CreateExamContent() {
@@ -65,6 +76,13 @@ function CreateExamContent() {
       description: '',
       subject: '',
       questions: [],
+      duration_minutes: null,
+      passing_score: null,
+      max_attempts: null,
+      instructions: '',
+      tags: [],
+      start_at: null,
+      end_at: null,
     },
   });
 
@@ -94,11 +112,31 @@ function CreateExamContent() {
       setValue('description', existingExam.description || '');
       setValue('subject', existingExam.subject || '');
       setExamQuestions(existingExam.questions || []);
+      
+      // Load meta fields if they exist
+      const meta = (existingExam as any).meta || {};
+      if (meta.duration_minutes) setValue('duration_minutes', meta.duration_minutes);
+      if (meta.passing_score !== undefined) setValue('passing_score', meta.passing_score);
+      if (meta.max_attempts) setValue('max_attempts', meta.max_attempts);
+      if (meta.instructions) setValue('instructions', meta.instructions);
+      if (meta.tags) setValue('tags', meta.tags);
+      if (meta.start_at) setValue('start_at', meta.start_at);
+      if (meta.end_at) setValue('end_at', meta.end_at);
     }
   }, [existingExam, setValue]);
 
   const onSubmit = (data: ExamFormData) => {
     setIsLoading(true);
+    
+    // Build meta object from form data
+    const meta: Record<string, any> = {};
+    if (data.duration_minutes) meta.duration_minutes = data.duration_minutes;
+    if (data.passing_score !== null && data.passing_score !== undefined) meta.passing_score = data.passing_score;
+    if (data.max_attempts) meta.max_attempts = data.max_attempts;
+    if (data.instructions) meta.instructions = data.instructions;
+    if (data.tags && data.tags.length > 0) meta.tags = data.tags;
+    if (data.start_at) meta.start_at = data.start_at;
+    if (data.end_at) meta.end_at = data.end_at;
     
     if (existingExam) {
       updateExamMutation.mutate({
@@ -107,6 +145,7 @@ function CreateExamContent() {
           title: data.title,
           description: data.description,
           subject: data.subject,
+          meta: Object.keys(meta).length > 0 ? meta : undefined,
         },
       }, {
         onSuccess: (response) => {
@@ -128,6 +167,7 @@ function CreateExamContent() {
         description: data.description,
         subject: data.subject,
         type: 'offline', // Default type
+        meta: Object.keys(meta).length > 0 ? meta : undefined,
       };
 
       // Only add partner_id and callback_url if they exist (for partner-based exams)
@@ -208,9 +248,13 @@ function CreateExamContent() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={4}>
+        <Breadcrumb items={[
+          { label: 'مدیریت آزمون‌ها', href: '/exams' },
+          { label: existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید' }
+        ]} />
         <Box>
           <Typography variant="h4" gutterBottom>
-            {existingExam ? 'Edit Exam' : 'Create New Exam'}
+            {existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید'}
           </Typography>
           {isUsingMockData() && (
             <Alert severity="info" sx={{ mb: 2 }}>
@@ -233,10 +277,11 @@ function CreateExamContent() {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Exam Title"
+                    label="عنوان آزمون"
                     fullWidth
                     error={!!errors.title}
                     helperText={errors.title?.message}
+                    placeholder="مثال: آزمون ریاضی پایه دهم"
                   />
                 )}
               />
@@ -247,12 +292,13 @@ function CreateExamContent() {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Description"
+                    label="توضیحات"
                     fullWidth
                     multiline
                     rows={3}
                     error={!!errors.description}
                     helperText={errors.description?.message}
+                    placeholder="توضیحات مربوط به آزمون را اینجا وارد کنید..."
                   />
                 )}
               />
@@ -263,13 +309,216 @@ function CreateExamContent() {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Subject"
+                    label="موضوع"
                     fullWidth
                     error={!!errors.subject}
                     helperText={errors.subject?.message}
+                    placeholder="مثال: ریاضی، فیزیک، شیمی"
                   />
                 )}
               />
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                تنظیمات آزمون
+              </Typography>
+
+              <Stack direction="row" spacing={2}>
+                <Controller
+                  name="duration_minutes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="مدت زمان (دقیقه)"
+                      type="number"
+                      fullWidth
+                      error={!!errors.duration_minutes}
+                      helperText={errors.duration_minutes?.message}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="passing_score"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="نمره قبولی (%)"
+                      type="number"
+                      fullWidth
+                      error={!!errors.passing_score}
+                      helperText={errors.passing_score?.message}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="max_attempts"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="حداکثر تلاش"
+                      type="number"
+                      fullWidth
+                      error={!!errors.max_attempts}
+                      helperText={errors.max_attempts?.message}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                      inputProps={{ min: 1 }}
+                    />
+                  )}
+                />
+              </Stack>
+
+              <Controller
+                name="instructions"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="دستورالعمل آزمون"
+                    fullWidth
+                    multiline
+                    rows={4}
+                    error={!!errors.instructions}
+                    helperText={errors.instructions?.message}
+                    placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
+                    value={field.value ?? ''}
+                  />
+                )}
+              />
+
+              <Controller
+                name="tags"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    multiple
+                    freeSolo
+                    options={[]}
+                    value={field.value || []}
+                    onChange={(_, newValue) => field.onChange(newValue)}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip
+                          variant="outlined"
+                          label={option}
+                          {...getTagProps({ index })}
+                          key={index}
+                        />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="تگ‌ها"
+                        placeholder="تگ اضافه کنید و Enter بزنید"
+                        error={!!errors.tags}
+                        helperText={errors.tags?.message}
+                      />
+                    )}
+                  />
+                )}
+              />
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                زمان‌بندی آزمون (اختیاری)
+              </Typography>
+
+              <Stack direction="row" spacing={2}>
+                <Controller
+                  name="start_at"
+                  control={control}
+                  render={({ field }) => (
+                    <Box sx={{ width: '100%' }}>
+                      <Typography variant="body2" sx={{ mb: 1, color: errors.start_at ? 'error.main' : 'text.secondary' }}>
+                        زمان شروع
+                      </Typography>
+                      <DatePicker
+                        value={field.value ? new Date(field.value) : undefined}
+                        onChange={(date: Value) => {
+                          if (date) {
+                            const dateObj = date as DateObject;
+                            const jsDate = dateObj.toDate();
+                            field.onChange(jsDate.toISOString());
+                          } else {
+                            field.onChange(null);
+                          }
+                        }}
+                        locale={persian}
+                        calendar={persianCalendar}
+                        format="YYYY/MM/DD HH:mm"
+                        plugins={[<TimePicker position="bottom" key="time-picker" />]}
+                        containerStyle={{ width: '100%' }}
+                        inputClass="form-control"
+                        style={{
+                          width: '100%',
+                          padding: '16.5px 14px',
+                          border: errors.start_at ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
+                          borderRadius: '4px',
+                          fontSize: '1rem',
+                        }}
+                      />
+                      {errors.start_at && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                          {errors.start_at.message}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                />
+
+                <Controller
+                  name="end_at"
+                  control={control}
+                  render={({ field }) => (
+                    <Box sx={{ width: '100%' }}>
+                      <Typography variant="body2" sx={{ mb: 1, color: errors.end_at ? 'error.main' : 'text.secondary' }}>
+                        زمان پایان
+                      </Typography>
+                      <DatePicker
+                        value={field.value ? new Date(field.value) : undefined}
+                        onChange={(date: Value) => {
+                          if (date) {
+                            const dateObj = date as DateObject;
+                            const jsDate = dateObj.toDate();
+                            field.onChange(jsDate.toISOString());
+                          } else {
+                            field.onChange(null);
+                          }
+                        }}
+                        locale={persian}
+                        calendar={persianCalendar}
+                        format="YYYY/MM/DD HH:mm"
+                        plugins={[<TimePicker position="bottom" key="time-picker" />]}
+                        containerStyle={{ width: '100%' }}
+                        inputClass="form-control"
+                        style={{
+                          width: '100%',
+                          padding: '16.5px 14px',
+                          border: errors.end_at ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
+                          borderRadius: '4px',
+                          fontSize: '1rem',
+                        }}
+                      />
+                      {errors.end_at && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                          {errors.end_at.message}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                />
+              </Stack>
             </Stack>
           </CardContent>
         </Card>
@@ -287,7 +536,7 @@ function CreateExamContent() {
             onClick={() => router.back()}
             disabled={isLoading}
           >
-            Cancel
+            انصراف
           </Button>
           <Button
             variant="contained"
@@ -295,7 +544,7 @@ function CreateExamContent() {
             disabled={isLoading || examQuestions.length === 0}
             startIcon={isLoading ? <CircularProgress size={20} /> : null}
           >
-            {isLoading ? 'Saving...' : 'Save Exam'}
+            {isLoading ? 'در حال ذخیره...' : existingExam ? 'به‌روزرسانی آزمون' : 'ذخیره آزمون'}
           </Button>
           {existingExam && (
             <Button
@@ -304,7 +553,7 @@ function CreateExamContent() {
               onClick={handleCompleteExam}
               disabled={isLoading || examQuestions.length === 0 || completeExamMutation.isPending}
             >
-              {completeExamMutation.isPending ? 'Completing...' : 'Complete Exam'}
+              {completeExamMutation.isPending ? 'در حال تکمیل...' : 'تکمیل آزمون'}
             </Button>
           )}
         </Stack>

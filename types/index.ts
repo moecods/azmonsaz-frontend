@@ -119,6 +119,16 @@ export interface Exam {
   questions: ExamQuestion[];
   status: ExamStatus;
   pdf_url?: string;
+  meta?: {
+    duration_minutes?: number;
+    passing_score?: number;
+    max_attempts?: number;
+    instructions?: string;
+    tags?: string[];
+    start_at?: string;
+    end_at?: string;
+    [key: string]: any;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -150,6 +160,9 @@ export interface CreateExamRequest {
     passing_score?: number;
     max_attempts?: number;
     instructions?: string;
+    tags?: string[];
+    start_at?: string;
+    end_at?: string;
   };
 }
 
@@ -158,6 +171,15 @@ export interface UpdateExamRequest {
   description?: string;
   subject?: string;
   questions?: ExamQuestion[];
+  meta?: {
+    duration_minutes?: number;
+    passing_score?: number;
+    max_attempts?: number;
+    instructions?: string;
+    tags?: string[];
+    start_at?: string;
+    end_at?: string;
+  };
 }
 
 export interface CreateQuestionRequest {

@@ -225,6 +225,7 @@ export interface ExamListItem {
   id: number;
   title: string;
   type: 'online' | 'offline';
+  meta?: Record<string, unknown>;
   partner_id: number | null;
   partner?: {
     id: number;
@@ -288,6 +289,8 @@ export interface AvailableExam {
   registered_at: string;
   started_at: string | null;
   completed_at: string | null;
+  exam_start_at?: string | null;
+  exam_end_at?: string | null;
   creator?: {
     id: number;
     name: string;
@@ -299,6 +302,8 @@ export interface ExamInfo {
   title: string;
   type: 'online' | 'offline';
   meta: Record<string, unknown>;
+  start_at?: string | null;
+  end_at?: string | null;
   questions_count: number;
   creator?: {
     id: number;
@@ -307,6 +312,7 @@ export interface ExamInfo {
   is_registered: boolean;
   registration_status: 'registered' | 'started' | 'completed' | null;
   can_start: boolean;
+  time_message?: string | null;
 }
 
 export interface ExamRegistration {

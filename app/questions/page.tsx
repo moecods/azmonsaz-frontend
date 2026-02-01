@@ -4,6 +4,7 @@ import { Box, Stack, Typography, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useQuestionManagement } from '@/hooks';
 import { QuestionFilters, QuestionTable, QuestionFormDialog } from '@/components/questions';
+import Breadcrumb from '@/components/Breadcrumb';
 
 export default function QuestionsPage() {
   const {
@@ -42,6 +43,9 @@ export default function QuestionsPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Stack spacing={3}>
+        {/* Breadcrumb */}
+        <Breadcrumb items={[{ label: 'بانک سوالات' }]} />
+        
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="h4">بانک سوالات</Typography>
