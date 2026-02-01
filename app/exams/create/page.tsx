@@ -2,7 +2,7 @@
 
 import 'react-multi-date-picker/styles/layouts/mobile.css';
 import 'react-multi-date-picker/styles/colors/purple.css';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -10,10 +10,6 @@ import {
   Card,
   CardContent,
   Container,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -33,11 +29,8 @@ import { ExamQuestion } from '@/types';
 import QuestionSelector from '@/components/QuestionSelector';
 import ExamQuestionList from '@/components/ExamQuestionList';
 import Breadcrumb from '@/components/Breadcrumb';
-import DatePicker from 'react-multi-date-picker';
-import persian from 'react-date-object/locales/persian_fa';
-import persianCalendar from 'react-date-object/calendars/persian';
-import TimePicker from 'react-multi-date-picker/plugins/time_picker';
-import type { Value, DateObject } from 'react-multi-date-picker';
+import { PersianDateTimePicker } from '@/components/exams/PersianDateTimePicker';
+import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
 
 
 function CreateExamContent() {
@@ -45,30 +38,31 @@ function CreateExamContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Check if user is creator/admin/content_manager (can create exams without partner)
-  const isCreator = user?.roles?.some(role => ['admin', 'content_manager', 'creator'].includes(role)) || false;
+  const isCreator = useMemo(() => isCreatorUser(user?.roles), [user?.roles]);
 
   // Parse deep link parameters
-  const deepLinkParams = {
+  const deepLinkParams = useMemo(() => ({
     partner_id: searchParams.get('partner_id') || (isUsingMockData() ? '1' : ''),
     callback_url: searchParams.get('callback_url') || (isUsingMockData() ? 'https://example.com/callback' : ''),
     exam_id: searchParams.get('exam_id') || undefined,
-  };
+  }), [searchParams]);
 
   // For creator users, deep link parameters are optional
   // In mock data mode, we don't need to validate deep link parameters
-  const validationResult = isUsingMockData() || isCreator
-    ? { success: true, data: deepLinkParams }
-    : deepLinkParamsSchema.safeParse(deepLinkParams);
+  const validationResult = useMemo(() => 
+    isUsingMockData() || isCreator
+      ? { success: true, data: deepLinkParams }
+      : deepLinkParamsSchema.safeParse(deepLinkParams),
+    [isCreator, deepLinkParams]
+  );
 
   const {
     control,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
     defaultValues: {
@@ -87,14 +81,14 @@ function CreateExamContent() {
   });
 
   // Fetch partner information if partner_id is provided
-  const { data: partnerData } = usePartner(
+  const { data: partnerData, isLoading: isLoadingPartner } = usePartner(
     validationResult.success && deepLinkParams.partner_id 
       ? parseInt(deepLinkParams.partner_id) 
       : null
   );
 
   // Fetch existing exam if exam_id is provided
-  const { data: existingExam } = useExam(
+  const { data: existingExam, isLoading: isLoadingExam } = useExam(
     validationResult.success && deepLinkParams.exam_id 
       ? parseInt(deepLinkParams.exam_id) 
       : null
@@ -113,30 +107,34 @@ function CreateExamContent() {
       setValue('subject', existingExam.subject || '');
       setExamQuestions(existingExam.questions || []);
       
-      // Load meta fields if they exist
-      const meta = (existingExam as any).meta || {};
-      if (meta.duration_minutes) setValue('duration_minutes', meta.duration_minutes);
-      if (meta.passing_score !== undefined) setValue('passing_score', meta.passing_score);
-      if (meta.max_attempts) setValue('max_attempts', meta.max_attempts);
-      if (meta.instructions) setValue('instructions', meta.instructions);
-      if (meta.tags) setValue('tags', meta.tags);
-      if (meta.start_at) setValue('start_at', meta.start_at);
-      if (meta.end_at) setValue('end_at', meta.end_at);
+      // Load meta fields
+      const metaFields = loadExamMetaToForm(existingExam);
+      Object.entries(metaFields).forEach(([key, value]) => {
+        setValue(key as keyof ExamFormData, value);
+      });
     }
   }, [existingExam, setValue]);
 
+  const handleRedirectAfterSave = (examId: number, additionalParams?: Record<string, string>) => {
+    if (deepLinkParams.callback_url && validationResult.success) {
+      try {
+        const callbackUrl = buildCallbackUrl(deepLinkParams.callback_url, examId, additionalParams);
+        window.location.href = callbackUrl;
+      } catch (error) {
+        console.error('Failed to build callback URL:', error);
+        router.push(`/exams/${examId}`);
+      }
+    } else {
+      router.push(`/exams/${examId}`);
+    }
+  };
+
   const onSubmit = (data: ExamFormData) => {
-    setIsLoading(true);
-    
-    // Build meta object from form data
-    const meta: Record<string, any> = {};
-    if (data.duration_minutes) meta.duration_minutes = data.duration_minutes;
-    if (data.passing_score !== null && data.passing_score !== undefined) meta.passing_score = data.passing_score;
-    if (data.max_attempts) meta.max_attempts = data.max_attempts;
-    if (data.instructions) meta.instructions = data.instructions;
-    if (data.tags && data.tags.length > 0) meta.tags = data.tags;
-    if (data.start_at) meta.start_at = data.start_at;
-    if (data.end_at) meta.end_at = data.end_at;
+    if (examQuestions.length === 0) {
+      return; // Validation is handled by button disabled state, but double-check
+    }
+
+    const meta = buildExamMeta(data);
     
     if (existingExam) {
       updateExamMutation.mutate({
@@ -145,74 +143,53 @@ function CreateExamContent() {
           title: data.title,
           description: data.description,
           subject: data.subject,
-          meta: Object.keys(meta).length > 0 ? meta : undefined,
+          meta,
         },
       }, {
         onSuccess: (response) => {
-          // Redirect to callback URL with exam ID
-          const examId = response.id;
-          const callbackUrl = new URL(deepLinkParams.callback_url);
-          callbackUrl.searchParams.set('exam_id', examId.toString());
-          callbackUrl.searchParams.set('status', 'completed');
-          window.location.href = callbackUrl.toString();
+          handleRedirectAfterSave(response.id);
         },
         onError: (error) => {
           console.error('Failed to update exam:', error);
-          setIsLoading(false);
         },
       });
     } else {
-      const examData: any = {
+      const examData = {
         title: data.title,
         description: data.description,
         subject: data.subject,
-        type: 'offline', // Default type
-        meta: Object.keys(meta).length > 0 ? meta : undefined,
+        type: 'offline' as const,
+        meta,
+        ...(validationResult.success && deepLinkParams.partner_id && {
+          partner_id: parseInt(deepLinkParams.partner_id),
+        }),
+        ...(validationResult.success && deepLinkParams.callback_url && {
+          callback_url: deepLinkParams.callback_url,
+        }),
       };
-
-      // Only add partner_id and callback_url if they exist (for partner-based exams)
-      if (deepLinkParams.partner_id && validationResult.success) {
-        examData.partner_id = parseInt(deepLinkParams.partner_id);
-      }
-      if (deepLinkParams.callback_url && validationResult.success) {
-        examData.callback_url = deepLinkParams.callback_url;
-      }
 
       createExamMutation.mutate(examData, {
         onSuccess: (response) => {
-          // If callback_url exists, redirect to it
-          if (deepLinkParams.callback_url && validationResult.success) {
-            const examId = response.id;
-            const callbackUrl = new URL(deepLinkParams.callback_url);
-            callbackUrl.searchParams.set('exam_id', examId.toString());
-            callbackUrl.searchParams.set('status', 'completed');
-            window.location.href = callbackUrl.toString();
-          } else {
-            // For creator users, redirect to exam edit page
-            router.push(`/exams/edit?exam_id=${response.id}`);
-          }
+          handleRedirectAfterSave(response.id);
         },
         onError: (error) => {
           console.error('Failed to create exam:', error);
-          setIsLoading(false);
         },
       });
     }
   };
 
   const handleCompleteExam = () => {
-    if (existingExam) {
-      completeExamMutation.mutate(existingExam.id, {
-        onSuccess: (response) => {
-          // Redirect to callback URL with PDF download link
-          const callbackUrl = new URL(deepLinkParams.callback_url);
-          callbackUrl.searchParams.set('exam_id', response.callback_url);
-          callbackUrl.searchParams.set('pdf_url', response.pdf_url);
-          callbackUrl.searchParams.set('status', 'completed');
-          window.location.href = callbackUrl.toString();
-        },
-      });
-    }
+    if (!existingExam) return;
+    
+    completeExamMutation.mutate(existingExam.id, {
+      onSuccess: (response) => {
+        handleRedirectAfterSave(existingExam.id, { pdf_url: response.pdf_url });
+      },
+      onError: (error) => {
+        console.error('Failed to complete exam:', error);
+      },
+    });
   };
 
   const handleAddQuestion = (question: ExamQuestion) => {
@@ -220,19 +197,33 @@ function CreateExamContent() {
       ...question,
       order: examQuestions.length,
     };
-    setExamQuestions([...examQuestions, newQuestion]);
+    setExamQuestions((prev) => [...prev, newQuestion]);
   };
 
   const handleRemoveQuestion = (index: number) => {
-    const updatedQuestions = examQuestions.filter((_, i) => i !== index);
-    setExamQuestions(updatedQuestions);
+    setExamQuestions((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Recalculate order for remaining questions
+      return updated.map((q, i) => ({ ...q, order: i }));
+    });
   };
 
   const handleUpdateQuestion = (index: number, updatedQuestion: ExamQuestion) => {
-    const updatedQuestions = [...examQuestions];
-    updatedQuestions[index] = updatedQuestion;
-    setExamQuestions(updatedQuestions);
+    setExamQuestions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updatedQuestion, order: index };
+      return updated;
+    });
   };
+
+  // Show loading state while fetching exam data
+  if (isLoadingExam) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   // Only show error if not creator and validation failed
   if (!validationResult.success && !isUsingMockData() && !isCreator) {
@@ -261,12 +252,23 @@ function CreateExamContent() {
               🧪 Using mock data for development. Partner ID: {deepLinkParams.partner_id}
             </Alert>
           )}
-          {partnerData && (
+          {isLoadingPartner ? (
+            <CircularProgress size={16} sx={{ ml: 1 }} />
+          ) : partnerData ? (
             <Typography color="text.secondary">
               Partner: {partnerData.name}
             </Typography>
-          )}
+          ) : null}
         </Box>
+
+        {(createExamMutation.isError || updateExamMutation.isError || completeExamMutation.isError) && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {createExamMutation.error instanceof Error && createExamMutation.error.message}
+            {updateExamMutation.error instanceof Error && updateExamMutation.error.message}
+            {completeExamMutation.error instanceof Error && completeExamMutation.error.message}
+            {!createExamMutation.error && !updateExamMutation.error && !completeExamMutation.error && 'خطایی رخ داد. لطفا دوباره تلاش کنید.'}
+          </Alert>
+        )}
 
         <Card>
           <CardContent>
@@ -439,41 +441,13 @@ function CreateExamContent() {
                   name="start_at"
                   control={control}
                   render={({ field }) => (
-                    <Box sx={{ width: '100%' }}>
-                      <Typography variant="body2" sx={{ mb: 1, color: errors.start_at ? 'error.main' : 'text.secondary' }}>
-                        زمان شروع
-                      </Typography>
-                      <DatePicker
-                        value={field.value ? new Date(field.value) : undefined}
-                        onChange={(date: Value) => {
-                          if (date) {
-                            const dateObj = date as DateObject;
-                            const jsDate = dateObj.toDate();
-                            field.onChange(jsDate.toISOString());
-                          } else {
-                            field.onChange(null);
-                          }
-                        }}
-                        locale={persian}
-                        calendar={persianCalendar}
-                        format="YYYY/MM/DD HH:mm"
-                        plugins={[<TimePicker position="bottom" key="time-picker" />]}
-                        containerStyle={{ width: '100%' }}
-                        inputClass="form-control"
-                        style={{
-                          width: '100%',
-                          padding: '16.5px 14px',
-                          border: errors.start_at ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
-                          borderRadius: '4px',
-                          fontSize: '1rem',
-                        }}
-                      />
-                      {errors.start_at && (
-                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                          {errors.start_at.message}
-                        </Typography>
-                      )}
-                    </Box>
+                    <PersianDateTimePicker
+                      label="زمان شروع"
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      error={!!errors.start_at}
+                      errorMessage={errors.start_at?.message}
+                    />
                   )}
                 />
 
@@ -481,41 +455,13 @@ function CreateExamContent() {
                   name="end_at"
                   control={control}
                   render={({ field }) => (
-                    <Box sx={{ width: '100%' }}>
-                      <Typography variant="body2" sx={{ mb: 1, color: errors.end_at ? 'error.main' : 'text.secondary' }}>
-                        زمان پایان
-                      </Typography>
-                      <DatePicker
-                        value={field.value ? new Date(field.value) : undefined}
-                        onChange={(date: Value) => {
-                          if (date) {
-                            const dateObj = date as DateObject;
-                            const jsDate = dateObj.toDate();
-                            field.onChange(jsDate.toISOString());
-                          } else {
-                            field.onChange(null);
-                          }
-                        }}
-                        locale={persian}
-                        calendar={persianCalendar}
-                        format="YYYY/MM/DD HH:mm"
-                        plugins={[<TimePicker position="bottom" key="time-picker" />]}
-                        containerStyle={{ width: '100%' }}
-                        inputClass="form-control"
-                        style={{
-                          width: '100%',
-                          padding: '16.5px 14px',
-                          border: errors.end_at ? '1px solid #d32f2f' : '1px solid rgba(0, 0, 0, 0.23)',
-                          borderRadius: '4px',
-                          fontSize: '1rem',
-                        }}
-                      />
-                      {errors.end_at && (
-                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                          {errors.end_at.message}
-                        </Typography>
-                      )}
-                    </Box>
+                    <PersianDateTimePicker
+                      label="زمان پایان"
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      error={!!errors.end_at}
+                      errorMessage={errors.end_at?.message}
+                    />
                   )}
                 />
               </Stack>
@@ -534,24 +480,36 @@ function CreateExamContent() {
           <Button
             variant="outlined"
             onClick={() => router.back()}
-            disabled={isLoading}
+            disabled={createExamMutation.isPending || updateExamMutation.isPending}
           >
             انصراف
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit(onSubmit)}
-            disabled={isLoading || examQuestions.length === 0}
-            startIcon={isLoading ? <CircularProgress size={20} /> : null}
+            disabled={
+              (createExamMutation.isPending || updateExamMutation.isPending) ||
+              examQuestions.length === 0
+            }
+            startIcon={
+              (createExamMutation.isPending || updateExamMutation.isPending) ? (
+                <CircularProgress size={20} />
+              ) : null
+            }
           >
-            {isLoading ? 'در حال ذخیره...' : existingExam ? 'به‌روزرسانی آزمون' : 'ذخیره آزمون'}
+            {(createExamMutation.isPending || updateExamMutation.isPending)
+              ? 'در حال ذخیره...'
+              : existingExam
+              ? 'به‌روزرسانی آزمون'
+              : 'ذخیره آزمون'}
           </Button>
           {existingExam && (
             <Button
               variant="contained"
               color="success"
               onClick={handleCompleteExam}
-              disabled={isLoading || examQuestions.length === 0 || completeExamMutation.isPending}
+              disabled={examQuestions.length === 0 || completeExamMutation.isPending}
+              startIcon={completeExamMutation.isPending ? <CircularProgress size={20} /> : null}
             >
               {completeExamMutation.isPending ? 'در حال تکمیل...' : 'تکمیل آزمون'}
             </Button>
@@ -564,7 +522,13 @@ function CreateExamContent() {
 
 export default function CreateExamPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Container>
+      }
+    >
       <CreateExamContent />
     </Suspense>
   );
