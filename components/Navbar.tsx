@@ -1,21 +1,16 @@
 "use client";
 
-import { AppBar, Toolbar, Typography, Button, Box, IconButton } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks";
-import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
 import SchoolIcon from "@mui/icons-material/School";
+import UserMenu from "./layout/UserMenu";
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/');
-  };
+  const { isAuthenticated } = useAuth();
 
   // Don't show navbar on login page
   if (pathname === '/login') {
@@ -30,45 +25,37 @@ export default function Navbar() {
       sx={{ 
         borderBottom: 1, 
         borderColor: "divider",
-        bgcolor: 'background.paper'
+        bgcolor: 'background.paper',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            flexGrow: 1,
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
             cursor: 'pointer',
-            fontWeight: 'bold'
           }}
           onClick={() => router.push('/')}
         >
-          آزمون‌ساز
-        </Typography>
+          <SchoolIcon sx={{ color: 'primary.main' }} />
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 'bold',
+              color: 'text.primary',
+            }}
+          >
+            آزمون‌ساز
+          </Typography>
+        </Box>
+        
+        <Box sx={{ flexGrow: 1 }} />
         
         <Box display="flex" alignItems="center" gap={2}>
           {isAuthenticated ? (
-            <>
-              <Button
-                variant="text"
-                onClick={() => router.push('/dashboard')}
-                sx={{ display: { xs: 'none', sm: 'block' } }}
-              >
-                داشبورد
-              </Button>
-              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                {user?.name}
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                color="error"
-                size="small"
-              >
-                خروج
-              </Button>
-            </>
+            <UserMenu />
           ) : (
             <Button
               variant="contained"

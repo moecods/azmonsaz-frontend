@@ -32,6 +32,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import FilterListOffIcon from '@mui/icons-material/FilterListOff';
 import { ExamListItem } from '@/services/exams/ExamService';
 import Breadcrumb from '@/components/Breadcrumb';
+import UserLayout from '@/components/layout/UserLayout';
 
 export default function ExamsPage() {
   const router = useRouter();
@@ -58,26 +59,26 @@ export default function ExamsPage() {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <UserLayout>
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>
-      </Container>
+      </UserLayout>
     );
   }
 
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <UserLayout>
         <Alert severity="error">
           {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
         </Alert>
-      </Container>
+      </UserLayout>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <UserLayout>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
@@ -335,6 +336,6 @@ export default function ExamsPage() {
           </>
         )}
       </Stack>
-    </Container>
+    </UserLayout>
   );
 }

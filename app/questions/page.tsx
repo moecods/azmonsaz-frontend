@@ -5,6 +5,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useQuestionManagement } from '@/hooks';
 import { QuestionFilters, QuestionTable, QuestionFormDialog } from '@/components/questions';
 import Breadcrumb from '@/components/Breadcrumb';
+import UserLayout from '@/components/layout/UserLayout';
 
 export default function QuestionsPage() {
   const {
@@ -41,7 +42,7 @@ export default function QuestionsPage() {
   } = useQuestionManagement();
 
   return (
-    <Box sx={{ p: 3 }}>
+    <UserLayout>
       <Stack spacing={3}>
         {/* Breadcrumb */}
         <Breadcrumb items={[{ label: 'بانک سوالات' }]} />
@@ -90,6 +91,6 @@ export default function QuestionsPage() {
           onTypeChange={handleTypeChange}
         />
       </Stack>
-    </Box>
+    </UserLayout>
   );
 }

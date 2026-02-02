@@ -7,19 +7,26 @@ import {
   Button,
   Card,
   CardContent,
-  Container,
   Stack,
   TextField,
   Typography,
   Alert,
   CircularProgress,
+  Avatar,
+  Divider,
+  Grid,
+  Chip,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks';
-import { useUpdateUser } from '@/hooks';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import { useAuth, useAvailableExams, useExams, useUpdateUser } from '@/hooks';
+import UserLayout from '@/components/layout/UserLayout';
+import Breadcrumb from '@/components/Breadcrumb';
+import { useMemo } from 'react';
 
 const profileSchema = z.object({
   email: z.string().email('ایمیل معتبر نیست').max(255, 'ایمیل نمی‌تواند بیشتر از 255 کاراکتر باشد').optional().nullable(),
@@ -31,6 +38,24 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Fetch statistics
+  const { data: examsData } = useExams({ per_page: 100 });
+  const { data: availableExamsData } = useAvailableExams();
+
+  const stats = useMemo(() => {
+    const exams = examsData?.data || [];
+    const availableExams = availableExamsData?.data || [];
+    const isCreator = user?.roles?.includes('admin') || 
+                     user?.roles?.includes('content_manager') || 
+                     user?.roles?.includes('creator');
+
+    return {
+      totalExamsCreated: isCreator ? exams.length : 0,
+      totalExamsParticipated: availableExams.length,
+      completedExams: availableExams.filter((e: any) => e.status === 'completed').length,
+    };
+  }, [examsData, availableExamsData, user]);
 
   const {
     control,
@@ -71,124 +96,234 @@ export default function ProfilePage() {
     );
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'مدیر';
+      case 'content_manager':
+        return 'مدیر محتوا';
+      case 'creator':
+        return 'سازنده';
+      default:
+        return role;
+    }
+  };
+
+  const getRoleColor = (role: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+    switch (role) {
+      case 'admin':
+        return 'error';
+      case 'content_manager':
+        return 'primary';
+      case 'creator':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
   if (!user) {
     return null;
   }
 
+  const isCreator = user.roles?.includes('admin') || 
+                   user.roles?.includes('content_manager') || 
+                   user.roles?.includes('creator');
+
   return (
-    <ProtectedRoute>
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Stack spacing={4}>
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              پروفایل کاربری
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              می‌توانید ایمیل خود را در اینجا تغییر دهید
-            </Typography>
-          </Box>
+    <UserLayout>
+      <Stack spacing={4}>
+        <Breadcrumb items={[{ label: 'پروفایل' }]} />
+        
+        <Box>
+          <Typography variant="h4" gutterBottom fontWeight="bold">
+            پروفایل کاربری
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            مشاهده و ویرایش اطلاعات پروفایل
+          </Typography>
+        </Box>
 
-          <Card>
-            <CardContent>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    نام
-                  </Typography>
-                  <Typography variant="body1">{user.name}</Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    شماره تلفن
-                  </Typography>
-                  <Typography variant="body1">{user.phone_number}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    شماره تلفن قابل تغییر نیست
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    نقش‌ها
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    {user.roles && user.roles.length > 0 ? (
-                      user.roles.map((role) => (
-                        <Chip
-                          key={role}
-                          label={
-                            role === 'admin' ? 'مدیر' :
-                            role === 'content_manager' ? 'مدیر محتوا' :
-                            role === 'creator' ? 'سازنده' : role
-                          }
-                          size="small"
-                          color={
-                            role === 'admin' ? 'error' :
-                            role === 'content_manager' ? 'primary' :
-                            role === 'creator' ? 'success' : 'default'
-                          }
-                        />
-                      ))
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        بدون نقش
-                      </Typography>
-                    )}
-                  </Stack>
-                </Box>
-
-                {successMessage && (
-                  <Alert severity="success">{successMessage}</Alert>
-                )}
-
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <Stack spacing={3}>
-                    <Controller
-                      name="email"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="ایمیل"
-                          type="email"
-                          fullWidth
-                          placeholder="example@email.com"
-                          error={!!errors.email}
-                          helperText={errors.email?.message || 'ایمیل اختیاری است. می‌توانید آن را خالی بگذارید.'}
-                          disabled={updateProfileMutation.isPending}
-                        />
-                      )}
-                    />
-
-                    <Stack direction="row" spacing={2} justifyContent="flex-end">
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          reset({ email: user.email || '' });
-                          setSuccessMessage(null);
+        <Grid container spacing={3}>
+          {/* Profile Info Card */}
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Stack spacing={4}>
+                  {/* Avatar and Basic Info */}
+                  <Box>
+                    <Stack direction="row" spacing={3} alignItems="center">
+                      <Avatar
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          bgcolor: 'primary.main',
+                          fontSize: '2rem',
+                          fontWeight: 'bold',
                         }}
-                        disabled={updateProfileMutation.isPending}
                       >
-                        انصراف
-                      </Button>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        disabled={updateProfileMutation.isPending}
-                        startIcon={updateProfileMutation.isPending ? <CircularProgress size={20} /> : null}
-                      >
-                        {updateProfileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-                      </Button>
+                        {getInitials(user.name)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h5" fontWeight="bold">
+                          {user.name}
+                        </Typography>
+                        {user.roles && user.roles.length > 0 && (
+                          <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
+                            {user.roles.map((role) => (
+                              <Chip
+                                key={role}
+                                label={getRoleLabel(role)}
+                                size="small"
+                                color={getRoleColor(role)}
+                              />
+                            ))}
+                          </Stack>
+                        )}
+                      </Box>
                     </Stack>
+                  </Box>
+
+                  <Divider />
+
+                  {/* User Information */}
+                  <Stack spacing={3}>
+                    <Box>
+                      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                        <PhoneIcon color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          شماره تلفن
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body1" sx={{ mr: 5 }}>
+                        {user.phone_number}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        شماره تلفن قابل تغییر نیست
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                        <EmailIcon color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          ایمیل
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body1" sx={{ mr: 5 }}>
+                        {user.email || 'ثبت نشده'}
+                      </Typography>
+                    </Box>
                   </Stack>
-                </form>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Stack>
-      </Container>
-    </ProtectedRoute>
+
+                  <Divider />
+
+                  {/* Email Edit Form */}
+                  {successMessage && (
+                    <Alert severity="success">{successMessage}</Alert>
+                  )}
+
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      ویرایش ایمیل
+                    </Typography>
+                    <form onSubmit={handleSubmit(onSubmit)}>
+                      <Stack spacing={3}>
+                        <Controller
+                          name="email"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              label="ایمیل"
+                              type="email"
+                              fullWidth
+                              placeholder="example@email.com"
+                              error={!!errors.email}
+                              helperText={errors.email?.message || 'ایمیل اختیاری است. می‌توانید آن را خالی بگذارید.'}
+                              disabled={updateProfileMutation.isPending}
+                            />
+                          )}
+                        />
+
+                        <Stack direction="row" spacing={2} justifyContent="flex-end">
+                          <Button
+                            variant="outlined"
+                            onClick={() => {
+                              reset({ email: user.email || '' });
+                              setSuccessMessage(null);
+                            }}
+                            disabled={updateProfileMutation.isPending}
+                          >
+                            انصراف
+                          </Button>
+                          <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={updateProfileMutation.isPending}
+                            startIcon={updateProfileMutation.isPending ? <CircularProgress size={20} /> : null}
+                          >
+                            {updateProfileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </form>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Statistics Card */}
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom fontWeight="bold">
+                  آمار فعالیت
+                </Typography>
+                <Stack spacing={3} sx={{ mt: 2 }}>
+                  {isCreator && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        آزمون‌های ایجاد شده
+                      </Typography>
+                      <Typography variant="h4" fontWeight="bold" color="primary.main">
+                        {stats.totalExamsCreated}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      آزمون‌های ثبت‌نام شده
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="info.main">
+                      {stats.totalExamsParticipated}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      آزمون‌های تکمیل شده
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="success.main">
+                      {stats.completedExams}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Stack>
+    </UserLayout>
   );
 }
 
