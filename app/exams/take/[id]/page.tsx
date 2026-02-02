@@ -37,7 +37,7 @@ interface Question {
   payload: {
     question_text: string;
     type: string;
-    options?: Array<{ text: string; is_correct?: boolean }>;
+    options?: string[]; // Options are now string array, not object array
     correct_answer?: number | number[];
     order: number;
     points?: number;
@@ -76,7 +76,7 @@ export default function TakeExamPage() {
             clearInterval(timer);
             return 0;
           }
-          return prev - 1;
+          return Math.floor(prev - 1); // Ensure integer
         });
       }, 1000);
 
@@ -99,10 +99,26 @@ export default function TakeExamPage() {
       setQuestions(mappedQuestions);
       setExamStarted(true);
       
-      // Set timer if duration is available
-      const durationMinutes = response.exam?.meta?.duration_minutes;
-      if (durationMinutes && typeof durationMinutes === 'number') {
-        setTimeRemaining(durationMinutes * 60);
+      // Load saved answers if resuming
+      if (response.answers && typeof response.answers === 'object') {
+        const savedAnswers: Record<number, any> = {};
+        Object.keys(response.answers).forEach((key) => {
+          const questionId = parseInt(key);
+          if (!isNaN(questionId) && response.answers) {
+            savedAnswers[questionId] = response.answers[key];
+          }
+        });
+        setAnswers(savedAnswers);
+      }
+      
+      // Set timer - use remaining_seconds if resuming, otherwise calculate from duration
+      if (response.remaining_seconds !== null && response.remaining_seconds !== undefined) {
+        setTimeRemaining(Math.floor(response.remaining_seconds)); // Ensure integer
+      } else {
+        const durationMinutes = response.exam?.meta?.duration_minutes;
+        if (durationMinutes && typeof durationMinutes === 'number') {
+          setTimeRemaining(durationMinutes * 60);
+        }
       }
     } catch (error) {
       // Error handled by mutation
@@ -287,7 +303,7 @@ export default function TakeExamPage() {
                             key={index}
                             value={index.toString()}
                             control={<Radio />}
-                            label={option.text}
+                            label={option}
                           />
                         ))}
                       </RadioGroup>
@@ -331,7 +347,7 @@ export default function TakeExamPage() {
                                 }}
                               />
                             }
-                            label={option.text}
+                            label={option}
                           />
                         ))}
                       </Stack>

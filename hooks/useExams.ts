@@ -14,7 +14,8 @@ export function useExam(id: number | null) {
     queryKey: queryKeys.exam(id!),
     queryFn: async () => {
       if (!id) return null;
-      const response = await examService.getExam(id);
+      // Use getExamForEdit instead of getExam to avoid signature requirement
+      const response = await examService.getExamForEdit(id);
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch exam');
       }

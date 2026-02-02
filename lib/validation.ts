@@ -82,7 +82,7 @@ export const examSchema = z.object({
   title: z.string().min(1, 'Exam title is required'),
   description: z.string().optional(),
   subject: z.string().optional(),
-  questions: z.array(examQuestionSchema).min(1, 'At least one question is required'),
+  questions: z.array(examQuestionSchema).optional(),
   // Meta fields
   duration_minutes: z.number().int().positive('مدت زمان باید عدد مثبت باشد').optional().nullable(),
   passing_score: z.number().int().min(0, 'نمره قبولی باید بین 0 تا 100 باشد').max(100, 'نمره قبولی باید بین 0 تا 100 باشد').optional().nullable(),

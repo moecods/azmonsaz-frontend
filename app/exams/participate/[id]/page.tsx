@@ -40,10 +40,11 @@ export default function ExamParticipatePage() {
     setRegistering(true);
     try {
       await registerMutation.mutateAsync(examId);
-      // After registration, redirect to take exam
+      // After registration (or if already registered), redirect to take exam
       router.push(`/exams/take/${examId}`);
     } catch (error) {
       // Error is handled by mutation
+      // If user is already registered, the backend now returns success, so this shouldn't error
     } finally {
       setRegistering(false);
     }

@@ -125,10 +125,48 @@ export function useQuestionManagement() {
     setEditingQuestion(question);
     setValue('text', question.text);
     setValue('type', question.type);
-    setValue('options', question.options);
+    
+    // Convert options from string[] to Array<{ text: string; is_correct: boolean }>
+    // Backend stores options as string[], but form expects object array
+    const questionOptions = question.options || [];
+    const correctAnswer = question.correct_answer;
+    const questionType = question.type;
+    
+    // Check if options are already in object format or string array
+    const isStringArray = questionOptions.length > 0 && typeof questionOptions[0] === 'string';
+    
+    const convertedOptions = isStringArray
+      ? (questionOptions as string[]).map((opt: string, index: number) => {
+          const optionText = typeof opt === 'string' ? opt : String(opt);
+          let isCorrect = false;
+
+          // Determine if this option is correct based on question type
+          if (questionType === 'multiple_select') {
+            isCorrect = Array.isArray(correctAnswer) && correctAnswer.includes(index);
+          } else if (questionType === 'true_false' || questionType === 'multiple_choice') {
+            // For true_false: 0 = صحیح (first option), 1 = غلط (second option)
+            // For multiple_choice: index of correct option
+            isCorrect = correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
+          }
+
+          return { text: optionText, is_correct: isCorrect };
+        })
+      : questionOptions.length > 0
+        ? (questionOptions as Array<{ text: string; is_correct: boolean }>)
+        : questionType === 'true_false' 
+          ? [
+              { text: 'درست', is_correct: correctAnswer === 0 },
+              { text: 'نادرست', is_correct: correctAnswer === 1 }
+            ]
+          : [
+              { text: '', is_correct: false },
+              { text: '', is_correct: false },
+            ];
+    
+    setValue('options', convertedOptions);
     setValue('correct_answer', question.correct_answer);
     setValue('category_id', question.category_id);
-    setValue('tags', question.tags);
+    setValue('tags', question.tags || []);
     setValue('difficulty', question.difficulty);
     setOpen(true);
   };

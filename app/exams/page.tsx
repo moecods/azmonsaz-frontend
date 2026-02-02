@@ -19,14 +19,17 @@ import {
   InputLabel,
   IconButton,
   Pagination,
+  Divider,
+  Collapse,
 } from '@mui/material';
 import { useExams } from '@/hooks/useExams';
 import { useRouter } from 'next/navigation';
 import SchoolIcon from '@mui/icons-material/School';
-import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import FilterListOffIcon from '@mui/icons-material/FilterListOff';
 import { ExamListItem } from '@/services/exams/ExamService';
 import Breadcrumb from '@/components/Breadcrumb';
 
@@ -36,6 +39,7 @@ export default function ExamsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data, isLoading, error } = useExams({
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -50,10 +54,6 @@ export default function ExamsPage() {
 
   const handleViewExam = (examId: number) => {
     router.push(`/exams/${examId}`);
-  };
-
-  const handleEditExam = (examId: number) => {
-    router.push(`/exams/edit?exam_id=${examId}`);
   };
 
   if (isLoading) {
@@ -81,72 +81,85 @@ export default function ExamsPage() {
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
-          <Typography variant="h4" gutterBottom>
-            مدیریت آزمون‌ها
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            مشاهده و مدیریت آزمون‌های ایجاد شده
-          </Typography>
-          
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => router.push('/exams/create')}
-            sx={{ mb: 3 }}
-          >
-            ایجاد آزمون جدید
-          </Button>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+            <Box>
+              <Typography variant="h4" gutterBottom>
+                مدیریت آزمون‌ها
+              </Typography>
+              <Typography color="text.secondary">
+                مشاهده و مدیریت آزمون‌های ایجاد شده
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/exams/create')}
+              >
+                ایجاد آزمون جدید
+              </Button>
+            </Stack>
+          </Stack>
         </Box>
 
         {/* Filters */}
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-              <TextField
-                fullWidth
-                placeholder="جستجو در عنوان آزمون..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                }}
-              />
-              <FormControl fullWidth>
-                <InputLabel>وضعیت</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="وضعیت"
+        <Collapse in={showFilters}>
+          <Card sx={{ mb: showFilters ? 0 : 0 }}>
+            <CardContent>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                <TextField
+                  fullWidth
+                  placeholder="جستجو در عنوان آزمون..."
+                  value={searchQuery}
                   onChange={(e) => {
-                    setStatusFilter(e.target.value as any);
+                    setSearchQuery(e.target.value);
                     setPage(1);
                   }}
-                >
-                  <MenuItem value="all">همه</MenuItem>
-                  <MenuItem value="draft">پیش‌نویس</MenuItem>
-                  <MenuItem value="completed">تکمیل شده</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>نوع</InputLabel>
-                <Select
-                  value={typeFilter}
-                  label="نوع"
-                  onChange={(e) => {
-                    setTypeFilter(e.target.value as any);
-                    setPage(1);
+                  InputProps={{
+                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
-                >
-                  <MenuItem value="all">همه</MenuItem>
-                  <MenuItem value="offline">آفلاین</MenuItem>
-                  <MenuItem value="online">آنلاین</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </CardContent>
-        </Card>
+                />
+                <FormControl fullWidth>
+                  <InputLabel>وضعیت</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="وضعیت"
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value as any);
+                      setPage(1);
+                    }}
+                  >
+                    <MenuItem value="all">همه</MenuItem>
+                    <MenuItem value="draft">پیش‌نویس</MenuItem>
+                    <MenuItem value="completed">تکمیل شده</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>نوع</InputLabel>
+                  <Select
+                    value={typeFilter}
+                    label="نوع"
+                    onChange={(e) => {
+                      setTypeFilter(e.target.value as any);
+                      setPage(1);
+                    }}
+                  >
+                    <MenuItem value="all">همه</MenuItem>
+                    <MenuItem value="offline">آفلاین</MenuItem>
+                    <MenuItem value="online">آنلاین</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </CardContent>
+          </Card>
+        </Collapse>
 
         {/* Exams List */}
         {exams.length === 0 ? (
@@ -186,10 +199,20 @@ export default function ExamsPage() {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s',
+                    transition: 'all 0.2s ease-in-out',
+                    overflow: 'hidden',
                     '&:hover': {
                       transform: 'translateY(-4px)',
                       boxShadow: 4,
+                      '& .exam-action-area': {
+                        bgcolor: 'primary.main',
+                        '& .action-icon': {
+                          color: 'primary.contrastText',
+                        },
+                        '& .action-text': {
+                          color: 'primary.contrastText',
+                        },
+                      },
                     },
                   }}
                 >
@@ -248,29 +271,46 @@ export default function ExamsPage() {
                           })}
                         </Typography>
                       )}
-
-                      <Stack direction="row" spacing={1} sx={{ mt: 'auto', pt: 2 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => handleViewExam(exam.id)}
-                          startIcon={<VisibilityIcon />}
-                          fullWidth
-                        >
-                          مشاهده
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => handleEditExam(exam.id)}
-                          startIcon={<EditIcon />}
-                          fullWidth
-                        >
-                          ویرایش
-                        </Button>
-                      </Stack>
                     </Stack>
                   </CardContent>
+                  
+                  <Divider />
+                  
+                  <Box
+                    className="exam-action-area"
+                    onClick={() => handleViewExam(exam.id)}
+                    sx={{
+                      p: 2,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease-in-out',
+                      bgcolor: 'action.hover',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        '& .action-icon': {
+                          color: 'primary.contrastText',
+                        },
+                        '& .action-text': {
+                          color: 'primary.contrastText',
+                        },
+                      },
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1} justifyContent="center">
+                      <VisibilityIcon 
+                        className="action-icon"
+                        fontSize="small" 
+                        sx={{ color: 'primary.main', transition: 'color 0.2s' }}
+                      />
+                      <Typography 
+                        className="action-text"
+                        variant="body2" 
+                        fontWeight="medium" 
+                        sx={{ color: 'primary.main', transition: 'color 0.2s' }}
+                      >
+                        مشاهده و مدیریت
+                      </Typography>
+                    </Stack>
+                  </Box>
                 </Card>
               ))}
             </Box>

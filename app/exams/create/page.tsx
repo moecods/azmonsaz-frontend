@@ -25,11 +25,8 @@ import { examSchema, ExamFormData } from '@/lib/validation';
 import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam, useAuth } from '@/hooks';
 import { isUsingMockData } from '@/lib/data-service';
 import { deepLinkParamsSchema } from '@/lib/validation';
-import { ExamQuestion } from '@/types';
-import QuestionSelector from '@/components/QuestionSelector';
-import ExamQuestionList from '@/components/ExamQuestionList';
 import Breadcrumb from '@/components/Breadcrumb';
-import { PersianDateTimePicker } from '@/components/exams/PersianDateTimePicker';
+import { ExamFormWizard } from '@/components/exams/ExamFormWizard';
 import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
 
 
@@ -37,7 +34,6 @@ function CreateExamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
 
   // Check if user is creator/admin/content_manager (can create exams without partner)
   const isCreator = useMemo(() => isCreatorUser(user?.roles), [user?.roles]);
@@ -58,12 +54,7 @@ function CreateExamContent() {
     [isCreator, deepLinkParams]
   );
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-  } = useForm<ExamFormData>({
+  const form = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
     defaultValues: {
       title: '',
@@ -79,6 +70,13 @@ function CreateExamContent() {
       end_at: null,
     },
   });
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = form;
 
   // Fetch partner information if partner_id is provided
   const { data: partnerData, isLoading: isLoadingPartner } = usePartner(
@@ -105,7 +103,6 @@ function CreateExamContent() {
       setValue('title', existingExam.title);
       setValue('description', existingExam.description || '');
       setValue('subject', existingExam.subject || '');
-      setExamQuestions(existingExam.questions || []);
       
       // Load meta fields
       const metaFields = loadExamMetaToForm(existingExam);
@@ -129,11 +126,7 @@ function CreateExamContent() {
     }
   };
 
-  const onSubmit = (data: ExamFormData) => {
-    if (examQuestions.length === 0) {
-      return; // Validation is handled by button disabled state, but double-check
-    }
-
+  const onSubmit = (data: ExamFormData, redirectToQuestions: boolean = false) => {
     const meta = buildExamMeta(data);
     
     if (existingExam) {
@@ -147,7 +140,11 @@ function CreateExamContent() {
         },
       }, {
         onSuccess: (response) => {
-          handleRedirectAfterSave(response.id);
+          if (redirectToQuestions) {
+            router.push(`/exams/${response.id}?tab=questions`);
+          } else {
+            handleRedirectAfterSave(response.id);
+          }
         },
         onError: (error) => {
           console.error('Failed to update exam:', error);
@@ -170,7 +167,11 @@ function CreateExamContent() {
 
       createExamMutation.mutate(examData, {
         onSuccess: (response) => {
-          handleRedirectAfterSave(response.id);
+          if (redirectToQuestions) {
+            router.push(`/exams/${response.id}?tab=questions`);
+          } else {
+            handleRedirectAfterSave(response.id);
+          }
         },
         onError: (error) => {
           console.error('Failed to create exam:', error);
@@ -192,29 +193,6 @@ function CreateExamContent() {
     });
   };
 
-  const handleAddQuestion = (question: ExamQuestion) => {
-    const newQuestion = {
-      ...question,
-      order: examQuestions.length,
-    };
-    setExamQuestions((prev) => [...prev, newQuestion]);
-  };
-
-  const handleRemoveQuestion = (index: number) => {
-    setExamQuestions((prev) => {
-      const updated = prev.filter((_, i) => i !== index);
-      // Recalculate order for remaining questions
-      return updated.map((q, i) => ({ ...q, order: i }));
-    });
-  };
-
-  const handleUpdateQuestion = (index: number, updatedQuestion: ExamQuestion) => {
-    setExamQuestions((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updatedQuestion, order: index };
-      return updated;
-    });
-  };
 
   // Show loading state while fetching exam data
   if (isLoadingExam) {
@@ -270,213 +248,7 @@ function CreateExamContent() {
           </Alert>
         )}
 
-        <Card>
-          <CardContent>
-            <Stack spacing={3}>
-              <Controller
-                name="title"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="عنوان آزمون"
-                    fullWidth
-                    error={!!errors.title}
-                    helperText={errors.title?.message}
-                    placeholder="مثال: آزمون ریاضی پایه دهم"
-                  />
-                )}
-              />
-
-              <Controller
-                name="description"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="توضیحات"
-                    fullWidth
-                    multiline
-                    rows={3}
-                    error={!!errors.description}
-                    helperText={errors.description?.message}
-                    placeholder="توضیحات مربوط به آزمون را اینجا وارد کنید..."
-                  />
-                )}
-              />
-
-              <Controller
-                name="subject"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="موضوع"
-                    fullWidth
-                    error={!!errors.subject}
-                    helperText={errors.subject?.message}
-                    placeholder="مثال: ریاضی، فیزیک، شیمی"
-                  />
-                )}
-              />
-
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                تنظیمات آزمون
-              </Typography>
-
-              <Stack direction="row" spacing={2}>
-                <Controller
-                  name="duration_minutes"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="مدت زمان (دقیقه)"
-                      type="number"
-                      fullWidth
-                      error={!!errors.duration_minutes}
-                      helperText={errors.duration_minutes?.message}
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="passing_score"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="نمره قبولی (%)"
-                      type="number"
-                      fullWidth
-                      error={!!errors.passing_score}
-                      helperText={errors.passing_score?.message}
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-                      inputProps={{ min: 0, max: 100 }}
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="max_attempts"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="حداکثر تلاش"
-                      type="number"
-                      fullWidth
-                      error={!!errors.max_attempts}
-                      helperText={errors.max_attempts?.message}
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-                      inputProps={{ min: 1 }}
-                    />
-                  )}
-                />
-              </Stack>
-
-              <Controller
-                name="instructions"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="دستورالعمل آزمون"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    error={!!errors.instructions}
-                    helperText={errors.instructions?.message}
-                    placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
-                    value={field.value ?? ''}
-                  />
-                )}
-              />
-
-              <Controller
-                name="tags"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    multiple
-                    freeSolo
-                    options={[]}
-                    value={field.value || []}
-                    onChange={(_, newValue) => field.onChange(newValue)}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => (
-                        <Chip
-                          variant="outlined"
-                          label={option}
-                          {...getTagProps({ index })}
-                          key={index}
-                        />
-                      ))
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="تگ‌ها"
-                        placeholder="تگ اضافه کنید و Enter بزنید"
-                        error={!!errors.tags}
-                        helperText={errors.tags?.message}
-                      />
-                    )}
-                  />
-                )}
-              />
-
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                زمان‌بندی آزمون (اختیاری)
-              </Typography>
-
-              <Stack direction="row" spacing={2}>
-                <Controller
-                  name="start_at"
-                  control={control}
-                  render={({ field }) => (
-                    <PersianDateTimePicker
-                      label="زمان شروع"
-                      value={field.value ?? null}
-                      onChange={field.onChange}
-                      error={!!errors.start_at}
-                      errorMessage={errors.start_at?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="end_at"
-                  control={control}
-                  render={({ field }) => (
-                    <PersianDateTimePicker
-                      label="زمان پایان"
-                      value={field.value ?? null}
-                      onChange={field.onChange}
-                      error={!!errors.end_at}
-                      errorMessage={errors.end_at?.message}
-                    />
-                  )}
-                />
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        <QuestionSelector onAddQuestion={handleAddQuestion} />
-        <ExamQuestionList
-          questions={examQuestions}
-          onRemoveQuestion={handleRemoveQuestion}
-          onUpdateQuestion={handleUpdateQuestion}
-        />
-
-        <Stack direction="row" spacing={2} justifyContent="flex-end">
+        <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 2 }}>
           <Button
             variant="outlined"
             onClick={() => router.back()}
@@ -484,37 +256,25 @@ function CreateExamContent() {
           >
             انصراف
           </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit(onSubmit)}
-            disabled={
-              (createExamMutation.isPending || updateExamMutation.isPending) ||
-              examQuestions.length === 0
-            }
-            startIcon={
-              (createExamMutation.isPending || updateExamMutation.isPending) ? (
-                <CircularProgress size={20} />
-              ) : null
-            }
-          >
-            {(createExamMutation.isPending || updateExamMutation.isPending)
-              ? 'در حال ذخیره...'
-              : existingExam
-              ? 'به‌روزرسانی آزمون'
-              : 'ذخیره آزمون'}
-          </Button>
           {existingExam && (
             <Button
               variant="contained"
               color="success"
               onClick={handleCompleteExam}
-              disabled={examQuestions.length === 0 || completeExamMutation.isPending}
+              disabled={completeExamMutation.isPending}
               startIcon={completeExamMutation.isPending ? <CircularProgress size={20} /> : null}
             >
               {completeExamMutation.isPending ? 'در حال تکمیل...' : 'تکمیل آزمون'}
             </Button>
           )}
         </Stack>
+
+        <ExamFormWizard
+          form={form}
+          onSubmit={onSubmit}
+          isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
+          existingExam={!!existingExam}
+        />
       </Stack>
     </Container>
   );

@@ -82,7 +82,7 @@ export interface Question {
   id: number;
   text: string;
   type: QuestionType;
-  options: QuestionOption[];
+  options: string[] | QuestionOption[]; // Backend returns string[], but form expects QuestionOption[]
   correct_answer: number | number[] | null; // single or multiple correct answers, null for essay
   category_id: number;
   category?: QuestionCategory;
@@ -140,9 +140,10 @@ export interface ExamQuestion {
   exam_id: number;
   question_id?: number; // null for custom questions
   question?: Question; // null for custom questions
-  custom_text?: string; // for custom questions
-  custom_options?: QuestionOption[]; // for custom questions
-  custom_correct_answer?: number | number[]; // for custom questions
+  payload?: Record<string, any>; // payload from backend
+  custom_text?: string; // for custom questions (frontend only)
+  custom_options?: QuestionOption[]; // for custom questions (frontend only)
+  custom_correct_answer?: number | number[]; // for custom questions (frontend only)
   order: number;
   created_at: string;
   updated_at: string;

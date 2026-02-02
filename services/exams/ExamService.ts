@@ -244,9 +244,13 @@ export interface ExamListItem {
 
 export interface ExamParticipant {
   id: number;
-  name: string | null;
-  phone_number: string | null;
-  email: string | null;
+  user_id: number | null;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone_number: string | null;
+  } | null;
   score: number | null;
   total_points: number | null;
   passed: boolean;
@@ -334,6 +338,8 @@ export interface ExamStartResponse {
     payload: Record<string, unknown>;
   }>;
   started_at: string;
+  remaining_seconds?: number | null; // Remaining time in seconds (null if no time limit)
+  answers?: Record<string, any>; // Saved answers from previous session
 }
 
 export interface ExamSubmissionResult {
