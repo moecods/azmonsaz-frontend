@@ -88,9 +88,14 @@ export default function TakeExamPage() {
       }
 
       // Set timer if duration is provided
-      if (response.meta?.duration_minutes) {
-        const durationSeconds = response.meta.duration_minutes * 60;
-        setTimeRemaining(durationSeconds);
+      if (response.exam?.meta && typeof response.exam.meta === 'object' && 'duration_minutes' in response.exam.meta) {
+        const durationMinutes = response.exam.meta.duration_minutes;
+        if (typeof durationMinutes === 'number') {
+          const durationSeconds = durationMinutes * 60;
+          setTimeRemaining(durationSeconds);
+        }
+      } else if (response.remaining_seconds !== null && response.remaining_seconds !== undefined) {
+        setTimeRemaining(Math.floor(response.remaining_seconds));
       }
     } catch (error) {
       // Error handled by mutation
