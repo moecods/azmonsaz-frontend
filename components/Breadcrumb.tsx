@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Breadcrumbs as MuiBreadcrumbs, Link, Typography } from '@mui/material';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import HomeIcon from '@mui/icons-material/Home';
 
@@ -17,7 +17,6 @@ interface BreadcrumbProps {
 
 const Breadcrumb = React.memo(function Breadcrumb({ items }: BreadcrumbProps) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const handleClick = (href: string) => {
     router.push(href);
