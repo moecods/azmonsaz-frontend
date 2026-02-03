@@ -7,19 +7,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Container,
   Stack,
-  TextField,
   Typography,
   Alert,
-  CircularProgress,
-  Chip,
-  Autocomplete,
-  Divider,
 } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { examSchema, ExamFormData } from '@/lib/validation';
 import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam, useAuth } from '@/hooks';
@@ -29,6 +22,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { ExamFormWizard } from '@/components/exams/ExamFormWizard';
 import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
 import { handleError } from '@/lib/error-handler';
+import { PageLoading } from '@/components/feedback';
 import UserLayout from '@/components/layout/UserLayout';
 
 
@@ -200,9 +194,7 @@ function CreateExamContent() {
   if (isLoadingExam) {
     return (
       <UserLayout>
-        <Box display="flex" justifyContent="center" p={3}>
-          <CircularProgress />
-        </Box>
+        <PageLoading message="در حال بارگذاری اطلاعات آزمون..." />
       </UserLayout>
     );
   }
@@ -235,13 +227,11 @@ function CreateExamContent() {
               🧪 Using mock data for development. Partner ID: {deepLinkParams.partner_id}
             </Alert>
           )}
-          {isLoadingPartner ? (
-            <CircularProgress size={16} sx={{ ml: 1 }} />
-          ) : partnerData ? (
+          {partnerData && (
             <Typography color="text.secondary">
               Partner: {partnerData.name}
             </Typography>
-          ) : null}
+          )}
         </Box>
 
         {(createExamMutation.isError || updateExamMutation.isError || completeExamMutation.isError) && (
@@ -267,7 +257,6 @@ function CreateExamContent() {
               color="success"
               onClick={handleCompleteExam}
               disabled={completeExamMutation.isPending}
-              startIcon={completeExamMutation.isPending ? <CircularProgress size={20} /> : null}
             >
               {completeExamMutation.isPending ? 'در حال تکمیل...' : 'تکمیل آزمون'}
             </Button>
@@ -291,9 +280,7 @@ export default function CreateExamPage() {
     <Suspense
       fallback={
         <UserLayout>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
+          <PageLoading />
         </UserLayout>
       }
     >
