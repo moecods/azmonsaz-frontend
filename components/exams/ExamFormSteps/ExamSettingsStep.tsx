@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { Stack, TextField, Autocomplete, Chip } from '@mui/material';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
@@ -8,7 +9,7 @@ interface ExamSettingsStepProps {
   form: UseFormReturn<ExamFormData>;
 }
 
-export function ExamSettingsStep({ form }: ExamSettingsStepProps) {
+export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: ExamSettingsStepProps) {
   const { control, formState: { errors } } = form;
 
   return (
@@ -120,5 +121,5 @@ export function ExamSettingsStep({ form }: ExamSettingsStepProps) {
       />
     </Stack>
   );
-}
+});
 

@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { Stack, Typography } from '@mui/material';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
@@ -9,7 +10,7 @@ interface SchedulingStepProps {
   form: UseFormReturn<ExamFormData>;
 }
 
-export function SchedulingStep({ form }: SchedulingStepProps) {
+export const SchedulingStep = React.memo(function SchedulingStep({ form }: SchedulingStepProps) {
   const { control, formState: { errors } } = form;
 
   return (
@@ -49,5 +50,5 @@ export function SchedulingStep({ form }: SchedulingStepProps) {
       </Stack>
     </Stack>
   );
-}
+});
 

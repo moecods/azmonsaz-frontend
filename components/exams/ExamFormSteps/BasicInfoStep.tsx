@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { Stack, TextField } from '@mui/material';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
@@ -8,7 +9,7 @@ interface BasicInfoStepProps {
   form: UseFormReturn<ExamFormData>;
 }
 
-export function BasicInfoStep({ form }: BasicInfoStepProps) {
+export const BasicInfoStep = React.memo(function BasicInfoStep({ form }: BasicInfoStepProps) {
   const { control, formState: { errors } } = form;
 
   return (
@@ -62,5 +63,5 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       />
     </Stack>
   );
-}
+});
 
