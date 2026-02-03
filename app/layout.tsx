@@ -5,6 +5,7 @@ import ThemeRegistry from "../theme/ThemeRegistry";
 import { QueryProvider } from "./providers/QueryProvider";
 import { DataSourceIndicator } from '@/components/DataSourceIndicator';
 import Navbar from '@/components/Navbar';
+import LayoutContent from './LayoutContent';
 
 export const metadata: Metadata = {
   title: "Azmoon-Saz - Exam Builder",
@@ -22,8 +23,7 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeRegistry>
             <CssBaseline />
-            <Navbar />
-            <Box component="main">{children}</Box>
+            <LayoutContent>{children}</LayoutContent>
             <DataSourceIndicator />
           </ThemeRegistry>
         </QueryProvider>

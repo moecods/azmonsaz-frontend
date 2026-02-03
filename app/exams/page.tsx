@@ -83,13 +83,13 @@ export default function ExamsPage() {
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
-            <Box>
-              <Typography variant="h4" gutterBottom>
+        <Box>
+          <Typography variant="h4" gutterBottom>
                 مدیریت آزمون‌ها
-              </Typography>
+          </Typography>
               <Typography color="text.secondary">
                 مشاهده و مدیریت آزمون‌های ایجاد شده
-              </Typography>
+          </Typography>
             </Box>
             <Stack direction="row" spacing={2}>
               <Button
@@ -99,13 +99,13 @@ export default function ExamsPage() {
               >
                 {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
               </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => router.push('/exams/create')}
-              >
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => router.push('/exams/create')}
+            >
                 ایجاد آزمون جدید
-              </Button>
+            </Button>
             </Stack>
           </Stack>
         </Box>
@@ -174,37 +174,37 @@ export default function ExamsPage() {
                 <Typography color="text.secondary" sx={{ mb: 3 }}>
                   برای شروع، اولین آزمون خود را ایجاد کنید.
                 </Typography>
-                <Button
-                  variant="contained"
+                  <Button
+                    variant="contained"
                   onClick={() => router.push('/exams/create')}
-                  startIcon={<AddIcon />}
+                    startIcon={<AddIcon />}
                 >
                   ایجاد آزمون جدید
-                </Button>
+                  </Button>
               </Box>
             </CardContent>
           </Card>
         ) : (
           <>
-            <Box 
-              sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                gap: 3 
-              }}
-            >
-              {exams.map((exam) => (
-                <Card 
-                  key={exam.id}
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
+          <Box 
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+              gap: 3 
+            }}
+          >
+            {exams.map((exam) => (
+              <Card 
+                key={exam.id}
+                sx={{ 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
                     transition: 'all 0.2s ease-in-out',
                     overflow: 'hidden',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
                       '& .exam-action-area': {
                         bgcolor: 'primary.main',
                         '& .action-icon': {
@@ -214,21 +214,21 @@ export default function ExamsPage() {
                           color: 'primary.contrastText',
                         },
                       },
-                    },
-                  }}
-                >
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Stack spacing={2}>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <SchoolIcon color="primary" />
-                        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                          {exam.title}
-                        </Typography>
+                  },
+                }}
+              >
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Stack spacing={2}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <SchoolIcon color="primary" />
+                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                        {exam.title}
+                      </Typography>
                         {exam.status !== 'completed' && (
-                          <Chip 
+                      <Chip 
                             label="پیش‌نویس" 
                             color="default"
-                            size="small"
+                        size="small"
                           />
                         )}
                       </Stack>
@@ -238,39 +238,39 @@ export default function ExamsPage() {
                           label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} 
                           size="small"
                           variant="outlined"
-                        />
-                      </Stack>
+                      />
+                    </Stack>
 
                       {exam.partner && (
-                        <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary">
                           شریک: {exam.partner.name}
-                        </Typography>
-                      )}
+                      </Typography>
+                    )}
 
                       {exam.creator && (
-                        <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary">
                           ایجادکننده: {exam.creator.name}
-                        </Typography>
-                      )}
+                      </Typography>
+                    )}
 
                       {(exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta) && (
-                        <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                           تاریخ شروع: {new Date((exam.meta as any).start_at).toLocaleDateString('fa-IR', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
                           })}
-                        </Typography>
-                      )}
+                      </Typography>
+                    )}
 
                       {(exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta) && (
-                        <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                           تاریخ پایان: {new Date((exam.meta as any).end_at).toLocaleDateString('fa-IR', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
                           })}
-                        </Typography>
+                    </Typography>
                       )}
                     </Stack>
                   </CardContent>
@@ -310,19 +310,19 @@ export default function ExamsPage() {
                       >
                         مشاهده و مدیریت
                       </Typography>
-                    </Stack>
+                  </Stack>
                   </Box>
-                </Card>
-              ))}
-            </Box>
+              </Card>
+            ))}
+          </Box>
 
             {/* Pagination */}
             {meta && meta.last_page > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                 <Stack spacing={2} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                     نمایش {((meta.current_page - 1) * meta.per_page) + 1} تا {Math.min(meta.current_page * meta.per_page, meta.total)} از {meta.total} آزمون
-                  </Typography>
+              </Typography>
                   <Pagination
                     count={meta.last_page}
                     page={meta.current_page}
@@ -330,7 +330,7 @@ export default function ExamsPage() {
                     color="primary"
                     size="large"
                   />
-                </Stack>
+            </Stack>
               </Box>
             )}
           </>

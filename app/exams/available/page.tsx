@@ -14,7 +14,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useAvailableExams } from '@/hooks/useExams';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import UserLayout from '@/components/layout/UserLayout';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -66,41 +66,36 @@ export default function AvailableExamsPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        </Container>
-      </ProtectedRoute>
+      <UserLayout>
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress />
+        </Box>
+      </UserLayout>
     );
   }
 
   if (error) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Alert severity="error">
-            {error instanceof Error ? error.message : 'Failed to load available exams.'}
-          </Alert>
-        </Container>
-      </ProtectedRoute>
+      <UserLayout>
+        <Alert severity="error">
+          {error instanceof Error ? error.message : 'Failed to load available exams.'}
+        </Alert>
+      </UserLayout>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack spacing={4}>
-          <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              آزمون‌های من
-            </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
-              لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید
-            </Typography>
-          </Box>
+    <UserLayout>
+      <Stack spacing={4}>
+        <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            آزمون‌های من
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید
+          </Typography>
+        </Box>
 
           {exams.length === 0 ? (
             <Card>
@@ -124,9 +119,9 @@ export default function AvailableExamsPage() {
                 gap: 3,
               }}
             >
-              {exams.map((exam) => (
+              {exams.map((exam, index) => (
                 <Card
-                  key={exam.id}
+                  key={`exam-${exam.id}-${index}`}
                   sx={{
                     height: '100%',
                     display: 'flex',
@@ -229,9 +224,8 @@ export default function AvailableExamsPage() {
               ))}
             </Box>
           )}
-        </Stack>
-      </Container>
-    </ProtectedRoute>
+      </Stack>
+    </UserLayout>
   );
 }
 

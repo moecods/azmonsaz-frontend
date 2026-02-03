@@ -28,6 +28,7 @@ import { deepLinkParamsSchema } from '@/lib/validation';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamFormWizard } from '@/components/exams/ExamFormWizard';
 import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
+import UserLayout from '@/components/layout/UserLayout';
 
 
 function CreateExamContent() {
@@ -197,34 +198,37 @@ function CreateExamContent() {
   // Show loading state while fetching exam data
   if (isLoadingExam) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <UserLayout>
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress />
+        </Box>
+      </UserLayout>
     );
   }
 
   // Only show error if not creator and validation failed
   if (!validationResult.success && !isUsingMockData() && !isCreator) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <UserLayout>
         <Alert severity="error">
           Invalid deep link parameters. Please ensure partner_id and callback_url are provided.
         </Alert>
-      </Container>
+      </UserLayout>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack spacing={4}>
-        <Breadcrumb items={[
-          { label: 'مدیریت آزمون‌ها', href: '/exams' },
-          { label: existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید' }
-        ]} />
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            {existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید'}
-          </Typography>
+    <UserLayout>
+      <Container maxWidth="lg">
+        <Stack spacing={4}>
+          <Breadcrumb items={[
+            { label: 'مدیریت آزمون‌ها', href: '/exams' },
+            { label: existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید' }
+          ]} />
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              {existingExam ? 'ویرایش آزمون' : 'ایجاد آزمون جدید'}
+            </Typography>
           {isUsingMockData() && (
             <Alert severity="info" sx={{ mb: 2 }}>
               🧪 Using mock data for development. Partner ID: {deepLinkParams.partner_id}
@@ -275,8 +279,9 @@ function CreateExamContent() {
           isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
           existingExam={!!existingExam}
         />
-      </Stack>
-    </Container>
+        </Stack>
+      </Container>
+    </UserLayout>
   );
 }
 
@@ -284,9 +289,11 @@ export default function CreateExamPage() {
   return (
     <Suspense
       fallback={
-        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Container>
+        <UserLayout>
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        </UserLayout>
       }
     >
       <CreateExamContent />

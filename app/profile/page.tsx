@@ -141,23 +141,23 @@ export default function ProfilePage() {
 
   return (
     <UserLayout>
-      <Stack spacing={4}>
+        <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'پروفایل' }]} />
         
-        <Box>
+          <Box>
           <Typography variant="h4" gutterBottom fontWeight="bold">
-            پروفایل کاربری
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+              پروفایل کاربری
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
             مشاهده و ویرایش اطلاعات پروفایل
-          </Typography>
-        </Box>
+            </Typography>
+          </Box>
 
         <Grid container spacing={3}>
           {/* Profile Info Card */}
           <Grid item xs={12} md={8}>
-            <Card>
-              <CardContent>
+          <Card>
+            <CardContent>
                 <Stack spacing={4}>
                   {/* Avatar and Basic Info */}
                   <Box>
@@ -173,10 +173,10 @@ export default function ProfilePage() {
                       >
                         {getInitials(user.name)}
                       </Avatar>
-                      <Box>
+                <Box>
                         <Typography variant="h5" fontWeight="bold">
                           {user.name}
-                        </Typography>
+                  </Typography>
                         {user.roles && user.roles.length > 0 && (
                           <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
                             {user.roles.map((role) => (
@@ -191,92 +191,92 @@ export default function ProfilePage() {
                         )}
                       </Box>
                     </Stack>
-                  </Box>
+                </Box>
 
                   <Divider />
 
                   {/* User Information */}
                   <Stack spacing={3}>
-                    <Box>
+                <Box>
                       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
                         <PhoneIcon color="action" />
                         <Typography variant="body2" color="text.secondary">
-                          شماره تلفن
-                        </Typography>
+                    شماره تلفن
+                  </Typography>
                       </Stack>
                       <Typography variant="body1" sx={{ mr: 5 }}>
                         {user.phone_number}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                        شماره تلفن قابل تغییر نیست
-                      </Typography>
-                    </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    شماره تلفن قابل تغییر نیست
+                  </Typography>
+                </Box>
 
-                    <Box>
+                <Box>
                       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
                         <EmailIcon color="action" />
                         <Typography variant="body2" color="text.secondary">
                           ایمیل
-                        </Typography>
+                  </Typography>
                       </Stack>
                       <Typography variant="body1" sx={{ mr: 5 }}>
                         {user.email || 'ثبت نشده'}
-                      </Typography>
-                    </Box>
+                  </Typography>
+                </Box>
                   </Stack>
 
                   <Divider />
 
                   {/* Email Edit Form */}
-                  {successMessage && (
-                    <Alert severity="success">{successMessage}</Alert>
-                  )}
+                {successMessage && (
+                  <Alert severity="success">{successMessage}</Alert>
+                )}
 
                   <Box>
                     <Typography variant="h6" gutterBottom>
                       ویرایش ایمیل
                     </Typography>
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                      <Stack spacing={3}>
-                        <Controller
-                          name="email"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              label="ایمیل"
-                              type="email"
-                              fullWidth
-                              placeholder="example@email.com"
-                              error={!!errors.email}
-                              helperText={errors.email?.message || 'ایمیل اختیاری است. می‌توانید آن را خالی بگذارید.'}
-                              disabled={updateProfileMutation.isPending}
-                            />
-                          )}
+                <form onSubmit={handleSubmit(onSubmit)}>
+                  <Stack spacing={3}>
+                    <Controller
+                      name="email"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="ایمیل"
+                          type="email"
+                          fullWidth
+                          placeholder="example@email.com"
+                          error={!!errors.email}
+                          helperText={errors.email?.message || 'ایمیل اختیاری است. می‌توانید آن را خالی بگذارید.'}
+                          disabled={updateProfileMutation.isPending}
                         />
+                      )}
+                    />
 
-                        <Stack direction="row" spacing={2} justifyContent="flex-end">
-                          <Button
-                            variant="outlined"
-                            onClick={() => {
-                              reset({ email: user.email || '' });
-                              setSuccessMessage(null);
-                            }}
-                            disabled={updateProfileMutation.isPending}
-                          >
-                            انصراف
-                          </Button>
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            disabled={updateProfileMutation.isPending}
-                            startIcon={updateProfileMutation.isPending ? <CircularProgress size={20} /> : null}
-                          >
-                            {updateProfileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    </form>
+                    <Stack direction="row" spacing={2} justifyContent="flex-end">
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          reset({ email: user.email || '' });
+                          setSuccessMessage(null);
+                        }}
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        انصراف
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={updateProfileMutation.isPending}
+                        startIcon={updateProfileMutation.isPending ? <CircularProgress size={20} /> : null}
+                      >
+                        {updateProfileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </form>
                   </Box>
                 </Stack>
               </CardContent>
@@ -317,12 +317,12 @@ export default function ProfilePage() {
                       {stats.completedExams}
                     </Typography>
                   </Box>
-                </Stack>
-              </CardContent>
-            </Card>
+              </Stack>
+            </CardContent>
+          </Card>
           </Grid>
         </Grid>
-      </Stack>
+        </Stack>
     </UserLayout>
   );
 }

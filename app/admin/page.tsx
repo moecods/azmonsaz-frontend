@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import UserLayout from '@/components/layout/UserLayout';
 import {
   Box,
   Button,
@@ -324,13 +324,12 @@ export default function AdminPage() {
   const usersMeta = usersData?.meta;
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={3}>
-          <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
-          <Box>
-            <Typography variant="h4">پنل مدیریت</Typography>
-          </Box>
+    <UserLayout requiredRole="admin">
+      <Stack spacing={3}>
+        <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
+        <Box>
+          <Typography variant="h4">پنل مدیریت</Typography>
+        </Box>
 
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -483,20 +482,20 @@ export default function AdminPage() {
                             {user.roles && user.roles.length > 0 ? (
                               <Stack direction="row" spacing={0.5} flexWrap="wrap">
                                 {user.roles.map((role) => (
-                                  <Chip
+                            <Chip 
                                     key={role}
-                                    label={
+                              label={
                                       role === 'admin' ? 'مدیر' :
                                       role === 'content_manager' ? 'مدیر محتوا' :
                                       role === 'creator' ? 'سازنده' : role
-                                    }
-                                    color={
+                              } 
+                              color={
                                       role === 'admin' ? 'error' :
                                       role === 'content_manager' ? 'primary' :
                                       role === 'creator' ? 'success' : 'default'
-                                    }
-                                    size="small"
-                                  />
+                              }
+                              size="small"
+                            />
                                 ))}
                               </Stack>
                             ) : (
@@ -710,8 +709,7 @@ export default function AdminPage() {
             </Button>
           </DialogActions>
         </Dialog>
-        </Stack>
-      </Box>
-    </ProtectedRoute>
+      </Stack>
+    </UserLayout>
   );
 }

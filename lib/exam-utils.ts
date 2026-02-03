@@ -69,7 +69,7 @@ export function buildCallbackUrl(
     if (additionalParams) {
       Object.entries(additionalParams).forEach(([key, value]) => {
         if (value != null && value !== '') {
-          url.searchParams.set(key, value);
+        url.searchParams.set(key, value);
         }
       });
     }

@@ -11,18 +11,27 @@ import {
   Box,
   Stack,
   Chip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useRouter } from 'next/navigation';
+import SchoolIcon from '@mui/icons-material/School';
+import QuizIcon from '@mui/icons-material/Quiz';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks';
 
 export default function UserMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -42,6 +51,25 @@ export default function UserMenu() {
     handleClose();
     router.push(path);
   };
+
+  const isCreator = user?.roles?.includes('admin') || 
+                   user?.roles?.includes('content_manager') || 
+                   user?.roles?.includes('creator');
+
+  // Menu items for mobile (similar to sidebar)
+  const mobileMenuItems = [
+    { label: 'داشبورد', icon: <DashboardIcon />, path: '/dashboard' },
+    { label: 'آزمون‌های من', icon: <SchoolIcon />, path: '/exams/available' },
+    ...(isCreator ? [
+      { label: 'مدیریت آزمون‌ها', icon: <ListAltIcon />, path: '/exams' },
+      { label: 'ایجاد آزمون', icon: <SchoolIcon />, path: '/exams/create' },
+      { label: 'بانک سوالات', icon: <QuizIcon />, path: '/questions' },
+    ] : []),
+    { label: 'پروفایل', icon: <PersonIcon />, path: '/profile' },
+    ...((user?.roles?.includes('admin') || user?.roles?.includes('content_manager')) ? [
+      { label: 'پنل مدیریت', icon: <AdminPanelSettingsIcon />, path: '/admin' },
+    ] : []),
+  ];
 
   const getInitials = (name: string) => {
     return name

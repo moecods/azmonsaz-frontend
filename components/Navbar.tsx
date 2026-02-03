@@ -1,6 +1,6 @@
 "use client";
 
-import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Box, useTheme, useMediaQuery } from "@mui/material";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks";
 import LoginIcon from "@mui/icons-material/Login";
@@ -11,15 +11,37 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Don't show navbar on login page
   if (pathname === '/login') {
     return null;
   }
 
+  // Pages that use UserLayout (should hide navbar on mobile, they have bottom nav)
+  const userLayoutPages = [
+    '/dashboard',
+    '/profile',
+    '/exams',
+    '/exams/available',
+    '/questions',
+    '/admin',
+  ];
+
+  const isUserLayoutPage = userLayoutPages.some(page => 
+    pathname === page || pathname?.startsWith(page + '/')
+  );
+
+  // Hide navbar on mobile only for pages that use UserLayout (they have bottom nav)
+  // Always show navbar for landing page and other public pages
+  if (isMobile && isAuthenticated && isUserLayoutPage) {
+    return null;
+  }
+
   return (
     <AppBar 
-      position="static" 
+      position="fixed" 
       color="transparent" 
       elevation={0}
       sx={{ 
@@ -31,7 +53,7 @@ export default function Navbar() {
     >
       <Toolbar>
         <Box
-          sx={{
+          sx={{ 
             display: 'flex',
             alignItems: 'center',
             gap: 1,
@@ -46,9 +68,9 @@ export default function Navbar() {
               fontWeight: 'bold',
               color: 'text.primary',
             }}
-          >
-            آزمون‌ساز
-          </Typography>
+        >
+          آزمون‌ساز
+        </Typography>
         </Box>
         
         <Box sx={{ flexGrow: 1 }} />

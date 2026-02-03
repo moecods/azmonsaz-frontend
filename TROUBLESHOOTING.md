@@ -105,7 +105,7 @@ from origin 'http://localhost:3000' has been blocked by CORS policy
 2. **Restart کردن Next.js dev server** بعد از تغییر environment variable
 
 3. **بررسی Laravel backend**:
-   ```bash
+```bash
    curl http://azmonsaz.test/api/question-categories
    ```
 

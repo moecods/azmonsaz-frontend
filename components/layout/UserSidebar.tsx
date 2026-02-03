@@ -192,10 +192,34 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
 
       {/* Navigation Menu */}
       <List sx={{ flexGrow: 1, pt: 2 }}>
-        {filteredMenuItems.map((item) => {
-          const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+        {filteredMenuItems.map((item, index) => {
+          // Find the most specific matching menu item
+          // First, check for exact matches
+          const exactMatch = filteredMenuItems.find(otherItem => pathname === otherItem.path);
+          
+          let isActive = false;
+          
+          if (exactMatch) {
+            // If there's an exact match, only that item should be active
+            isActive = item.path === exactMatch.path;
+          } else {
+            // If no exact match, find the most specific path that matches
+            // Sort by path length (longer = more specific) and find the first match
+            const matchingItems = filteredMenuItems
+              .filter(otherItem => {
+                if (pathname === otherItem.path) return true;
+                const pathWithSlash = otherItem.path + '/';
+                return pathname?.startsWith(pathWithSlash);
+              })
+              .sort((a, b) => b.path.length - a.path.length); // Sort by length, longest first
+            
+            // The most specific match is the first one (longest path)
+            const mostSpecificMatch = matchingItems[0];
+            isActive = mostSpecificMatch && item.path === mostSpecificMatch.path;
+          }
+          
           return (
-            <ListItem key={item.path} disablePadding>
+            <ListItem key={`${item.path}-${index}`} disablePadding>
               <ListItemButton
                 onClick={() => handleNavigation(item.path)}
                 selected={isActive}
@@ -237,6 +261,9 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
     </Box>
   );
 
+  const TOOLBAR_HEIGHT = 64; // Standard MUI Toolbar height
+  const SIDEBAR_MARGIN = 4; // Margin top and bottom for better visual separation
+
   if (variant === 'permanent') {
     return (
       <Drawer
@@ -249,6 +276,11 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
             boxSizing: 'border-box',
             borderRight: 1,
             borderColor: 'divider',
+            top: `${TOOLBAR_HEIGHT + SIDEBAR_MARGIN}px`,
+            height: `calc(100% - ${TOOLBAR_HEIGHT + SIDEBAR_MARGIN * 2}px)`,
+            mt: `${SIDEBAR_MARGIN}px`,
+            mb: `${SIDEBAR_MARGIN}px`,
+            borderRadius: 2,
           },
         }}
       >
