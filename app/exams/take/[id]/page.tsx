@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -62,11 +62,64 @@ export default function TakeExamPage() {
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
 
+  const handleStartExam = useCallback(async () => {
+    if (!examId) return;
+
+    try {
+      const response = await startExamMutation.mutateAsync(examId);
+      // Map API response questions to local Question interface
+      const mappedQuestions: Question[] = (response.questions || []).map((q) => ({
+        id: q.id,
+        payload: q.payload as Question['payload'],
+      }));
+      setQuestions(mappedQuestions);
+      setExamStarted(true);
+      
+      // Load saved answers if resuming
+      if (response.answers && typeof response.answers === 'object') {
+        const savedAnswers: Record<number, any> = {};
+        Object.entries(response.answers).forEach(([key, value]) => {
+          const questionId = parseInt(key);
+          if (!isNaN(questionId)) {
+            savedAnswers[questionId] = value;
+          }
+        });
+        setAnswers(savedAnswers);
+      }
+
+      // Set timer if duration is provided
+      if (response.meta?.duration_minutes) {
+        const durationSeconds = response.meta.duration_minutes * 60;
+        setTimeRemaining(durationSeconds);
+      }
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [examId, startExamMutation]);
+
   useEffect(() => {
     if (examId && !examStarted) {
       handleStartExam();
     }
-  }, [examId]);
+  }, [examId, examStarted, handleStartExam]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!examId || submitted) return;
+
+    try {
+      const result = await submitExamMutation.mutateAsync(examId);
+      setResult(result);
+      setSubmitted(true);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [examId, submitted, submitExamMutation]);
+
+  const handleAutoSubmit = useCallback(() => {
+    if (!submitted && examId) {
+      handleSubmit();
+    }
+  }, [submitted, examId, handleSubmit]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0 && !submitted) {
@@ -84,46 +137,8 @@ export default function TakeExamPage() {
     } else if (timeRemaining === 0 && !submitted) {
       handleAutoSubmit();
     }
-  }, [timeRemaining, submitted]);
+  }, [timeRemaining, submitted, handleAutoSubmit]);
 
-  const handleStartExam = async () => {
-    if (!examId) return;
-
-    try {
-      const response = await startExamMutation.mutateAsync(examId);
-      // Map API response questions to local Question interface
-      const mappedQuestions: Question[] = (response.questions || []).map((q) => ({
-        id: q.id,
-        payload: q.payload as Question['payload'],
-      }));
-      setQuestions(mappedQuestions);
-      setExamStarted(true);
-      
-      // Load saved answers if resuming
-      if (response.answers && typeof response.answers === 'object') {
-        const savedAnswers: Record<number, any> = {};
-        Object.keys(response.answers).forEach((key) => {
-          const questionId = parseInt(key);
-          if (!isNaN(questionId) && response.answers) {
-            savedAnswers[questionId] = response.answers[key];
-          }
-        });
-        setAnswers(savedAnswers);
-      }
-      
-      // Set timer - use remaining_seconds if resuming, otherwise calculate from duration
-      if (response.remaining_seconds !== null && response.remaining_seconds !== undefined) {
-        setTimeRemaining(Math.floor(response.remaining_seconds)); // Ensure integer
-      } else {
-        const durationMinutes = response.exam?.meta?.duration_minutes;
-        if (durationMinutes && typeof durationMinutes === 'number') {
-          setTimeRemaining(durationMinutes * 60);
-        }
-      }
-    } catch (error) {
-      // Error handled by mutation
-    }
-  };
 
   const handleAnswerChange = (questionId: number, answer: any) => {
     setAnswers((prev) => ({
