@@ -103,13 +103,13 @@ export default function TakeExamPage() {
     }
   }, [examId, examStarted, handleStartExam]);
 
-  const handleSubmit = useCallback(async (showDialog: boolean = false) => {
+  const handleSubmitClick = useCallback(() => {
     if (!examId || submitted) return;
+    setShowSubmitDialog(true);
+  }, [examId, submitted]);
 
-    if (showDialog) {
-      setShowSubmitDialog(true);
-      return;
-    }
+  const handleSubmitConfirm = useCallback(async () => {
+    if (!examId || submitted) return;
 
     setShowSubmitDialog(false);
     try {
@@ -123,9 +123,9 @@ export default function TakeExamPage() {
 
   const handleAutoSubmit = useCallback(() => {
     if (!submitted && examId) {
-      handleSubmit(false);
+      handleSubmitConfirm();
     }
-  }, [submitted, examId, handleSubmit]);
+  }, [submitted, examId, handleSubmitConfirm]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0 && !submitted) {
@@ -176,24 +176,6 @@ export default function TakeExamPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!examId) return;
-
-    setShowSubmitDialog(false);
-    try {
-      const response = await submitExamMutation.mutateAsync(examId);
-      setResult(response);
-      setSubmitted(true);
-    } catch (error) {
-      // Error handled by mutation
-    }
-  };
-
-  const handleAutoSubmit = () => {
-    if (!submitted && examId) {
-      handleSubmit();
-    }
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -461,7 +443,7 @@ export default function TakeExamPage() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowSubmitDialog(false)}>انصراف</Button>
-            <Button onClick={handleSubmit} variant="contained" color="success">
+            <Button onClick={handleSubmitConfirm} variant="contained" color="success">
               ارسال
             </Button>
           </DialogActions>
