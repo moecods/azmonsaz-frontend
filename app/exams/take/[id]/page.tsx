@@ -103,9 +103,15 @@ export default function TakeExamPage() {
     }
   }, [examId, examStarted, handleStartExam]);
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (showDialog: boolean = false) => {
     if (!examId || submitted) return;
 
+    if (showDialog) {
+      setShowSubmitDialog(true);
+      return;
+    }
+
+    setShowSubmitDialog(false);
     try {
       const result = await submitExamMutation.mutateAsync(examId);
       setResult(result);
@@ -117,7 +123,7 @@ export default function TakeExamPage() {
 
   const handleAutoSubmit = useCallback(() => {
     if (!submitted && examId) {
-      handleSubmit();
+      handleSubmit(false);
     }
   }, [submitted, examId, handleSubmit]);
 
