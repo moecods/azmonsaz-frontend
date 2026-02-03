@@ -1,65 +1,42 @@
 "use client";
 
 import React from 'react';
-import { Stack, TextField } from '@mui/material';
-import { Controller, UseFormReturn } from 'react-hook-form';
+import { Stack } from '@mui/material';
+import { UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
+import { FormField } from '@/components/forms';
 
 interface BasicInfoStepProps {
   form: UseFormReturn<ExamFormData>;
 }
 
 export const BasicInfoStep = React.memo(function BasicInfoStep({ form }: BasicInfoStepProps) {
-  const { control, formState: { errors } } = form;
+  const { control } = form;
 
   return (
     <Stack spacing={3}>
-      <Controller
+      <FormField
         name="title"
         control={control}
-        render={({ field }) => (
-          <TextField
-            {...field}
-            label="عنوان آزمون"
-            fullWidth
-            required
-            error={!!errors.title}
-            helperText={errors.title?.message}
-            placeholder="مثال: آزمون ریاضی پایه دهم"
-          />
-        )}
+        label="عنوان آزمون"
+        required
+        placeholder="مثال: آزمون ریاضی پایه دهم"
       />
 
-      <Controller
+      <FormField
         name="description"
         control={control}
-        render={({ field }) => (
-          <TextField
-            {...field}
-            label="توضیحات"
-            fullWidth
-            multiline
-            rows={3}
-            error={!!errors.description}
-            helperText={errors.description?.message}
-            placeholder="توضیحات مربوط به آزمون را اینجا وارد کنید..."
-          />
-        )}
+        label="توضیحات"
+        multiline
+        rows={3}
+        placeholder="توضیحات مربوط به آزمون را اینجا وارد کنید..."
       />
 
-      <Controller
+      <FormField
         name="subject"
         control={control}
-        render={({ field }) => (
-          <TextField
-            {...field}
-            label="موضوع"
-            fullWidth
-            error={!!errors.subject}
-            helperText={errors.subject?.message}
-            placeholder="مثال: ریاضی، فیزیک، شیمی"
-          />
-        )}
+        label="موضوع"
+        placeholder="مثال: ریاضی، فیزیک، شیمی"
       />
     </Stack>
   );

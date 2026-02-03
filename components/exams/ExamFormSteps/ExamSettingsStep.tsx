@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Stack, TextField, Autocomplete, Chip } from '@mui/material';
+import { Stack, Autocomplete, Chip, TextField } from '@mui/material';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
+import { FormField, FormNumberField } from '@/components/forms';
 
 interface ExamSettingsStepProps {
   form: UseFormReturn<ExamFormData>;
@@ -15,76 +16,35 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={2}>
-        <Controller
+        <FormNumberField
           name="duration_minutes"
           control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              label="مدت زمان (دقیقه)"
-              type="number"
-              fullWidth
-              error={!!errors.duration_minutes}
-              helperText={errors.duration_minutes?.message}
-              value={field.value ?? ''}
-              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-            />
-          )}
+          label="مدت زمان (دقیقه)"
         />
 
-        <Controller
+        <FormNumberField
           name="passing_score"
           control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              label="نمره قبولی (%)"
-              type="number"
-              fullWidth
-              error={!!errors.passing_score}
-              helperText={errors.passing_score?.message}
-              value={field.value ?? ''}
-              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-              inputProps={{ min: 0, max: 100 }}
-            />
-          )}
+          label="نمره قبولی (%)"
+          min={0}
+          max={100}
         />
 
-        <Controller
+        <FormNumberField
           name="max_attempts"
           control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              label="حداکثر تلاش"
-              type="number"
-              fullWidth
-              error={!!errors.max_attempts}
-              helperText={errors.max_attempts?.message}
-              value={field.value ?? ''}
-              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-              inputProps={{ min: 1 }}
-            />
-          )}
+          label="حداکثر تلاش"
+          min={1}
         />
       </Stack>
 
-      <Controller
+      <FormField
         name="instructions"
         control={control}
-        render={({ field }) => (
-          <TextField
-            {...field}
-            label="دستورالعمل آزمون"
-            fullWidth
-            multiline
-            rows={4}
-            error={!!errors.instructions}
-            helperText={errors.instructions?.message}
-            placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
-            value={field.value ?? ''}
-          />
-        )}
+        label="دستورالعمل آزمون"
+        multiline
+        rows={4}
+        placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
       />
 
       <Controller

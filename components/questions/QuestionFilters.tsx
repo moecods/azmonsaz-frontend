@@ -29,7 +29,7 @@ interface QuestionFiltersProps {
   onFilterChange: <K extends keyof Filters>(key: K, value: Filters[K]) => void;
 }
 
-export function QuestionFilters({
+export const QuestionFilters = React.memo(function QuestionFilters({
   filters,
   categories,
   allTags,
@@ -185,5 +185,5 @@ export function QuestionFilters({
       </CardContent>
     </Card>
   );
-}
+});
 

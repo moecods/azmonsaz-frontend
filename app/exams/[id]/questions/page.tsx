@@ -74,7 +74,7 @@ interface SortableQuestionItemProps {
   isDeleting: boolean;
 }
 
-function SortableQuestionItem({ question, index, onDelete, isDeleting }: SortableQuestionItemProps) {
+const SortableQuestionItem = React.memo(function SortableQuestionItem({ question, index, onDelete, isDeleting }: SortableQuestionItemProps) {
   const {
     attributes,
     listeners,
@@ -201,7 +201,7 @@ function SortableQuestionItem({ question, index, onDelete, isDeleting }: Sortabl
       </CardContent>
     </Card>
   );
-}
+});
 
 function ExamQuestionsContent() {
   const params = useParams();

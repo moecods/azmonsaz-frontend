@@ -1,8 +1,8 @@
 "use client";
 
+import React from 'react';
 import { Breadcrumbs as MuiBreadcrumbs, Link, Typography } from '@mui/material';
-import { useRouter, usePathname } from 'next/navigation';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { useRouter } from 'next/navigation';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import HomeIcon from '@mui/icons-material/Home';
 
@@ -15,7 +15,7 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
 }
 
-export default function Breadcrumb({ items }: BreadcrumbProps) {
+const Breadcrumb = React.memo(function Breadcrumb({ items }: BreadcrumbProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -76,5 +76,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
       })}
     </MuiBreadcrumbs>
   );
-}
+});
+
+export default Breadcrumb;
 

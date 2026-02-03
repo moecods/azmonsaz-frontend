@@ -44,7 +44,7 @@ interface QuestionFormDialogProps {
   onTypeChange: (type: QuestionType) => void;
 }
 
-export function QuestionFormDialog({
+export const QuestionFormDialog = React.memo(function QuestionFormDialog({
   open,
   editingQuestion,
   control,
@@ -263,5 +263,5 @@ export function QuestionFormDialog({
       </Modal>
     </form>
   );
-}
+});
 
