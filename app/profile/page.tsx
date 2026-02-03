@@ -27,6 +27,7 @@ import { useAuth, useAvailableExams, useExams, useUpdateUser } from '@/hooks';
 import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useMemo } from 'react';
+import { handleError } from '@/lib/error-handler';
 
 const profileSchema = z.object({
   email: z.string().email('ایمیل معتبر نیست').max(255, 'ایمیل نمی‌تواند بیشتر از 255 کاراکتر باشد').optional().nullable(),
@@ -89,8 +90,8 @@ export default function ProfilePage() {
             setSuccessMessage(null);
           }, 3000);
         },
-        onError: (error: any) => {
-          console.error('Failed to update profile:', error);
+        onError: (error: unknown) => {
+          handleError(error, { context: 'Update Profile' });
         },
       }
     );

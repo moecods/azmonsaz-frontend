@@ -20,6 +20,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import Breadcrumb from '@/components/Breadcrumb';
+import { ExamMeta } from '@/types';
 
 export default function AvailableExamsPage() {
   const router = useRouter();
@@ -142,7 +143,7 @@ export default function AvailableExamsPage() {
                         </Typography>
                         <Chip
                           label={getStatusLabel(exam.status)}
-                          color={getStatusColor(exam.status) as any}
+                          color={getStatusColor(exam.status)}
                           size="small"
                         />
                       </Stack>
@@ -159,45 +160,41 @@ export default function AvailableExamsPage() {
                             size="small"
                             variant="outlined"
                           />
-                          {exam.meta && typeof exam.meta === 'object' && 'duration_minutes' in exam.meta && (
+                          {exam.meta && typeof exam.meta === 'object' && 'duration_minutes' in exam.meta && typeof exam.meta.duration_minutes === 'number' && (
                             <Chip
                               icon={<AccessTimeIcon />}
-                              label={`${(exam.meta as any).duration_minutes} دقیقه`}
+                              label={`${exam.meta.duration_minutes} دقیقه`}
                               size="small"
                               variant="outlined"
                             />
                           )}
                         </Stack>
 
-                      {(exam.exam_start_at || (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta)) && (
-                        <Typography variant="body2" color="text.secondary">
-                          تاریخ شروع آزمون: {new Date(
-                            exam.exam_start_at || 
-                            (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta 
-                              ? (exam.meta as any).start_at 
-                              : '')
-                          ).toLocaleDateString('fa-IR', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </Typography>
-                      )}
+                      {(() => {
+                        const startAt = exam.exam_start_at || (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta && typeof exam.meta.start_at === 'string' ? exam.meta.start_at : null);
+                        return startAt ? (
+                          <Typography variant="body2" color="text.secondary">
+                            تاریخ شروع آزمون: {new Date(startAt).toLocaleDateString('fa-IR', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </Typography>
+                        ) : null;
+                      })()}
 
-                      {(exam.exam_end_at || (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta)) && (
-                        <Typography variant="body2" color="text.secondary">
-                          تاریخ پایان آزمون: {new Date(
-                            exam.exam_end_at || 
-                            (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta 
-                              ? (exam.meta as any).end_at 
-                              : '')
-                          ).toLocaleDateString('fa-IR', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </Typography>
-                      )}
+                      {(() => {
+                        const endAt = exam.exam_end_at || (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta && typeof exam.meta.end_at === 'string' ? exam.meta.end_at : null);
+                        return endAt ? (
+                          <Typography variant="body2" color="text.secondary">
+                            تاریخ پایان آزمون: {new Date(endAt).toLocaleDateString('fa-IR', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </Typography>
+                        ) : null;
+                      })()}
 
                       <Button
                         variant={exam.status === 'completed' ? 'outlined' : 'contained'}

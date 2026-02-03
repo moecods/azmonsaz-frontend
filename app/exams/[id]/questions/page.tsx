@@ -45,6 +45,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useExam, useAddQuestionToExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/useExams';
+import { ExamWithParticipants } from '@/services/exams/ExamService';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
@@ -64,6 +65,7 @@ import {
   QUESTION_TYPE_LABELS,
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
+import { handleError, getErrorMessage } from '@/lib/error-handler';
 
 interface SortableQuestionItemProps {
   question: ExamQuestion;
@@ -235,11 +237,12 @@ function ExamQuestionsContent() {
   useEffect(() => {
     if (examWithQuestions) {
       // Backend returns exam_questions (not questions) in ExamDTO
-      const examQuestionsData = (examWithQuestions as any).exam_questions || (examWithQuestions as any).questions || [];
+      const examWithParticipants = examWithQuestions as ExamWithParticipants;
+      const examQuestionsData = examWithParticipants.exam_questions || examWithParticipants.questions || [];
       
       if (Array.isArray(examQuestionsData) && examQuestionsData.length > 0) {
         // Map exam_questions to ExamQuestion format
-        const mappedQuestions: ExamQuestion[] = examQuestionsData.map((eq: any) => ({
+        const mappedQuestions: ExamQuestion[] = examQuestionsData.map((eq) => ({
           id: eq.id,
           exam_id: examId || 0,
           question_id: eq.question_id || null,
@@ -340,7 +343,7 @@ function ExamQuestionsContent() {
                 onError: (error) => {
                   if (!hasError) {
                     hasError = true;
-                    console.error('Failed to update question order:', error);
+                    handleError(error, { context: 'Update Question Order' });
                     setSnackbar({
                       open: true,
                       message: 'خطا در به‌روزرسانی ترتیب سوالات',
@@ -377,10 +380,10 @@ function ExamQuestionsContent() {
             });
           },
           onError: (error) => {
-            console.error('Failed to add question from bank:', error);
+            handleError(error, { context: 'Add Question From Bank' });
             setSnackbar({
               open: true,
-              message: error instanceof Error ? error.message : 'خطا در افزودن سوال',
+              message: getErrorMessage(error, 'خطا در افزودن سوال'),
               severity: 'error',
             });
           },
@@ -402,10 +405,10 @@ function ExamQuestionsContent() {
             });
           },
           onError: (error) => {
-            console.error('Failed to add custom question:', error);
+            handleError(error, { context: 'Add Custom Question' });
             setSnackbar({
               open: true,
-              message: error instanceof Error ? error.message : 'خطا در افزودن سوال سفارشی',
+              message: getErrorMessage(error, 'خطا در افزودن سوال سفارشی'),
               severity: 'error',
             });
           },
@@ -439,10 +442,10 @@ function ExamQuestionsContent() {
           setQuestionToDelete(null);
         },
         onError: (error) => {
-          console.error('Failed to delete question:', error);
+          handleError(error, { context: 'Delete Question' });
           setSnackbar({
             open: true,
-            message: error instanceof Error ? error.message : 'خطا در حذف سوال',
+            message: getErrorMessage(error, 'خطا در حذف سوال'),
             severity: 'error',
           });
         },

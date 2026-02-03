@@ -72,7 +72,7 @@ export default function CustomExamPage() {
   };
 
   const handleExamComplete = (answers: unknown[], score: number, totalPoints: number) => {
-    console.log('Exam completed:', { answers, score, totalPoints });
+    // Exam completed - score calculated and displayed to user
     setSnackbar({
       open: true,
       message: `Exam completed! Score: ${score}/${totalPoints} (${Math.round((score/totalPoints)*100)}%)`,

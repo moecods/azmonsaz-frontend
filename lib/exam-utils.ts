@@ -1,11 +1,12 @@
 import { ExamFormData } from './validation';
 import { Exam } from '@/types';
+import { handleError } from './error-handler';
 
 /**
  * Builds meta object from exam form data, excluding null/undefined values
  */
-export function buildExamMeta(data: ExamFormData): Record<string, any> | undefined {
-  const meta: Record<string, any> = {};
+export function buildExamMeta(data: ExamFormData): Record<string, unknown> | undefined {
+  const meta: Record<string, unknown> = {};
 
   if (data.duration_minutes) {
     meta.duration_minutes = data.duration_minutes;
@@ -76,7 +77,7 @@ export function buildCallbackUrl(
     
     return url.toString();
   } catch (error) {
-    console.error('Invalid callback URL:', baseUrl, error);
+    handleError(error, { context: 'Build Callback URL' });
     throw new Error('Invalid callback URL provided');
   }
 }

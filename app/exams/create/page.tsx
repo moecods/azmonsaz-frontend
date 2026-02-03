@@ -28,6 +28,7 @@ import { deepLinkParamsSchema } from '@/lib/validation';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamFormWizard } from '@/components/exams/ExamFormWizard';
 import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
+import { handleError } from '@/lib/error-handler';
 import UserLayout from '@/components/layout/UserLayout';
 
 
@@ -119,7 +120,7 @@ function CreateExamContent() {
         const callbackUrl = buildCallbackUrl(deepLinkParams.callback_url, examId, additionalParams);
         window.location.href = callbackUrl;
       } catch (error) {
-        console.error('Failed to build callback URL:', error);
+        handleError(error, { context: 'Callback URL', logToConsole: true });
         router.push(`/exams/${examId}`);
       }
     } else {
@@ -148,7 +149,7 @@ function CreateExamContent() {
           }
         },
         onError: (error) => {
-          console.error('Failed to update exam:', error);
+          handleError(error, { context: 'Update Exam' });
         },
       });
     } else {
@@ -175,7 +176,7 @@ function CreateExamContent() {
           }
         },
         onError: (error) => {
-          console.error('Failed to create exam:', error);
+          handleError(error, { context: 'Create Exam' });
         },
       });
     }
@@ -189,7 +190,7 @@ function CreateExamContent() {
         handleRedirectAfterSave(existingExam.id, { pdf_url: response.pdf_url });
       },
       onError: (error) => {
-        console.error('Failed to complete exam:', error);
+        handleError(error, { context: 'Complete Exam' });
       },
     });
   };

@@ -31,6 +31,7 @@ import {
 } from '@/lib/validation';
 import { useAuth, useOtpLogin, useForgotPassword } from '@/hooks';
 import { ApiError } from '@/services';
+import { getErrorMessage } from '@/lib/error-handler';
 
 type LoginTab = 'password' | 'otp' | 'forgot';
 
@@ -89,24 +90,8 @@ export default function LoginPage() {
       setTimeout(() => {
         router.replace('/dashboard');
       }, 150);
-    } catch (err: any) {
-      console.error('Login error:', err);
-      // Extract error message from ApiError with validation errors
-      let errorMessage = 'ورود ناموفق بود. لطفا دوباره تلاش کنید.';
-      
-      if (err instanceof ApiError) {
-        if (err.errors) {
-          // Get first error message from errors object
-          const firstErrorKey = Object.keys(err.errors)[0];
-          const firstErrorMessage = err.errors[firstErrorKey]?.[0];
-          errorMessage = firstErrorMessage || err.message || errorMessage;
-        } else {
-          errorMessage = err.message || errorMessage;
-        }
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, 'ورود ناموفق بود. لطفا دوباره تلاش کنید.');
       setError(errorMessage);
     }
   };
@@ -115,22 +100,16 @@ export default function LoginPage() {
     setError(null);
     setSuccess(null);
     try {
-      const result = await requestOtp(data) as any;
+      const result = await requestOtp(data);
       setOtpSent(true);
       setSuccess('کد یکبار مصرف ارسال شد.');
       if (result?.debug_code) {
         setDebugCode(result.debug_code);
       }
       otpVerifyForm.setValue('phone_number', data.phone_number);
-    } catch (err: any) {
-      // Extract error message from ApiError with validation errors
-      if (err instanceof ApiError && err.errors) {
-        const firstErrorKey = Object.keys(err.errors)[0];
-        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
-        setError(firstErrorMessage || err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
-      } else {
-        setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
-      }
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      setError(errorMessage);
     }
   };
 
@@ -143,15 +122,9 @@ export default function LoginPage() {
       setTimeout(() => {
         router.replace('/dashboard');
       }, 150);
-    } catch (err: any) {
-      // Extract error message from ApiError with validation errors
-      if (err instanceof ApiError && err.errors) {
-        const firstErrorKey = Object.keys(err.errors)[0];
-        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
-        setError(firstErrorMessage || err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
-      } else {
-        setError(err.message || 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
-      }
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, 'کد نامعتبر است. لطفا دوباره تلاش کنید.');
+      setError(errorMessage);
     }
   };
 
@@ -159,21 +132,15 @@ export default function LoginPage() {
     setError(null);
     setSuccess(null);
     try {
-      const result = await requestForgotOtp(data) as any;
+      const result = await requestForgotOtp(data);
       setForgotOtpSent(true);
       setSuccess('کد بازیابی رمز عبور ارسال شد.');
-      if (result?.debug_code) {
-        setDebugCode(result.debug_code);
+      if (result && typeof result === 'object' && 'debug_code' in result) {
+        setDebugCode(result.debug_code as string);
       }
-    } catch (err: any) {
-      // Extract error message from ApiError with validation errors
-      if (err instanceof ApiError && err.errors) {
-        const firstErrorKey = Object.keys(err.errors)[0];
-        const firstErrorMessage = err.errors[firstErrorKey]?.[0];
-        setError(firstErrorMessage || err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
-      } else {
-        setError(err.message || 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
-      }
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, 'ارسال کد ناموفق بود. لطفا دوباره تلاش کنید.');
+      setError(errorMessage);
     }
   };
 

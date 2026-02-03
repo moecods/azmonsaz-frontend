@@ -98,7 +98,7 @@ class ApiClient {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      // Re-throw error - let caller handle it
       throw error;
     }
   }

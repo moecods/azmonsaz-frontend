@@ -133,7 +133,7 @@ export default function ExamsPage() {
                     value={statusFilter}
                     label="وضعیت"
                     onChange={(e) => {
-                      setStatusFilter(e.target.value as any);
+                      setStatusFilter(e.target.value as 'all' | 'draft' | 'completed');
                       setPage(1);
                     }}
                   >
@@ -148,7 +148,7 @@ export default function ExamsPage() {
                     value={typeFilter}
                     label="نوع"
                     onChange={(e) => {
-                      setTypeFilter(e.target.value as any);
+                      setTypeFilter(e.target.value as 'all' | 'online' | 'offline');
                       setPage(1);
                     }}
                   >
@@ -253,9 +253,9 @@ export default function ExamsPage() {
                       </Typography>
                     )}
 
-                      {(exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta) && (
+                      {exam.meta?.start_at && (
                     <Typography variant="body2" color="text.secondary">
-                          تاریخ شروع: {new Date((exam.meta as any).start_at).toLocaleDateString('fa-IR', {
+                          تاریخ شروع: {new Date(exam.meta.start_at).toLocaleDateString('fa-IR', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
@@ -263,9 +263,9 @@ export default function ExamsPage() {
                       </Typography>
                     )}
 
-                      {(exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta) && (
+                      {exam.meta?.end_at && (
                     <Typography variant="body2" color="text.secondary">
-                          تاریخ پایان: {new Date((exam.meta as any).end_at).toLocaleDateString('fa-IR', {
+                          تاریخ پایان: {new Date(exam.meta.end_at).toLocaleDateString('fa-IR', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'

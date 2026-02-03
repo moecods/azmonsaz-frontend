@@ -90,7 +90,7 @@ class AuthStore {
     try {
       await apiClient.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      handleError(error, { context: 'Logout', logToConsole: true });
     } finally {
       this.state.user = null;
       this.state.token = null;
@@ -118,7 +118,7 @@ class AuthStore {
         this.logout();
       }
     } catch (error) {
-      console.error('Failed to load user:', error);
+      handleError(error, { context: 'Load User', logToConsole: true });
       this.logout();
     } finally {
       this.state.isLoading = false;

@@ -119,28 +119,29 @@ export interface Exam {
   questions: ExamQuestion[];
   status: ExamStatus;
   pdf_url?: string;
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    max_attempts?: number;
-    instructions?: string;
-    tags?: string[];
-    start_at?: string;
-    end_at?: string;
-    [key: string]: any;
-  };
+  meta?: ExamMeta;
   created_at: string;
   updated_at: string;
 }
 
 export type ExamStatus = 'draft' | 'completed' | 'published';
 
+export interface ExamMeta {
+  duration_minutes?: number;
+  passing_score?: number;
+  max_attempts?: number;
+  instructions?: string;
+  tags?: string[];
+  start_at?: string;
+  end_at?: string;
+}
+
 export interface ExamQuestion {
   id: number;
   exam_id: number;
   question_id?: number; // null for custom questions
   question?: Question; // null for custom questions
-  payload?: Record<string, any>; // payload from backend
+  payload?: Record<string, unknown>; // payload from backend
   custom_text?: string; // for custom questions (frontend only)
   custom_options?: QuestionOption[]; // for custom questions (frontend only)
   custom_correct_answer?: number | number[]; // for custom questions (frontend only)
@@ -156,15 +157,7 @@ export interface CreateExamRequest {
   type?: 'offline' | 'online';
   callback_url?: string; // Optional for creator users
   partner_id?: number; // Optional for creator users
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    max_attempts?: number;
-    instructions?: string;
-    tags?: string[];
-    start_at?: string;
-    end_at?: string;
-  };
+  meta?: ExamMeta;
 }
 
 export interface UpdateExamRequest {
@@ -172,15 +165,7 @@ export interface UpdateExamRequest {
   description?: string;
   subject?: string;
   questions?: ExamQuestion[];
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    max_attempts?: number;
-    instructions?: string;
-    tags?: string[];
-    start_at?: string;
-    end_at?: string;
-  };
+  meta?: ExamMeta;
 }
 
 export interface CreateQuestionRequest {

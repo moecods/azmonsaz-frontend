@@ -87,10 +87,8 @@ export default function ExamParticipatePage() {
 
   // Type-safe meta checks
   const meta = examInfo?.meta;
-  const hasDurationMinutes = meta && typeof meta === 'object' && 'duration_minutes' in meta;
-  const hasPassingScore = meta && typeof meta === 'object' && 'passing_score' in meta;
-  const durationMinutes = hasDurationMinutes ? (meta as any).duration_minutes : null;
-  const passingScore = hasPassingScore ? (meta as any).passing_score : null;
+  const durationMinutes = meta?.duration_minutes ?? null;
+  const passingScore = meta?.passing_score ?? null;
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
