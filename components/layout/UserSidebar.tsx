@@ -56,13 +56,13 @@ const menuItems: MenuItem[] = [
     label: 'مدیریت آزمون‌ها',
     icon: <ListAltIcon />,
     path: '/exams',
-    roles: ['admin', 'content_manager', 'creator'],
+    roles: ['admin', 'creator'],
   },
   {
     label: 'ایجاد آزمون',
     icon: <SchoolIcon />,
     path: '/exams/create',
-    roles: ['admin', 'content_manager', 'creator'],
+    roles: ['admin', 'creator'],
   },
   {
     label: 'بانک سوالات',
@@ -79,7 +79,7 @@ const menuItems: MenuItem[] = [
     label: 'پنل مدیریت',
     icon: <AdminPanelSettingsIcon />,
     path: '/admin',
-    roles: ['admin', 'content_manager'],
+    roles: ['admin'],
   },
 ];
 

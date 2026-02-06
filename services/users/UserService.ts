@@ -44,7 +44,7 @@ export class UserService {
         per_page: number;
         total: number;
       };
-    }>('/users', filters);
+    }>('/users', filters as Record<string, unknown>);
 
     // Transform to match PaginatedResponse structure
     return {
@@ -90,6 +90,13 @@ export class UserService {
    */
   async toggleActive(id: number): Promise<ApiResponse<User>> {
     return this.apiClient.post<User>(`/users/${id}/toggle-active`);
+  }
+
+  /**
+   * Impersonate a user (Admin only)
+   */
+  async impersonate(id: number): Promise<ApiResponse<{ token: string; user: User }>> {
+    return this.apiClient.post<{ token: string; user: User }>(`/users/${id}/impersonate`);
   }
 }
 

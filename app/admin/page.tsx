@@ -37,7 +37,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { partnerSchema, userSchema, PartnerFormData, UserFormData } from '@/lib/validation';
-import { usePartners, useUsers, useCreatePartner, useUpdatePartner, useTogglePartnerActive, useCreateUser, useUpdateUser, useToggleUserActive } from '@/hooks';
+import { usePartners, useUsers, useCreatePartner, useUpdatePartner, useTogglePartnerActive, useCreateUser, useUpdateUser, useToggleUserActive, useImpersonateUser } from '@/hooks';
 import { Partner, User, UserRole } from '@/types';
 import { useAuth } from '@/hooks';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,7 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
+import LoginIcon from '@mui/icons-material/Login';
 import Breadcrumb from '@/components/Breadcrumb';
 
 interface TabPanelProps {
@@ -73,6 +74,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [tabValue, setTabValue] = useState(0);
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -133,6 +135,7 @@ export default function AdminPage() {
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const toggleUserActiveMutation = useToggleUserActive();
+  const impersonateUserMutation = useImpersonateUser();
 
   const handleOpenCreatePartner = () => {
     setEditingPartner(null);
@@ -187,6 +190,20 @@ export default function AdminPage() {
 
   const handleToggleUserActive = (user: User) => {
     toggleUserActiveMutation.mutate(user.id);
+  };
+
+  const handleImpersonateUser = (user: User) => {
+    if (window.confirm(`آیا می‌خواهید با اکانت ${user.name} وارد شوید؟`)) {
+      impersonateUserMutation.mutate(user.id, {
+        onSuccess: () => {
+          // Redirect to dashboard after impersonation
+          window.location.href = '/dashboard';
+        },
+        onError: (error: any) => {
+          alert(error.message || 'خطا در ورود به اکانت کاربر');
+        },
+      });
+    }
   };
 
   const handleClosePartner = () => {
@@ -520,6 +537,15 @@ export default function AdminPage() {
                                 title="ویرایش کاربر"
                               >
                                 <EditIcon />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleImpersonateUser(user)}
+                                disabled={impersonateUserMutation.isPending}
+                                title="ورود به اکانت کاربر"
+                              >
+                                <LoginIcon />
                               </IconButton>
                               <IconButton
                                 size="small"

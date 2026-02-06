@@ -45,15 +45,15 @@ export default function DashboardPage() {
 
   return (
     <Stack spacing={4}>
-        <Box>
-          <Typography variant="h4" gutterBottom fontWeight="bold">
-            پنل کاربری
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            خوش آمدید، {user?.name}
-          </Typography>
-        </Box>
-      </Stack>
+      <Box>
+        <Typography variant="h4" gutterBottom fontWeight="bold">
+          پنل کاربری
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          خوش آمدید، {user?.name}
+        </Typography>
+      </Box>
+    </Stack>
   );
 }
 

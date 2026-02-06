@@ -24,6 +24,7 @@ import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } fr
 import { handleError } from '@/lib/error-handler';
 import { PageLoading } from '@/components/feedback';
 import UserLayout from '@/components/layout/UserLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 
 function CreateExamContent() {
@@ -199,17 +200,6 @@ function CreateExamContent() {
     );
   }
 
-  // Only show error if not creator and validation failed
-  if (!validationResult.success && !isUsingMockData() && !isCreator) {
-    return (
-      <UserLayout>
-        <Alert severity="error">
-          Invalid deep link parameters. Please ensure partner_id and callback_url are provided.
-        </Alert>
-      </UserLayout>
-    );
-  }
-
   return (
     <UserLayout>
       <Container maxWidth="lg">
@@ -277,14 +267,16 @@ function CreateExamContent() {
 
 export default function CreateExamPage() {
   return (
-    <Suspense
-      fallback={
-        <UserLayout>
-          <PageLoading />
-        </UserLayout>
-      }
-    >
-      <CreateExamContent />
-    </Suspense>
+    <ProtectedRoute requiredRole="creator">
+      <Suspense
+        fallback={
+          <UserLayout>
+            <PageLoading />
+          </UserLayout>
+        }
+      >
+        <CreateExamContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

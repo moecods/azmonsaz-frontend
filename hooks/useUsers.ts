@@ -100,3 +100,27 @@ export function useToggleUserActive() {
   });
 }
 
+export function useImpersonateUser() {
+  const queryClient = useQueryClient();
+  const { getApiClient } = require('@/services');
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await userService.impersonate(id);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to impersonate user');
+      }
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      // Save new token
+      const apiClient = getApiClient();
+      apiClient.setToken(data.token);
+      // Update user data in cache
+      queryClient.setQueryData(queryKeys.me(), data.user);
+      // Invalidate and refetch to ensure consistency
+      await queryClient.refetchQueries({ queryKey: queryKeys.me() });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}

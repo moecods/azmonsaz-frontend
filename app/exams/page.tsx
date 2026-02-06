@@ -42,6 +42,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import { ExamListItem } from '@/services/exams/ExamService';
 import Breadcrumb from '@/components/Breadcrumb';
 import UserLayout from '@/components/layout/UserLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Helper function to check exam time status
 function getExamTimeStatus(exam: ExamListItem): {
@@ -112,26 +113,31 @@ export default function ExamsPage() {
 
   if (isLoading) {
     return (
-      <UserLayout>
-        <Box display="flex" justifyContent="center" p={3}>
-          <CircularProgress />
-        </Box>
-      </UserLayout>
+      <ProtectedRoute requiredRole="creator">
+        <UserLayout>
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        </UserLayout>
+      </ProtectedRoute>
     );
   }
 
   if (error) {
     return (
-      <UserLayout>
-        <Alert severity="error">
-          {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
-        </Alert>
-      </UserLayout>
+      <ProtectedRoute requiredRole="creator">
+        <UserLayout>
+          <Alert severity="error">
+            {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
+          </Alert>
+        </UserLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <UserLayout>
+    <ProtectedRoute requiredRole="creator">
+      <UserLayout>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
@@ -286,10 +292,10 @@ export default function ExamsPage() {
                           size="small"
                         />
                         {!exam.is_active && (
-                          <Chip 
+                      <Chip 
                             label="غیرفعال" 
                             color="error"
-                            size="small"
+                        size="small"
                           />
                         )}
                         {timeStatus.isOngoing && exam.status === 'published' && (
@@ -308,8 +314,8 @@ export default function ExamsPage() {
                           label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} 
                           size="small"
                           variant="outlined"
-                        />
-                      </Stack>
+                      />
+                    </Stack>
 
                       {/* آمار اصلی */}
                       <Box sx={{ 
@@ -414,7 +420,7 @@ export default function ExamsPage() {
                             {timeStatus.endAt && (
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary">
                                   پایان: {timeStatus.endAt.toLocaleDateString('fa-IR', {
                                     year: 'numeric',
                                     month: 'short',
@@ -429,9 +435,9 @@ export default function ExamsPage() {
                             {timeStatus.isBeforeStart && timeStatus.startAt && (
                               <Typography variant="caption" color="info.main" sx={{ fontStyle: 'italic' }}>
                                 آزمون هنوز شروع نشده است
-                              </Typography>
-                            )}
-                            
+                      </Typography>
+                    )}
+
                             {timeStatus.isAfterEnd && (
                               <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                                 زمان آزمون به پایان رسیده است
@@ -445,14 +451,14 @@ export default function ExamsPage() {
 
                       {/* اطلاعات اضافی */}
                       <Stack spacing={1}>
-                        {exam.creator && (
+                      {exam.creator && (
                           <Stack direction="row" spacing={1} alignItems="center">
                             <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              ایجادکننده: {exam.creator.name}
-                            </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                          ایجادکننده: {exam.creator.name}
+                      </Typography>
                           </Stack>
-                        )}
+                    )}
 
                         {exam.partner && (
                           <Stack direction="row" spacing={1} alignItems="center">
@@ -465,27 +471,27 @@ export default function ExamsPage() {
 
                         <Stack direction="row" spacing={1} alignItems="center">
                           <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                             ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </Typography>
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                      </Typography>
                         </Stack>
 
                         {exam.updated_at && exam.updated_at !== exam.created_at && (
                           <Stack direction="row" spacing={1} alignItems="center">
                             <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                               آخرین به‌روزرسانی: {new Date(exam.updated_at).toLocaleDateString('fa-IR', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </Typography>
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                    </Typography>
                           </Stack>
-                        )}
+                      )}
                       </Stack>
                     </Stack>
                   </CardContent>
@@ -553,5 +559,6 @@ export default function ExamsPage() {
         )}
       </Stack>
     </UserLayout>
+    </ProtectedRoute>
   );
 }
