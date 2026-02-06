@@ -14,6 +14,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useAvailableExams } from '@/hooks/useExams';
+import type { AvailableExam } from '@/services/exams/ExamService';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -27,7 +28,13 @@ export default function AvailableExamsPage() {
   const { data, isLoading, error } = useAvailableExams();
 
   // Backend already filters to only show published and active exams
-  const exams = Array.isArray(data?.data) ? data.data : [];
+  // Convert object to array if needed (in case backend returns object with numeric keys)
+  const examsData = data?.data;
+  const exams: AvailableExam[] = Array.isArray(examsData) 
+    ? examsData 
+    : examsData && typeof examsData === 'object' 
+    ? (Object.values(examsData) as AvailableExam[])
+    : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -122,8 +129,8 @@ export default function AvailableExamsPage() {
                     },
                   }}
                 >
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Stack spacing={2}>
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <Stack spacing={2} sx={{ flexGrow: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <SchoolIcon color="primary" />
                         <Typography variant="h6" sx={{ flexGrow: 1 }}>
@@ -183,27 +190,27 @@ export default function AvailableExamsPage() {
                           </Typography>
                         ) : null;
                       })()}
-
-                      <Button
-                        variant={exam.status === 'completed' ? 'outlined' : 'contained'}
-                        fullWidth
-                        startIcon={
-                          exam.status === 'completed' ? (
-                            <CheckCircleIcon />
-                          ) : (
-                            <PlayArrowIcon />
-                          )
-                        }
-                        onClick={() => handleStartExam(exam.id, exam.status)}
-                        sx={{ mt: 'auto' }}
-                      >
-                        {exam.status === 'completed'
-                          ? 'مشاهده نتایج'
-                          : exam.status === 'started'
-                          ? 'ادامه آزمون'
-                          : 'شروع آزمون'}
-                      </Button>
                     </Stack>
+
+                    <Button
+                      variant={exam.status === 'completed' ? 'outlined' : 'contained'}
+                      fullWidth
+                      startIcon={
+                        exam.status === 'completed' ? (
+                          <CheckCircleIcon />
+                        ) : (
+                          <PlayArrowIcon />
+                        )
+                      }
+                      onClick={() => handleStartExam(exam.id, exam.status)}
+                      sx={{ mt: 2 }}
+                    >
+                      {exam.status === 'completed'
+                        ? 'مشاهده نتایج'
+                        : exam.status === 'started'
+                        ? 'ادامه آزمون'
+                        : 'شروع آزمون'}
+                    </Button>
                   </CardContent>
                 </Card>
               ))}

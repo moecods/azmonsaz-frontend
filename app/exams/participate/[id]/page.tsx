@@ -89,6 +89,8 @@ export default function ExamParticipatePage() {
   const meta = examInfo?.meta;
   const durationMinutes = meta?.duration_minutes ?? null;
   const passingScore = meta?.passing_score ?? null;
+  const hasDurationMinutes = durationMinutes !== null && typeof durationMinutes === 'number';
+  const hasPassingScore = passingScore !== null && typeof passingScore === 'number';
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
