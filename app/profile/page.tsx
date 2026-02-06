@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   const stats = useMemo(() => {
     const exams = examsData?.data || [];
-    const availableExams = availableExamsData?.data || [];
+    const availableExams = Array.isArray(availableExamsData?.data) ? availableExamsData.data : [];
     const isCreator = user?.roles?.includes('admin') || 
                      user?.roles?.includes('content_manager') || 
                      user?.roles?.includes('creator');

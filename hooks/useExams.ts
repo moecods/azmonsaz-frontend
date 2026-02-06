@@ -181,7 +181,7 @@ export function useDeleteExamQuestion() {
 
 export function useExams(params?: {
   per_page?: number;
-  status?: 'completed' | 'draft';
+  status?: 'published' | 'draft';
   type?: 'online' | 'offline';
   search?: string;
   page?: number;
@@ -222,6 +222,92 @@ export function useAvailableExams() {
         throw new Error(response.message || 'Failed to fetch available exams');
       }
       return response.data;
+    },
+  });
+}
+
+export function usePublishExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.publishExam(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to publish exam',
+          response as any
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+    },
+  });
+}
+
+export function useUnpublishExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.unpublishExam(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to unpublish exam',
+          response as any
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+    },
+  });
+}
+
+export function useActivateExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.activateExam(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to activate exam',
+          response as any
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
+    },
+  });
+}
+
+export function useDeactivateExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.deactivateExam(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to deactivate exam',
+          response as any
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
     },
   });
 }

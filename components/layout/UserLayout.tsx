@@ -13,6 +13,7 @@ interface UserLayoutProps {
 
 const DRAWER_WIDTH = 280;
 const BOTTOM_NAV_HEIGHT = 64; // Height of bottom navigation
+const TOOLBAR_HEIGHT = 0; // Navbar height
 
 export default function UserLayout({ children, requiredRole }: UserLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,6 +42,7 @@ export default function UserLayout({ children, requiredRole }: UserLayoutProps) 
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: '100vh',
           bgcolor: 'background.default',
+          pt: { md: `${TOOLBAR_HEIGHT}px` }, // Padding top for navbar on desktop
           pb: { xs: `${BOTTOM_NAV_HEIGHT}px`, md: 0 }, // Padding bottom for mobile bottom nav
         }}
       >

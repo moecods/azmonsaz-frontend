@@ -99,6 +99,42 @@ export class ExamService {
   }
 
   /**
+   * Publish exam (change status to published)
+   */
+  async publishExam(id: number): Promise<ApiResponse<{ id: number; status: string; is_active: boolean }>> {
+    return this.apiClient.post<{ id: number; status: string; is_active: boolean }>(
+      `/exams/${id}/publish`
+    );
+  }
+
+  /**
+   * Unpublish exam (change status to draft)
+   */
+  async unpublishExam(id: number): Promise<ApiResponse<{ id: number; status: string; is_active: boolean }>> {
+    return this.apiClient.post<{ id: number; status: string; is_active: boolean }>(
+      `/exams/${id}/unpublish`
+    );
+  }
+
+  /**
+   * Activate exam (set is_active to true)
+   */
+  async activateExam(id: number): Promise<ApiResponse<{ id: number; status: string; is_active: boolean }>> {
+    return this.apiClient.post<{ id: number; status: string; is_active: boolean }>(
+      `/exams/${id}/activate`
+    );
+  }
+
+  /**
+   * Deactivate exam (set is_active to false)
+   */
+  async deactivateExam(id: number): Promise<ApiResponse<{ id: number; status: string; is_active: boolean }>> {
+    return this.apiClient.post<{ id: number; status: string; is_active: boolean }>(
+      `/exams/${id}/deactivate`
+    );
+  }
+
+  /**
    * Add question to exam
    */
   async addQuestionToExam(
@@ -140,7 +176,7 @@ export class ExamService {
    */
   async getExams(params?: {
     per_page?: number;
-    status?: 'completed' | 'draft';
+    status?: 'published' | 'draft';
     type?: 'online' | 'offline';
     search?: string;
     page?: number;
@@ -236,10 +272,14 @@ export interface ExamListItem {
     id: number;
     name: string;
   } | null;
-  status: 'completed' | 'draft';
+  status: 'published' | 'draft';
+  is_active: boolean;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  questions_count: number;
+  participants_count: number;
+  completed_participants_count: number;
 }
 
 export interface ExamParticipant {
@@ -274,7 +314,8 @@ export interface ExamWithParticipants {
     id: number;
     name: string;
   } | null;
-  status: 'completed' | 'draft';
+  status: 'published' | 'draft';
+  is_active: boolean;
   completed_at: string | null;
   participation_link: string | null;
   questions_count: number;

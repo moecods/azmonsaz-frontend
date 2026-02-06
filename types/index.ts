@@ -118,13 +118,14 @@ export interface Exam {
   partner?: Partner;
   questions: ExamQuestion[];
   status: ExamStatus;
+  is_active: boolean;
   pdf_url?: string;
   meta?: ExamMeta;
   created_at: string;
   updated_at: string;
 }
 
-export type ExamStatus = 'draft' | 'completed' | 'published';
+export type ExamStatus = 'draft' | 'published';
 
 export interface ExamMeta {
   duration_minutes?: number;

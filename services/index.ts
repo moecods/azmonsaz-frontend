@@ -42,7 +42,7 @@ export const partnerService = new PartnerService(apiClient);
 
 // Export service classes for custom instances if needed
 export { AuthService } from './auth/AuthService';
-export { QuestionService } from './questions/QuestionService';
+export { QuestionService, type QuestionFilters } from './questions/QuestionService';
 export { ExamService } from './exams/ExamService';
 export { UserService } from './users/UserService';
 export { PartnerService } from './partners/PartnerService';

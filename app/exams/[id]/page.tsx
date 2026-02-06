@@ -123,10 +123,15 @@ function ExamDetailContent() {
                 {exam.title}
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center">
-                {exam.status !== 'completed' && (
+                <Chip
+                  label={exam.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
+                  color={exam.status === 'published' ? 'success' : 'default'}
+                  size="small"
+                />
+                {!exam.is_active && (
                   <Chip
-                    label="پیش‌نویس"
-                    color="default"
+                    label="غیرفعال"
+                    color="error"
                     size="small"
                   />
                 )}

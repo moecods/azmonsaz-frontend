@@ -19,7 +19,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import Breadcrumb from '@/components/Breadcrumb';
-import UserLayout from '@/components/layout/UserLayout';
 import { ExamMeta } from '@/types';
 
 export default function AvailableExamsPage() {
@@ -66,7 +65,6 @@ export default function AvailableExamsPage() {
   };
 
   return (
-    <UserLayout>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
         <Box>
@@ -210,7 +208,6 @@ export default function AvailableExamsPage() {
             </Box>
           )}
       </Stack>
-    </UserLayout>
   );
 }
 

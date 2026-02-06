@@ -5,12 +5,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionService, ApiError } from '@/services';
-import { Question, CreateQuestionRequest, UpdateQuestionRequest, QuestionFilters } from '@/types';
+import { QuestionFilters } from '@/services/questions';
+import { Question, CreateQuestionRequest, UpdateQuestionRequest } from '@/types';
 import { queryKeys } from '@/lib/query-client';
 
 export function useQuestions(filters?: QuestionFilters) {
   return useQuery({
-    queryKey: queryKeys.questions(filters),
+    queryKey: queryKeys.questions(filters as Record<string, unknown>),
     queryFn: async () => {
       const response = await questionService.getQuestions(filters);
       if (!response.success) {
@@ -52,8 +53,11 @@ export function useCreateQuestion() {
       return response.data;
     },
     onSuccess: () => {
-      // Invalidate questions list
-      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      // Invalidate questions list (only questions queries)
+      queryClient.invalidateQueries({ 
+        queryKey: ['questions'],
+        exact: false, // Match all queries starting with ['questions']
+      });
     },
   });
 }
@@ -74,9 +78,12 @@ export function useUpdateQuestion() {
       return response.data;
     },
     onSuccess: (data, variables) => {
-      // Invalidate specific question and questions list
+      // Invalidate specific question and questions list (only questions queries)
       queryClient.invalidateQueries({ queryKey: queryKeys.question(variables.id) });
-      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['questions'],
+        exact: false, // Match all queries starting with ['questions']
+      });
     },
   });
 }
@@ -92,8 +99,11 @@ export function useDeleteQuestion() {
       }
     },
     onSuccess: () => {
-      // Invalidate questions list
-      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      // Invalidate questions list (only questions queries)
+      queryClient.invalidateQueries({ 
+        queryKey: ['questions'],
+        exact: false, // Match all queries starting with ['questions']
+      });
     },
   });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Box,
@@ -82,7 +83,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export default function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps) {
+function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -261,10 +262,9 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
     </Box>
   );
 
-  const TOOLBAR_HEIGHT = 64; // Standard MUI Toolbar height
-  const SIDEBAR_MARGIN = 4; // Margin top and bottom for better visual separation
-
   if (variant === 'permanent') {
+    const TOOLBAR_HEIGHT = 64; // Navbar height
+    
     return (
       <Drawer
         variant="permanent"
@@ -276,11 +276,8 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
             boxSizing: 'border-box',
             borderRight: 1,
             borderColor: 'divider',
-            top: `${TOOLBAR_HEIGHT + SIDEBAR_MARGIN}px`,
-            height: `calc(100% - ${TOOLBAR_HEIGHT + SIDEBAR_MARGIN * 2}px)`,
-            mt: `${SIDEBAR_MARGIN}px`,
-            mb: `${SIDEBAR_MARGIN}px`,
-            borderRadius: 2,
+            zIndex: 100, // Ensure sidebar stays above loading indicators
+            pt: `${TOOLBAR_HEIGHT}px`, // Padding top to start below navbar
           },
         }}
       >
@@ -301,6 +298,7 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
         '& .MuiDrawer-paper': {
           width: DRAWER_WIDTH,
           boxSizing: 'border-box',
+          zIndex: 1200, // MUI Drawer default z-index, ensure it's above loading overlays
         },
       }}
     >
@@ -308,4 +306,6 @@ export default function UserSidebar({ open, onClose, variant = 'temporary' }: Us
     </Drawer>
   );
 }
+
+export default UserSidebar;
 

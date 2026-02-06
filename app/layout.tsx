@@ -24,7 +24,7 @@ export default function RootLayout({
           <ThemeRegistry>
             <CssBaseline />
             <LayoutContent>{children}</LayoutContent>
-            <DataSourceIndicator />
+            {/* <DataSourceIndicator /> */}
           </ThemeRegistry>
         </QueryProvider>
       </body>
