@@ -243,6 +243,7 @@ export function usePublishExam() {
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
     },
   });
 }
@@ -264,6 +265,7 @@ export function useUnpublishExam() {
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
     },
   });
 }
@@ -285,6 +287,7 @@ export function useActivateExam() {
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
       queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
     },
   });
@@ -307,6 +310,7 @@ export function useDeactivateExam() {
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
       queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
     },
   });

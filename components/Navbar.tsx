@@ -3,6 +3,7 @@
 import { AppBar, Toolbar, Typography, Button, Box, useTheme, useMediaQuery } from "@mui/material";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks";
+import { useState, useEffect } from "react";
 import LoginIcon from "@mui/icons-material/Login";
 import SchoolIcon from "@mui/icons-material/School";
 import UserMenu from "./layout/UserMenu";
@@ -12,7 +13,12 @@ export default function Navbar() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mounted, setMounted] = useState(false);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Don't show navbar on login page
   if (pathname === '/login') {
@@ -35,7 +41,8 @@ export default function Navbar() {
 
   // Hide navbar on mobile only for pages that use UserLayout (they have bottom nav)
   // Always show navbar for landing page and other public pages
-  if (isMobile && isAuthenticated && isUserLayoutPage) {
+  // Only check isMobile after component is mounted to avoid hydration mismatch
+  if (mounted && isMobile && isAuthenticated && isUserLayoutPage) {
     return null;
   }
 

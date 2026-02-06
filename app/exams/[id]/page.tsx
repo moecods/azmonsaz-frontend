@@ -23,7 +23,7 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import { useExamWithParticipants } from '@/hooks/useExams';
+import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam } from '@/hooks/useExams';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SchoolIcon from '@mui/icons-material/School';
@@ -31,7 +31,12 @@ import PeopleIcon from '@mui/icons-material/People';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import PublishIcon from '@mui/icons-material/Publish';
+import UnpublishedIcon from '@mui/icons-material/Unpublished';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import PowerOffIcon from '@mui/icons-material/PowerOff';
 import Breadcrumb from '@/components/Breadcrumb';
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -64,13 +69,102 @@ function ExamDetailContent() {
     const tab = searchParams.get('tab');
     return tab === 'participants' ? 1 : 0;
   });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
   const { data: exam, isLoading, error } = useExamWithParticipants(examId);
+  const publishExamMutation = usePublishExam();
+  const unpublishExamMutation = useUnpublishExam();
+  const activateExamMutation = useActivateExam();
+  const deactivateExamMutation = useDeactivateExam();
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
     const tabName = newValue === 1 ? 'participants' : 'info';
     router.replace(`/exams/${examId}?tab=${tabName}`, { scroll: false });
+  };
+
+  const handlePublish = () => {
+    if (!examId) return;
+    publishExamMutation.mutate(examId, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: 'آزمون با موفقیت منتشر شد',
+          severity: 'success',
+        });
+      },
+      onError: (error: any) => {
+        setSnackbar({
+          open: true,
+          message: error?.message || 'خطا در انتشار آزمون',
+          severity: 'error',
+        });
+      },
+    });
+  };
+
+  const handleUnpublish = () => {
+    if (!examId) return;
+    unpublishExamMutation.mutate(examId, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: 'آزمون با موفقیت از حالت انتشار خارج شد',
+          severity: 'success',
+        });
+      },
+      onError: (error: any) => {
+        setSnackbar({
+          open: true,
+          message: error?.message || 'خطا در خارج کردن از حالت انتشار',
+          severity: 'error',
+        });
+      },
+    });
+  };
+
+  const handleActivate = () => {
+    if (!examId) return;
+    activateExamMutation.mutate(examId, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: 'آزمون با موفقیت فعال شد',
+          severity: 'success',
+        });
+      },
+      onError: (error: any) => {
+        setSnackbar({
+          open: true,
+          message: error?.message || 'خطا در فعال کردن آزمون',
+          severity: 'error',
+        });
+      },
+    });
+  };
+
+  const handleDeactivate = () => {
+    if (!examId) return;
+    deactivateExamMutation.mutate(examId, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: 'آزمون با موفقیت غیرفعال شد',
+          severity: 'success',
+        });
+      },
+      onError: (error: any) => {
+        setSnackbar({
+          open: true,
+          message: error?.message || 'خطا در غیرفعال کردن آزمون',
+          severity: 'error',
+        });
+      },
+    });
   };
 
   if (isLoading) {
@@ -142,7 +236,7 @@ function ExamDetailContent() {
                 />
               </Stack>
             </Box>
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
               <Button
                 variant="contained"
                 startIcon={<EditIcon />}
@@ -157,6 +251,49 @@ function ExamDetailContent() {
               >
                 مدیریت سوالات
               </Button>
+              {exam.status === 'published' ? (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<UnpublishedIcon />}
+                  onClick={handleUnpublish}
+                  disabled={unpublishExamMutation.isPending}
+                >
+                  {unpublishExamMutation.isPending ? 'در حال انجام...' : 'لغو انتشار'}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<PublishIcon />}
+                  onClick={handlePublish}
+                  disabled={publishExamMutation.isPending || (exam.questions_count || 0) === 0}
+                  title={(exam.questions_count || 0) === 0 ? 'ابتدا باید حداقل یک سوال به آزمون اضافه کنید' : ''}
+                >
+                  {publishExamMutation.isPending ? 'در حال انجام...' : 'انتشار آزمون'}
+                </Button>
+              )}
+              {exam.is_active ? (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<PowerOffIcon />}
+                  onClick={handleDeactivate}
+                  disabled={deactivateExamMutation.isPending}
+                >
+                  {deactivateExamMutation.isPending ? 'در حال انجام...' : 'غیرفعال کردن'}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<PowerSettingsNewIcon />}
+                  onClick={handleActivate}
+                  disabled={activateExamMutation.isPending}
+                >
+                  {activateExamMutation.isPending ? 'در حال انجام...' : 'فعال کردن'}
+                </Button>
+              )}
             </Stack>
           </Stack>
         </Box>
@@ -417,6 +554,22 @@ function ExamDetailContent() {
           </TabPanel>
         </Card>
       </Stack>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </Container>
   );
 }

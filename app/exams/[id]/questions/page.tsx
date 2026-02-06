@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect, useCallback, useRef } from 'react';
+import { useState, Suspense, useEffect, useCallback, useRef, memo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -74,7 +74,7 @@ interface SortableQuestionItemProps {
   isDeleting: boolean;
 }
 
-const SortableQuestionItem = React.memo(function SortableQuestionItem({ question, index, onDelete, isDeleting }: SortableQuestionItemProps) {
+const SortableQuestionItem = memo(function SortableQuestionItem({ question, index, onDelete, isDeleting }: SortableQuestionItemProps) {
   const {
     attributes,
     listeners,

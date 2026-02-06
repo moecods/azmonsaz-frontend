@@ -84,7 +84,7 @@ export class ExamService {
     id: number,
     data: UpdateExamRequest
   ): Promise<ApiResponse<Exam>> {
-    return this.apiClient.put<Exam>(`/exams/${id}`, data);
+    return this.apiClient.patch<Exam>(`/exams/${id}`, data);
   }
 
   /**
