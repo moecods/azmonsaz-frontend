@@ -25,6 +25,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useAuth } from '@/hooks';
+import { hasPermission, type Permission } from '@/lib/permissions';
 
 const DRAWER_WIDTH = 280;
 
@@ -38,7 +39,8 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   path: string;
-  roles?: string[];
+  roles?: string[]; // Deprecated: use permission instead
+  permission?: Permission;
 }
 
 const menuItems: MenuItem[] = [
@@ -56,19 +58,19 @@ const menuItems: MenuItem[] = [
     label: 'مدیریت آزمون‌ها',
     icon: <ListAltIcon />,
     path: '/exams',
-    roles: ['admin', 'creator'],
+    permission: 'view exams',
   },
   {
     label: 'ایجاد آزمون',
     icon: <SchoolIcon />,
     path: '/exams/create',
-    roles: ['admin', 'creator'],
+    permission: 'create exams',
   },
   {
     label: 'بانک سوالات',
     icon: <QuizIcon />,
     path: '/questions',
-    roles: ['admin', 'content_manager', 'creator'],
+    permission: 'manage questions',
   },
   {
     label: 'پروفایل',
@@ -79,7 +81,7 @@ const menuItems: MenuItem[] = [
     label: 'پنل مدیریت',
     icon: <AdminPanelSettingsIcon />,
     path: '/admin',
-    roles: ['admin'],
+    permission: 'manage users',
   },
 ];
 
@@ -126,8 +128,15 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
   };
 
   const filteredMenuItems = menuItems.filter((item) => {
-    if (!item.roles) return true;
-    return item.roles.some((role) => user?.roles?.includes(role));
+    // Check permission first (preferred method)
+    if (item.permission) {
+      return hasPermission(user?.permissions, item.permission);
+    }
+    // Fallback to roles for backward compatibility
+    if (item.roles) {
+      return item.roles.some((role) => user?.roles?.includes(role));
+    }
+    return true;
   });
 
   const handleNavigation = (path: string) => {

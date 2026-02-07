@@ -341,7 +341,7 @@ export default function AdminPage() {
   const usersMeta = usersData?.meta;
 
   return (
-    <UserLayout requiredRole="admin">
+    <UserLayout requiredPermission="manage users">
       <Stack spacing={3}>
         <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
         <Box>

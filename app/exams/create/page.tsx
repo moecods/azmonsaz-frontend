@@ -267,7 +267,7 @@ function CreateExamContent() {
 
 export default function CreateExamPage() {
   return (
-    <ProtectedRoute requiredRole="creator">
+    <ProtectedRoute requiredPermission="create exams">
       <Suspense
         fallback={
           <UserLayout>

@@ -113,7 +113,7 @@ export default function ExamsPage() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute requiredRole="creator">
+      <ProtectedRoute requiredPermission="view exams">
         <UserLayout>
           <Box display="flex" justifyContent="center" p={3}>
             <CircularProgress />
@@ -125,7 +125,7 @@ export default function ExamsPage() {
 
   if (error) {
     return (
-      <ProtectedRoute requiredRole="creator">
+      <ProtectedRoute requiredPermission="view exams">
         <UserLayout>
           <Alert severity="error">
             {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
@@ -136,7 +136,7 @@ export default function ExamsPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="creator">
+    <ProtectedRoute requiredPermission="view exams">
       <UserLayout>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
@@ -364,25 +364,35 @@ export default function ExamsPage() {
                       </Box>
 
                       {/* تنظیمات آزمون */}
-                      <Stack spacing={1}>
-                        {exam.meta?.duration_minutes && typeof exam.meta.duration_minutes === 'number' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              مدت زمان: {exam.meta.duration_minutes} دقیقه
-                            </Typography>
-                          </Stack>
-                        )}
+                      {(() => {
+                        const meta = exam.meta as { duration_minutes?: number; passing_score?: number } | undefined;
+                        const hasDuration = meta?.duration_minutes && typeof meta.duration_minutes === 'number';
+                        const hasPassingScore = meta?.passing_score && typeof meta.passing_score === 'number';
                         
-                        {exam.meta?.passing_score && typeof exam.meta.passing_score === 'number' && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <GradeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              نمره قبولی: {exam.meta.passing_score}%
-                            </Typography>
+                        if (!hasDuration && !hasPassingScore) return null;
+                        
+                        return (
+                          <Stack spacing={1}>
+                            {hasDuration && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  مدت زمان: {meta.duration_minutes} دقیقه
+                                </Typography>
+                              </Stack>
+                            )}
+                            
+                            {hasPassingScore && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <GradeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  نمره قبولی: {meta.passing_score}%
+                                </Typography>
+                              </Stack>
+                            )}
                           </Stack>
-                        )}
-                      </Stack>
+                        );
+                      })()}
 
                       {/* زمان برگزاری */}
                       {timeStatus.hasTimeRestriction && (
