@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -92,6 +92,15 @@ export default function CustomExamBuilder({
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const idCounterRef = useRef(0);
+
+  // Generate stable unique ID (only called on client side during user interactions)
+  const generateId = () => {
+    idCounterRef.current += 1;
+    // Use counter + timestamp only on client side (these functions are only called during user interactions)
+    const timestamp = typeof window !== 'undefined' ? Date.now() : 0;
+    return `question-${idCounterRef.current}-${timestamp}`;
+  };
 
   // Form for exam
   const { control, handleSubmit, watch, setValue } = useForm<Exam>({
@@ -132,7 +141,7 @@ export default function CustomExamBuilder({
   const handleAddQuestionsFromBank = (questions: Question[]) => {
     const newQuestions = questions.map(q => ({
       ...q,
-      id: q.id || Date.now().toString() + Math.random(),
+      id: q.id || generateId(),
     }));
     
     const currentQuestions = watchedQuestions;
@@ -151,7 +160,7 @@ export default function CustomExamBuilder({
   const handleSaveManualQuestion = (question: Question) => {
     const newQuestion = {
       ...question,
-      id: question.id || Date.now().toString() + Math.random(),
+      id: question.id || generateId(),
     };
     append(newQuestion);
     setIsQuestionDialogOpen(false);

@@ -3,6 +3,7 @@
  * Uses React Query for caching and state management
  */
 
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService, ApiError } from '@/services';
 import {
@@ -20,13 +21,25 @@ import { queryKeys } from '@/lib/query-client';
 export function useMe() {
   // Check if token exists before making request
   // This prevents unnecessary API calls when user is not authenticated
-  const hasToken = authService.isAuthenticated();
+  // Use useState to ensure we check token on client side only (prevents /me calls for guests)
+  const [hasToken, setHasToken] = useState(false);
+  
+  useEffect(() => {
+    // Only check token on client side after mount
+    // This ensures guests on landing page don't trigger /me requests
+    setHasToken(authService.isAuthenticated());
+  }, []);
   
   return useQuery({
     queryKey: queryKeys.me(),
     // Only enable if token exists (user might be authenticated)
+    // This prevents /me requests on landing page for guests
     enabled: hasToken,
     queryFn: async () => {
+      // Double check token before making request
+      if (!authService.isAuthenticated()) {
+        return null;
+      }
       const response = await authService.getMe();
       return response.success ? response.data : null;
     },

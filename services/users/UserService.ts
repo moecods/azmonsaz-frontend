@@ -98,5 +98,12 @@ export class UserService {
   async impersonate(id: number): Promise<ApiResponse<{ token: string; user: User }>> {
     return this.apiClient.post<{ token: string; user: User }>(`/users/${id}/impersonate`);
   }
+
+  /**
+   * Search users by phone number or national ID
+   */
+  async searchUsers(params: { query: string; type?: 'phone' | 'national_id' | 'both' }): Promise<ApiResponse<User[]>> {
+    return this.apiClient.get<User[]>('/users/search', params);
+  }
 }
 

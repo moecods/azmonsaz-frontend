@@ -229,6 +229,31 @@ export class ExamService {
   }
 
   /**
+   * Public registration for exam via link (with auto-registration if user doesn't exist)
+   */
+  async registerForExamPublic(id: number, data: PublicExamRegistrationRequest): Promise<ApiResponse<PublicExamRegistrationResponse>> {
+    // Use direct fetch for public registration (no auth token)
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const url = `${baseURL}/exams/${id}/register-public`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Start exam (begin taking the exam)
    */
   async startExam(id: number): Promise<ApiResponse<ExamStartResponse>> {
@@ -254,6 +279,48 @@ export class ExamService {
    */
   async getMyExamResult(id: number): Promise<ApiResponse<ExamResultDetail>> {
     return this.apiClient.get<ExamResultDetail>(`/exams/${id}/my-result`);
+  }
+
+  /**
+   * Search users by phone number or national ID
+   */
+  async searchUsers(examId: number, params: SearchUsersParams): Promise<ApiResponse<{ data: SearchUsersResponse[] }>> {
+    return this.apiClient.get<{ data: SearchUsersResponse[] }>(`/exams/${examId}/search-users`, { params });
+  }
+
+  /**
+   * Add participants to exam by phone numbers
+   */
+  async addParticipantsByPhone(examId: number, data: AddParticipantsByPhoneRequest): Promise<ApiResponse<AddParticipantsResponse>> {
+    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/phone`, data);
+  }
+
+  /**
+   * Add participants to exam by national IDs
+   */
+  async addParticipantsByNationalId(examId: number, data: AddParticipantsByNationalIdRequest): Promise<ApiResponse<AddParticipantsResponse>> {
+    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/national-id`, data);
+  }
+
+  /**
+   * Add selected participants to exam
+   */
+  async addSelectedParticipants(examId: number, data: AddSelectedParticipantsRequest): Promise<ApiResponse<AddParticipantsResponse>> {
+    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/selected`, data);
+  }
+
+  /**
+   * Add groups to exam
+   */
+  async addGroupsToExam(examId: number, data: AddGroupsToExamRequest): Promise<ApiResponse<AddGroupsToExamResponse>> {
+    return this.apiClient.post<AddGroupsToExamResponse>(`/exams/${examId}/groups`, data);
+  }
+
+  /**
+   * Remove group from exam
+   */
+  async removeGroupFromExam(examId: number, groupId: number): Promise<ApiResponse<{ message: string }>> {
+    return this.apiClient.delete<{ message: string }>(`/exams/${examId}/groups/${groupId}`);
   }
 }
 
@@ -290,10 +357,16 @@ export interface ExamParticipant {
     name: string;
     email: string;
     phone_number: string | null;
+    national_id?: string | null;
+  } | null;
+  group?: {
+    id: number;
+    name: string;
   } | null;
   score: number | null;
   total_points: number | null;
   passed: boolean;
+  status?: string;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -321,6 +394,27 @@ export interface ExamWithParticipants {
   questions_count: number;
   participants_count: number;
   participants: ExamParticipant[];
+  groups?: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    users_count?: number;
+    users?: Array<{
+      id: number;
+      name: string;
+      phone_number: string | null;
+      email?: string | null;
+      participant?: {
+        id: number;
+        score: number | null;
+        total_points: number | null;
+        passed: boolean;
+        status: string;
+        started_at: string | null;
+        completed_at: string | null;
+      } | null;
+    }>;
+  }>;
   created_at: string;
   updated_at: string;
 }
@@ -365,6 +459,25 @@ export interface ExamRegistration {
   exam_id: number;
   status: 'registered';
   registered_at: string;
+  user_id?: number;
+  token?: string;
+  user_created?: boolean;
+}
+
+export interface PublicExamRegistrationRequest {
+  phone_number: string;
+  national_id?: string;
+  name?: string;
+}
+
+export interface PublicExamRegistrationResponse {
+  id: number;
+  exam_id: number;
+  status: 'registered';
+  registered_at: string;
+  user_id: number;
+  token: string;
+  user_created: boolean;
 }
 
 export interface ExamStartResponse {
@@ -418,5 +531,48 @@ export interface ExamResultDetail {
     points_earned: number;
     points_total: number;
   }>;
+}
+
+export interface SearchUsersParams {
+  query: string;
+  type?: 'phone' | 'national_id' | 'both';
+}
+
+export interface SearchUsersResponse {
+  id: number;
+  name: string;
+  phone_number: string;
+  national_id?: string;
+  email?: string;
+}
+
+export interface AddParticipantsByPhoneRequest {
+  phone_numbers: string[];
+}
+
+export interface AddParticipantsByNationalIdRequest {
+  national_ids: string[];
+}
+
+export interface AddSelectedParticipantsRequest {
+  user_ids: number[];
+}
+
+export interface AddParticipantsResponse {
+  added: number;
+  skipped: number;
+  not_found?: string[];
+  total_requested: number;
+}
+
+export interface AddGroupsToExamRequest {
+  group_ids: number[];
+}
+
+export interface AddGroupsToExamResponse {
+  added: number;
+  skipped: number;
+  total_users: number;
+  groups_added: number;
 }
 

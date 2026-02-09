@@ -7,7 +7,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { examService, ApiError } from '@/services';
 import { Exam, CreateExamRequest, UpdateExamRequest } from '@/types';
 import { queryKeys } from '@/lib/query-client';
-import type { AvailableExam, ExamInfo, ExamStartResponse, ExamSubmissionResult, ExamResultDetail } from '@/services/exams/ExamService';
+import type { 
+  AvailableExam, 
+  ExamInfo, 
+  ExamStartResponse, 
+  ExamSubmissionResult, 
+  ExamResultDetail,
+  SearchUsersParams,
+  SearchUsersResponse,
+  AddParticipantsByPhoneRequest,
+  AddParticipantsByNationalIdRequest,
+  AddSelectedParticipantsRequest,
+  AddParticipantsResponse,
+  AddGroupsToExamRequest,
+  AddGroupsToExamResponse,
+} from '@/services/exams/ExamService';
 
 export function useExam(id: number | null) {
   return useQuery({
@@ -353,6 +367,28 @@ export function useRegisterForExam() {
   });
 }
 
+export function useRegisterForExamPublic() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, data }: { examId: number; data: { phone_number: string; national_id?: string; name?: string } }) => {
+      const response = await examService.registerForExamPublic(examId, data);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to register for exam',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'info'] });
+    },
+  });
+}
+
 export function useStartExam() {
   const queryClient = useQueryClient();
 
@@ -428,3 +464,128 @@ export function useMyExamResult(id: number | null) {
   });
 }
 
+export function useSearchUsers(examId: number | null, params: SearchUsersParams, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['exam', examId, 'search-users', params],
+    queryFn: async () => {
+      if (!examId) return null;
+      const response = await examService.searchUsers(examId, params);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to search users');
+      }
+      return response.data;
+    },
+    enabled: !!examId && enabled && !!params.query && params.query.length >= 3,
+  });
+}
+
+export function useAddParticipantsByPhone() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, data }: { examId: number; data: AddParticipantsByPhoneRequest }) => {
+      const response = await examService.addParticipantsByPhone(examId, data);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to add participants',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}
+
+export function useAddParticipantsByNationalId() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, data }: { examId: number; data: AddParticipantsByNationalIdRequest }) => {
+      const response = await examService.addParticipantsByNationalId(examId, data);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to add participants',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}
+
+export function useAddSelectedParticipants() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, data }: { examId: number; data: AddSelectedParticipantsRequest }) => {
+      const response = await examService.addSelectedParticipants(examId, data);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to add participants',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}
+
+export function useAddGroupsToExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, data }: { examId: number; data: AddGroupsToExamRequest }) => {
+      const response = await examService.addGroupsToExam(examId, data);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to add groups to exam',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useRemoveGroupFromExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examId, groupId }: { examId: number; groupId: number }) => {
+      const response = await examService.removeGroupFromExam(examId, groupId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to remove group from exam',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}

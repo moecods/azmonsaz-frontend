@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [paddingTop, setPaddingTop] = useState('64px'); // Default to showing navbar padding
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   const { isAuthenticated } = useAuth();
   const pathname = usePathname();
@@ -31,11 +32,18 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
     pathname === page || pathname?.startsWith(page + '/')
   );
 
+  // Update padding only after mount to prevent hydration mismatch
+  useEffect(() => {
+    if (mounted) {
+      const shouldShowNavbar = !(isMobile && isAuthenticated && isUserLayoutPage);
+      setPaddingTop(shouldShowNavbar ? '64px' : '0');
+    }
+  }, [mounted, isMobile, isAuthenticated, isUserLayoutPage]);
+
   // On mobile, hide navbar only for pages that use UserLayout (they have bottom nav)
   // Always show navbar for landing page and other public pages
   // Only check isMobile after component is mounted to avoid hydration mismatch
   const shouldShowNavbar = !(mounted && isMobile && isAuthenticated && isUserLayoutPage);
-  const paddingTop = shouldShowNavbar ? '64px' : 0;
 
   return (
     <>

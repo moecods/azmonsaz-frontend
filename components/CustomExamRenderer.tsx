@@ -59,19 +59,51 @@ export default function CustomExamRenderer({
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [shuffledQuestionsState, setShuffledQuestionsState] = useState<Question[]>(questions);
+  const [shuffledOptionsCache, setShuffledOptionsCache] = useState<Map<string, string[]>>(new Map());
 
   // Removed unused form hook
 
-  // Shuffle questions if needed
-  const shuffledQuestions = React.useMemo(() => {
-    if (!shuffleQuestions) return questions;
-    return [...questions].sort(() => Math.random() - 0.5);
+  // Initialize shuffling only on client side after mount to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    
+    if (shuffleQuestions) {
+      // Shuffle questions using Fisher-Yates algorithm for consistency
+      const shuffled = [...questions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      setShuffledQuestionsState(shuffled);
+    } else {
+      setShuffledQuestionsState(questions);
+    }
   }, [questions, shuffleQuestions]);
 
-  // Shuffle options if needed
-  const getShuffledOptions = (options: string[]) => {
-    if (!shuffleOptions || !options) return options;
-    return [...options].sort(() => Math.random() - 0.5);
+  // Use shuffled questions state or fallback to original questions
+  const shuffledQuestions = mounted && shuffleQuestions ? shuffledQuestionsState : questions;
+
+  // Shuffle options if needed - only on client side after mount
+  const getShuffledOptions = (options: string[], questionId: string) => {
+    if (!shuffleOptions || !options || !mounted) return options;
+    
+    // Check cache first to ensure consistency
+    if (shuffledOptionsCache.has(questionId)) {
+      return shuffledOptionsCache.get(questionId)!;
+    }
+    
+    // Shuffle using Fisher-Yates algorithm
+    const shuffled = [...options];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    // Cache the shuffled result
+    setShuffledOptionsCache(prev => new Map(prev).set(questionId, shuffled));
+    return shuffled;
   };
 
   // Submit exam
@@ -194,7 +226,7 @@ export default function CustomExamRenderer({
   // Render question based on type
   const renderQuestion = (question: Question) => {
     const currentAnswer = answers.find(a => a.questionId === question.id);
-    const shuffledOptions = getShuffledOptions(question.options || []);
+    const shuffledOptions = getShuffledOptions(question.options || [], question.id || '');
 
     return (
       <Card sx={{ mb: 3 }}>

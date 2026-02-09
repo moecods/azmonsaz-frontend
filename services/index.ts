@@ -11,6 +11,7 @@ import { QuestionService } from './questions/QuestionService';
 import { ExamService } from './exams/ExamService';
 import { UserService } from './users/UserService';
 import { PartnerService } from './partners/PartnerService';
+import { GroupService } from './groups/GroupService';
 
 // Base API URL
 const API_BASE_URL =
@@ -39,6 +40,7 @@ export const questionService = new QuestionService(apiClient);
 export const examService = new ExamService(apiClient);
 export const userService = new UserService(apiClient);
 export const partnerService = new PartnerService(apiClient);
+export const groupService = new GroupService(apiClient);
 
 // Export service classes for custom instances if needed
 export { AuthService } from './auth/AuthService';
@@ -46,6 +48,7 @@ export { QuestionService, type QuestionFilters } from './questions/QuestionServi
 export { ExamService } from './exams/ExamService';
 export { UserService } from './users/UserService';
 export { PartnerService } from './partners/PartnerService';
+export { GroupService, type Group, type CreateGroupRequest, type UpdateGroupRequest } from './groups/GroupService';
 
 // Export API client and error types
 export { ApiClient, ApiError, type RequestConfig } from './api/ApiClient';

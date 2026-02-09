@@ -24,6 +24,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import PersonIcon from '@mui/icons-material/Person';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import GroupIcon from '@mui/icons-material/Group';
 import { useAuth } from '@/hooks';
 import { hasPermission, type Permission } from '@/lib/permissions';
 
@@ -71,6 +72,12 @@ const menuItems: MenuItem[] = [
     icon: <QuizIcon />,
     path: '/questions',
     permission: 'manage questions',
+  },
+  {
+    label: 'مدیریت گروه‌ها',
+    icon: <GroupIcon />,
+    path: '/groups',
+    permission: 'create exams',
   },
   {
     label: 'پروفایل',

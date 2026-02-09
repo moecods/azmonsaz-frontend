@@ -15,21 +15,29 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-import { useExamInfo, useRegisterForExam } from '@/hooks/useExams';
+import { useExamInfo, useRegisterForExam, useRegisterForExamPublic } from '@/hooks/useExams';
 import { useAuth } from '@/hooks';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LoginIcon from '@mui/icons-material/Login';
+import TextField from '@mui/material/TextField';
 
 export default function ExamParticipatePage() {
   const params = useParams();
   const router = useRouter();
   const examId = params?.id ? parseInt(params.id as string) : null;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, setToken } = useAuth();
   const { data: examInfo, isLoading, error } = useExamInfo(examId);
   const registerMutation = useRegisterForExam();
+  const registerPublicMutation = useRegisterForExamPublic();
   const [registering, setRegistering] = useState(false);
+  const [showPublicForm, setShowPublicForm] = useState(false);
+  const [publicFormData, setPublicFormData] = useState({
+    phone_number: '',
+    national_id: '',
+    name: '',
+  });
 
   const handleRegister = async () => {
     if (!examId || !isAuthenticated) {
@@ -45,6 +53,38 @@ export default function ExamParticipatePage() {
     } catch (error) {
       // Error is handled by mutation
       // If user is already registered, the backend now returns success, so this shouldn't error
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handlePublicRegister = async () => {
+    if (!examId) return;
+
+    if (!publicFormData.phone_number.trim()) {
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      const result = await registerPublicMutation.mutateAsync({
+        examId,
+        data: {
+          phone_number: publicFormData.phone_number,
+          national_id: publicFormData.national_id || undefined,
+          name: publicFormData.name || undefined,
+        },
+      });
+
+      // If user was created or token was returned, save it
+      if (result.token) {
+        setToken(result.token);
+      }
+
+      // After registration, redirect to take exam
+      router.push(`/exams/take/${examId}`);
+    } catch (error) {
+      // Error is handled by mutation
     } finally {
       setRegistering(false);
     }
@@ -211,10 +251,39 @@ export default function ExamParticipatePage() {
 
               <Divider />
 
-              {!isAuthenticated ? (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  برای شرکت در این آزمون باید وارد حساب کاربری خود شوید.
+              {!isAuthenticated && !showPublicForm ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  برای شرکت در این آزمون می‌توانید وارد حساب کاربری خود شوید یا با وارد کردن اطلاعات خود ثبت‌نام کنید.
                 </Alert>
+              ) : !isAuthenticated && showPublicForm ? (
+                <Box sx={{ mb: 2 }}>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    در صورت عدم ثبت‌نام در سایت، به صورت خودکار ثبت‌نام می‌شوید.
+                  </Alert>
+                  <Stack spacing={2}>
+                    <TextField
+                      label="شماره موبایل *"
+                      value={publicFormData.phone_number}
+                      onChange={(e) => setPublicFormData({ ...publicFormData, phone_number: e.target.value })}
+                      fullWidth
+                      required
+                      placeholder="09123456789"
+                    />
+                    <TextField
+                      label="نام (اختیاری)"
+                      value={publicFormData.name}
+                      onChange={(e) => setPublicFormData({ ...publicFormData, name: e.target.value })}
+                      fullWidth
+                    />
+                    <TextField
+                      label="کد ملی (اختیاری)"
+                      value={publicFormData.national_id}
+                      onChange={(e) => setPublicFormData({ ...publicFormData, national_id: e.target.value })}
+                      fullWidth
+                      inputProps={{ maxLength: 10 }}
+                    />
+                  </Stack>
+                </Box>
               ) : examInfo.is_registered ? (
                 <Alert
                   severity={examInfo.registration_status === 'completed' ? 'success' : 'info'}
@@ -229,15 +298,46 @@ export default function ExamParticipatePage() {
               ) : null}
 
               <Stack direction="row" spacing={2}>
-                {!isAuthenticated ? (
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    startIcon={<LoginIcon />}
-                    onClick={() => router.push(`/login?redirect=/exams/participate/${examId}`)}
-                  >
-                    ورود به حساب کاربری
-                  </Button>
+                {!isAuthenticated && !showPublicForm ? (
+                  <>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<LoginIcon />}
+                      onClick={() => router.push(`/login?redirect=/exams/participate/${examId}`)}
+                    >
+                      ورود به حساب کاربری
+                    </Button>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      startIcon={<PlayArrowIcon />}
+                      onClick={() => setShowPublicForm(true)}
+                    >
+                      ثبت‌نام و شرکت در آزمون
+                    </Button>
+                  </>
+                ) : !isAuthenticated && showPublicForm ? (
+                  <>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => setShowPublicForm(false)}
+                    >
+                      انصراف
+                    </Button>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      startIcon={<PlayArrowIcon />}
+                      onClick={handlePublicRegister}
+                      disabled={registering || registerPublicMutation.isPending || !publicFormData.phone_number.trim()}
+                    >
+                      {registering || registerPublicMutation.isPending
+                        ? 'در حال ثبت‌نام...'
+                        : 'ثبت‌نام و شروع آزمون'}
+                    </Button>
+                  </>
                 ) : examInfo.is_registered && examInfo.registration_status !== 'completed' ? (
                   <Button
                     variant="contained"
@@ -271,10 +371,10 @@ export default function ExamParticipatePage() {
                 )}
               </Stack>
 
-              {registerMutation.isError && (
+              {(registerMutation.isError || registerPublicMutation.isError) && (
                 <Alert severity="error">
-                  {registerMutation.error instanceof Error
-                    ? registerMutation.error.message
+                  {(registerMutation.error || registerPublicMutation.error) instanceof Error
+                    ? (registerMutation.error || registerPublicMutation.error)?.message
                     : 'خطا در ثبت‌نام'}
                 </Alert>
               )}

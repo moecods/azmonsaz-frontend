@@ -37,6 +37,7 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import PowerOffIcon from '@mui/icons-material/PowerOff';
 import Breadcrumb from '@/components/Breadcrumb';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
+import ParticipantManagement from '@/components/exams/ParticipantManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -483,73 +484,16 @@ function ExamDetailContent() {
           {/* Tab Panel: Participants */}
           <TabPanel value={tabValue} index={1}>
             <CardContent>
-              <Stack spacing={3}>
-                <Typography variant="h6" gutterBottom>
-                  لیست شرکت‌کنندگان
-                </Typography>
-                {exam.participants.length === 0 ? (
-                  <Box textAlign="center" py={6}>
-                    <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" gutterBottom>
-                      هنوز کسی در این آزمون شرکت نکرده است
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      پس از شرکت کاربران در آزمون، اطلاعات آن‌ها در اینجا نمایش داده می‌شود
-                    </Typography>
-                  </Box>
-                ) : (
-                  <TableContainer component={Paper}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>نام</TableCell>
-                          <TableCell>شماره تماس</TableCell>
-                          <TableCell>ایمیل</TableCell>
-                          <TableCell align="center">نمره</TableCell>
-                          <TableCell align="center">وضعیت</TableCell>
-                          <TableCell>تاریخ شروع</TableCell>
-                          <TableCell>تاریخ تکمیل</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {exam.participants.map((participant) => (
-                          <TableRow key={participant.id}>
-                            <TableCell>{participant.user?.name || '-'}</TableCell>
-                            <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                            <TableCell>{participant.user?.email || '-'}</TableCell>
-                            <TableCell align="center">
-                              {participant.score !== null
-                                ? `${participant.score} / ${participant.total_points || 100}`
-                                : '-'}
-                            </TableCell>
-                            <TableCell align="center">
-                              {participant.completed_at ? (
-                                <Chip
-                                  label={participant.passed ? 'قبول' : 'رد'}
-                                  color={participant.passed ? 'success' : 'error'}
-                                  size="small"
-                                />
-                              ) : (
-                                <Chip label="در حال انجام" color="warning" size="small" />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {participant.started_at
-                                ? new Date(participant.started_at).toLocaleDateString('fa-IR')
-                                : '-'}
-                            </TableCell>
-                            <TableCell>
-                              {participant.completed_at
-                                ? new Date(participant.completed_at).toLocaleDateString('fa-IR')
-                                : '-'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Stack>
+              <ParticipantManagement
+                examId={examId!}
+                participants={exam.participants}
+                groups={exam.groups || []}
+                participationLink={exam.participation_link}
+                onSuccess={() => {
+                  // Refetch exam data
+                  window.location.reload();
+                }}
+              />
             </CardContent>
           </TabPanel>
         </Card>
