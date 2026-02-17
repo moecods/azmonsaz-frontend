@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography, Chip } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -137,7 +138,8 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
           const payload = examQuestion.payload || {};
           const questionText = payload.question_text || 'سوال';
           const questionType = payload.type || 'multiple_choice';
-          const isEssay = questionType === 'essay';
+          const isEssayType = isEssay(questionType);
+          const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
 
           return (
@@ -147,9 +149,9 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
               sx={{
                 mb: 3.75,
                 padding: 2.5,
-                border: isEssay ? '2px solid #FF9800' : '2px solid #E0E0E0',
+                border: isEssayType ? '2px solid #FF9800' : '2px solid #E0E0E0',
                 borderRadius: '8px',
-                background: isEssay ? '#FAFAFA' : '#FAFAFA',
+                background: isEssayType ? '#FAFAFA' : '#FAFAFA',
                 pageBreakInside: 'avoid',
               }}
             >
@@ -163,7 +165,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
               >
                 <Box
                   sx={{
-                    background: isEssay ? '#FF9800' : '#2196F3',
+                    background: isEssayType ? '#FF9800' : '#2196F3',
                     color: 'white',
                     width: '35px',
                     height: '35px',
@@ -192,13 +194,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                   </Typography>
                   <Chip
                     label={
-                      isEssay
-                        ? 'تشریحی'
-                        : questionType === 'multiple_choice'
-                        ? 'چند گزینه‌ای'
-                        : questionType === 'multiple_select'
-                        ? 'چند انتخابی'
-                        : 'صحیح/غلط'
+                      typeLabel
                     }
                     size="small"
                     sx={{
@@ -214,7 +210,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                 </Box>
               </Box>
 
-              {isEssay ? (
+              {isEssayType ? (
                 <Box
                   sx={{
                     minHeight: '100px',

@@ -29,52 +29,49 @@ export class ExamService {
   }
 
   /**
-   * Get exam for editing (for creator/admin - no signed URL required)
+   * Get exam for editing (for creator/admin)
    */
   async getExamForEdit(id: number): Promise<ApiResponse<Exam>> {
     return this.apiClient.get<Exam>(`/exams/${id}/edit-data`);
   }
 
   /**
-   * Get exam by signed URL (for public access)
+   * Get redirect URL for exam print page (offline exams only).
+   * Backend returns 302 with Location header to frontend print page.
    */
-  async getExamBySignedUrl(signedUrl: string): Promise<ApiResponse<Exam>> {
-    // Use the signed URL directly - it's a full URL with signature
-    try {
-      const response = await fetch(signedUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        let errorMessage = `Request failed with status ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      return {
-        success: data.success ?? true,
-        data: data.data,
-        message: data.message,
-      };
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error(
-          'خطا در اتصال به سرور. لطفاً اتصال اینترنت و تنظیمات CORS را بررسی کنید.'
-        );
-      }
-      throw error;
+  async getExamPrintRedirectUrl(examId: number, template: string = 'default'): Promise<string | null> {
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const token = this.apiClient.getToken();
+    const url = `${baseURL}/exams/${examId}/download?template=${encodeURIComponent(template)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'manual',
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+    });
+    if (response.status === 302) {
+      const location = response.headers.get('Location');
+      return location;
     }
+    if (response.status === 0) {
+      throw new Error(
+        'اتصال به سرور برقرار نشد. آدرس API (NEXT_PUBLIC_API_URL) و تنظیمات CORS سرور را بررسی کنید.'
+      );
+    }
+    if (!response.ok) {
+      let msg = `Request failed with status ${response.status}`;
+      try {
+        const data = await response.json();
+        msg = (data as { message?: string }).message || msg;
+      } catch (_) {
+        // ignore
+      }
+      throw new Error(msg);
+    }
+    return null;
   }
 
   /**
@@ -261,6 +258,13 @@ export class ExamService {
   }
 
   /**
+   * Get exam questions for participant (without correct answers)
+   */
+  async getExamQuestions(id: number): Promise<ApiResponse<ExamQuestionsResponse>> {
+    return this.apiClient.get<ExamQuestionsResponse>(`/exams/${id}/questions`);
+  }
+
+  /**
    * Save answer during exam
    */
   async saveAnswer(id: number, data: { exam_question_id: number; answer: any }): Promise<ApiResponse<{ saved: boolean }>> {
@@ -292,14 +296,14 @@ export class ExamService {
    * Add participants to exam by phone numbers
    */
   async addParticipantsByPhone(examId: number, data: AddParticipantsByPhoneRequest): Promise<ApiResponse<AddParticipantsResponse>> {
-    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/phone`, data);
+    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/by-phone`, data);
   }
 
   /**
    * Add participants to exam by national IDs
    */
   async addParticipantsByNationalId(examId: number, data: AddParticipantsByNationalIdRequest): Promise<ApiResponse<AddParticipantsResponse>> {
-    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/national-id`, data);
+    return this.apiClient.post<AddParticipantsResponse>(`/exams/${examId}/participants/by-national-id`, data);
   }
 
   /**
@@ -494,6 +498,13 @@ export interface ExamStartResponse {
   started_at: string;
   remaining_seconds?: number | null; // Remaining time in seconds (null if no time limit)
   answers?: Record<string, any>; // Saved answers from previous session
+}
+
+export interface ExamQuestionsResponse {
+  questions: Array<{
+    id: number;
+    payload: Record<string, unknown>;
+  }>;
 }
 
 export interface ExamSubmissionResult {

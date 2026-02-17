@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -103,7 +104,8 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
         const payload = examQuestion.payload || {};
         const questionText = payload.question_text || 'سوال';
         const questionType = payload.type || 'multiple_choice';
-        const isEssay = questionType === 'essay';
+        const isEssayType = isEssay(questionType);
+        const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
 
         return (
@@ -124,7 +126,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
               ))}
             </Box>
 
-            {isEssay ? (
+            {isEssayType ? (
               <Box
                 sx={{
                   mt: 1.5,

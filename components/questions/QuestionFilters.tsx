@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { QuestionFilters as Filters } from '@/hooks/useQuestionManagement';
+import { getSupportedQuestionTypeIds, getQuestionTypeLabel } from '@/lib/question-types';
 import { QuestionType, Difficulty } from '@/types';
 import { useQuestionCategories } from '@/hooks';
 import { useDebounce } from '@/hooks';
@@ -135,10 +136,11 @@ export const QuestionFilters = React.memo(function QuestionFilters({
                 label="نوع سوال"
               >
                 <MenuItem value="">همه انواع</MenuItem>
-                <MenuItem value="multiple_choice">چند گزینه‌ای</MenuItem>
-                <MenuItem value="true_false">صحیح/غلط</MenuItem>
-                <MenuItem value="multiple_select">چند گزینه‌ای (چند پاسخ)</MenuItem>
-                <MenuItem value="essay">تشریحی</MenuItem>
+                {getSupportedQuestionTypeIds().map((id) => (
+                  <MenuItem key={id} value={id}>
+                    {getQuestionTypeLabel(id)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             <FormControl fullWidth>

@@ -1,6 +1,8 @@
 "use client";
 
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import type { PrintHeaderOverrides } from '@/components/ExamPrintView';
 
 interface Exam {
   id: number;
@@ -22,15 +24,17 @@ interface Exam {
 
 interface FormalSchoolTemplateProps {
   exam: Exam;
+  /** مقادیر هدر چاپ (اسم مدرسه، کلاس، پایه، درس، تاریخ، وقت، نام دبیر) */
+  headerOverrides?: PrintHeaderOverrides;
 }
 
-export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps) {
+export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSchoolTemplateProps) {
   const persianLabels = ['الف', 'ب', 'ج', 'د', 'ه', 'و'];
 
   return (
     <Box
       sx={{
-        fontFamily: '"B Nazanin", "Tahoma", "Arial", sans-serif',
+        fontFamily: '"Vazirmatn", "Tahoma", "Arial", sans-serif',
         lineHeight: 2,
         color: '#000',
         background: '#fff',
@@ -63,15 +67,14 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
           padding: 2,
         }}
       >
-        <Box sx={{ width: '30%', borderLeft: '1px solid #000', pr: 1.25 }}>
+        <Box sx={{ width: '30%', borderRight: '1px solid #000', pl: 1.25 }}>
           <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
+          <Box sx={{ mb: 1, minHeight: '10px' }} />
           <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام خانوادگی:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>کلاس:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>پایه:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
+          <Box sx={{ mb: 1, minHeight: '10px' }} />
+          <Box sx={{ mb: 1.5, fontSize: '10pt' }}>
+            کلاس: <Box component="span" sx={{  px: 0.5 }}>{headerOverrides?.className ?? ''}</Box>
+          </Box>
         </Box>
 
         <Box sx={{ width: '40%', textAlign: 'center', px: 1.25 }}>
@@ -80,7 +83,7 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
               fontSize: '14pt',
               fontWeight: 'bold',
               mb: 2,
-              fontFamily: '"B Titr", serif',
+              fontFamily: '"Vazirmatn", serif',
             }}
           >
             باسمه تعالی
@@ -90,26 +93,32 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
               fontSize: '11pt',
               fontWeight: 'bold',
               mt: 1.25,
-              borderBottom: '1px solid #000',
+               
               pb: 0.6,
               display: 'inline-block',
               minWidth: '200px',
             }}
           >
-            {exam.partner?.name || 'اسم مدرسه مدنظر شما'}
+            {headerOverrides?.schoolName || exam.partner?.name || 'اسم مدرسه مدنظر شما'}
           </Box>
           <Box sx={{ fontSize: '10pt', mt: 1.25 }}>
-            درس اول تا دهم
+            {headerOverrides?.courseName || 'درس اول تا دهم'}
           </Box>
         </Box>
 
-        <Box sx={{ width: '30%', borderRight: '1px solid #000', pr: 1.25 }}>
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>تاریخ امتحان:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>وقت امتحان:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام دبیر:</Box>
-          <Box sx={{ mb: 1.5, minHeight: '20px' }} />
+
+        <Box sx={{ width: '30%', borderLeft: '1px solid #000', pl: 1.25 }}>
+          <Box sx={{ mb: 1.5, fontSize: '10pt' }}>
+            تاریخ امتحان: <Box component="span" sx={{ px: 0.5 }}>{headerOverrides?.examDate ?? ''}</Box>
+          </Box>
+          <Box sx={{ mb: 1, minHeight: '10px' }} />
+          <Box sx={{ mb: 1.5, fontSize: '10pt' }}>
+            وقت امتحان: <Box component="span" sx={{ px: 0.5 }}>{headerOverrides?.examTime ?? ''}</Box>
+          </Box>
+          <Box sx={{ mb: 1, minHeight: '10px' }} />
+          <Box sx={{ mb: 1.5, fontSize: '10pt' }}>
+            نام دبیر: <Box component="span" sx={{ px: 0.5 }}>{headerOverrides?.teacherName ?? ''}</Box>
+          </Box>
         </Box>
       </Box>
 
@@ -144,7 +153,8 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
             const payload = examQuestion.payload || {};
             const questionText = payload.question_text || 'سوال';
             const questionType = payload.type || 'multiple_choice';
-            const isEssay = questionType === 'essay';
+            const isEssayType = isEssay(questionType);
+            const typeLabel = getQuestionTypeLabel(questionType);
             const questionNumber = index + 1;
             const points = payload.points || 2;
 
@@ -156,12 +166,12 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
                 <TableCell sx={{ textAlign: 'right', padding: 2 }}>
                   <Box sx={{ mb: 2 }}>
                     <Box sx={{ fontSize: '11pt', mb: 1.25, textAlign: 'justify' }}>
-                      {questionText.split('\n').map((line, i) => (
+                      {questionText.split('\n').map((line: string, i: number) => (
                         <span key={i}>{line}<br /></span>
                       ))}
                     </Box>
 
-                    {isEssay ? (
+                    {isEssayType ? (
                       <Box
                         sx={{
                           minHeight: '80px',
@@ -193,7 +203,7 @@ export default function FormalSchoolTemplate({ exam }: FormalSchoolTemplateProps
                                   flex: '1 1 calc(50% - 12px)',
                                 }}
                               >
-                                <Box component="span" sx={{ fontWeight: 'bold', minWidth: '20px', fontFamily: '"B Nazanin", serif' }}>
+                                <Box component="span" sx={{ fontWeight: 'bold', minWidth: '20px', fontFamily: '"Vazirmatn", serif' }}>
                                   {label})
                                 </Box>
                                 <Box component="span" sx={{ flex: 1 }}>

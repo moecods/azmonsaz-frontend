@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   Box,
   Drawer,
@@ -146,6 +147,43 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
     return true;
   });
 
+  /**
+   * Calculate active state for menu items
+   * Simplified logic: exact match or pathname starts with path + '/'
+   */
+  const activeStates = useMemo(() => {
+    if (!pathname) return new Map<string, boolean>();
+    
+    const states = new Map<string, boolean>();
+    const allPaths = filteredMenuItems.map(mi => mi.path);
+    
+    // Find exact matches first
+    const exactMatch = filteredMenuItems.find(item => pathname === item.path);
+    
+    if (exactMatch) {
+      // Only the exact match is active
+      filteredMenuItems.forEach(item => {
+        states.set(item.path, item.path === exactMatch.path);
+      });
+    } else {
+      // Find the most specific matching path
+      const matchingPaths = filteredMenuItems
+        .filter(item => {
+          if (pathname === item.path) return true;
+          return pathname.startsWith(item.path + '/');
+        })
+        .sort((a, b) => b.path.length - a.path.length);
+      
+      const mostSpecific = matchingPaths[0];
+      
+      filteredMenuItems.forEach(item => {
+        states.set(item.path, item.path === mostSpecific?.path);
+      });
+    }
+    
+    return states;
+  }, [pathname, filteredMenuItems]);
+
   const handleNavigation = (path: string) => {
     router.push(path);
     if (isMobile) {
@@ -210,30 +248,7 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
       {/* Navigation Menu */}
       <List sx={{ flexGrow: 1, pt: 2 }}>
         {filteredMenuItems.map((item, index) => {
-          // Find the most specific matching menu item
-          // First, check for exact matches
-          const exactMatch = filteredMenuItems.find(otherItem => pathname === otherItem.path);
-          
-          let isActive = false;
-          
-          if (exactMatch) {
-            // If there's an exact match, only that item should be active
-            isActive = item.path === exactMatch.path;
-          } else {
-            // If no exact match, find the most specific path that matches
-            // Sort by path length (longer = more specific) and find the first match
-            const matchingItems = filteredMenuItems
-              .filter(otherItem => {
-                if (pathname === otherItem.path) return true;
-                const pathWithSlash = otherItem.path + '/';
-                return pathname?.startsWith(pathWithSlash);
-              })
-              .sort((a, b) => b.path.length - a.path.length); // Sort by length, longest first
-            
-            // The most specific match is the first one (longest path)
-            const mostSpecificMatch = matchingItems[0];
-            isActive = mostSpecificMatch && item.path === mostSpecificMatch.path;
-          }
+          const isActive = activeStates.get(item.path) || false;
           
           return (
             <ListItem key={`${item.path}-${index}`} disablePadding>

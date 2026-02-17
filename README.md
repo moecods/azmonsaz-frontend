@@ -134,7 +134,7 @@ The application integrates with a Laravel backend API. Key endpoints include:
 Partner websites can integrate with the exam builder using deep links:
 
 ```
-https://azmonsaz.com/exams/create?partner_id=123&callback_url=https://partner.com/callback&exam_id=456
+https://azmonsaz.test/exams/create?partner_id=123&callback_url=https://partner.com/callback&exam_id=456
 ```
 
 Parameters:

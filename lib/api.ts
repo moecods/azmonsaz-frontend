@@ -145,46 +145,6 @@ class ApiClient {
     return this.request<Exam>(`/exams/${id}`);
   }
 
-  async getExamBySignedUrl(signedUrl: string): Promise<ApiResponse<Exam>> {
-    // Use the signed URL directly - it's a full URL with signature
-    try {
-      const response = await fetch(signedUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies if needed
-      });
-
-      if (!response.ok) {
-        // Try to get error message from response
-        let errorMessage = `Request failed with status ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      return {
-        success: data.success ?? true,
-        data: data.data,
-        message: data.message,
-      };
-    } catch (error) {
-      // Handle network errors (CORS, connection issues, etc.)
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('خطا در اتصال به سرور. لطفاً اتصال اینترنت و تنظیمات CORS را بررسی کنید.');
-      }
-      throw error;
-    }
-  }
-
   async updateExam(id: number, data: UpdateExamRequest): Promise<ApiResponse<Exam>> {
     return this.request<Exam>(`/exams/${id}`, {
       method: 'PUT',

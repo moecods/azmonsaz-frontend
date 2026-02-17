@@ -57,14 +57,16 @@ function CreateExamContent() {
       title: '',
       description: '',
       subject: '',
+      type: 'online',
       questions: [],
       duration_minutes: null,
       passing_score: null,
       max_attempts: null,
       instructions: '',
       tags: [],
-      start_at: null,
-      end_at: null,
+      exam_date: null,
+      start_time: null,
+      end_time: null,
     },
   });
 
@@ -100,6 +102,7 @@ function CreateExamContent() {
       setValue('title', existingExam.title);
       setValue('description', existingExam.description || '');
       setValue('subject', existingExam.subject || '');
+      setValue('type', existingExam.type || 'online');
       
       // Load meta fields
       const metaFields = loadExamMetaToForm(existingExam);
@@ -133,6 +136,7 @@ function CreateExamContent() {
           title: data.title,
           description: data.description,
           subject: data.subject,
+          type: data.type,
           meta,
         },
       }, {
@@ -152,7 +156,7 @@ function CreateExamContent() {
         title: data.title,
         description: data.description,
         subject: data.subject,
-        type: 'offline' as const,
+        type: data.type,
         meta,
         ...(validationResult.success && deepLinkParams.partner_id && {
           partner_id: parseInt(deepLinkParams.partner_id),
@@ -233,15 +237,8 @@ function CreateExamContent() {
           </Alert>
         )}
 
-        <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => router.back()}
-            disabled={createExamMutation.isPending || updateExamMutation.isPending}
-          >
-            انصراف
-          </Button>
-          {existingExam && (
+        {existingExam && (
+          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 2 }}>
             <Button
               variant="contained"
               color="success"
@@ -250,8 +247,8 @@ function CreateExamContent() {
             >
               {completeExamMutation.isPending ? 'در حال تکمیل...' : 'تکمیل آزمون'}
             </Button>
-          )}
-        </Stack>
+          </Stack>
+        )}
 
         <ExamFormWizard
           form={form}

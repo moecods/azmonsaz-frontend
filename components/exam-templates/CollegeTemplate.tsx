@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -121,7 +122,8 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
         const payload = examQuestion.payload || {};
         const questionText = payload.question_text || 'Question';
         const questionType = payload.type || 'multiple_choice';
-        const isEssay = questionType === 'essay';
+        const isEssayType = isEssay(questionType);
+        const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
 
         return (
@@ -172,16 +174,10 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
                 mt: 0.6,
               }}
             >
-              {isEssay
-                ? 'Essay Question'
-                : questionType === 'multiple_choice'
-                ? 'Multiple Choice'
-                : questionType === 'multiple_select'
-                ? 'Multiple Select'
-                : 'True/False'}
+              {typeLabel}
             </Typography>
 
-            {isEssay ? (
+            {isEssayType ? (
               <Box
                 sx={{
                   minHeight: '150px',

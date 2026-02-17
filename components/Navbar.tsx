@@ -3,10 +3,22 @@
 import { AppBar, Toolbar, Typography, Button, Box, useTheme, useMediaQuery } from "@mui/material";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import LoginIcon from "@mui/icons-material/Login";
 import SchoolIcon from "@mui/icons-material/School";
 import UserMenu from "./layout/UserMenu";
+
+/**
+ * Pages that use UserLayout (should hide navbar on mobile, they have bottom nav)
+ */
+const USER_LAYOUT_PAGES = [
+  '/dashboard',
+  '/profile',
+  '/exams',
+  '/exams/available',
+  '/questions',
+  '/admin',
+] as const;
 
 export default function Navbar() {
   const router = useRouter();
@@ -20,29 +32,28 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
-  // Don't show navbar on login page
-  if (pathname === '/login') {
-    return null;
-  }
+  /**
+   * Check if current page is a UserLayout page
+   * Uses useMemo for performance optimization
+   */
+  const isUserLayoutPage = useMemo(() => {
+    if (!pathname) return false;
+    return USER_LAYOUT_PAGES.some(page => 
+      pathname === page || pathname.startsWith(page + '/')
+    );
+  }, [pathname]);
 
-  // Pages that use UserLayout (should hide navbar on mobile, they have bottom nav)
-  const userLayoutPages = [
-    '/dashboard',
-    '/profile',
-    '/exams',
-    '/exams/available',
-    '/questions',
-    '/admin',
-  ];
+  /**
+   * Determine if navbar should be hidden
+   * Hidden on login page or on mobile for authenticated users on UserLayout pages
+   */
+  const shouldHideNavbar = useMemo(() => {
+    if (pathname === '/login') return true;
+    if (mounted && isMobile && isAuthenticated && isUserLayoutPage) return true;
+    return false;
+  }, [pathname, mounted, isMobile, isAuthenticated, isUserLayoutPage]);
 
-  const isUserLayoutPage = userLayoutPages.some(page => 
-    pathname === page || pathname?.startsWith(page + '/')
-  );
-
-  // Hide navbar on mobile only for pages that use UserLayout (they have bottom nav)
-  // Always show navbar for landing page and other public pages
-  // Only check isMobile after component is mounted to avoid hydration mismatch
-  if (mounted && isMobile && isAuthenticated && isUserLayoutPage) {
+  if (shouldHideNavbar) {
     return null;
   }
 

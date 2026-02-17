@@ -3,6 +3,7 @@
 import { useState, MouseEvent } from 'react';
 import {
   IconButton,
+  Button,
   Menu,
   MenuItem,
   Avatar,
@@ -110,6 +111,7 @@ export default function UserMenu() {
 
   return (
     <>
+      {isMobile ? (
       <IconButton
         onClick={handleClick}
         size="small"
@@ -129,6 +131,38 @@ export default function UserMenu() {
           {getInitials(user.name)}
         </Avatar>
       </IconButton>
+      ) : (
+        <Button
+          onClick={handleClick}
+          sx={{
+            ml: 2,
+            textTransform: 'none',
+            color: 'text.primary',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+          aria-controls={open ? 'user-menu' : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? 'true' : undefined}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Typography variant="body2" fontWeight="medium" noWrap>
+              {user.name}
+            </Typography>
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: 'primary.main',
+                fontSize: '0.875rem',
+              }}
+            >
+              {getInitials(user.name)}
+            </Avatar>
+          </Stack>
+        </Button>
+      )}
       <Menu
         anchorEl={anchorEl}
         id="user-menu"

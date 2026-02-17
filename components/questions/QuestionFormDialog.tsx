@@ -19,6 +19,7 @@ import {
 import { Controller, Control, FieldErrors } from 'react-hook-form';
 import { QuestionFormData } from '@/lib/validation';
 import { QuestionType } from '@/types';
+import { getSupportedQuestionTypeIds, getQuestionTypeLabel, isEssay, isOptionsBased } from '@/lib/question-types';
 import { Modal } from '@/components/ui';
 import { FormCategorySelect } from '@/components/forms';
 import AddIcon from '@mui/icons-material/Add';
@@ -109,10 +110,11 @@ export const QuestionFormDialog = React.memo(function QuestionFormDialog({
                       onTypeChange(e.target.value as QuestionType);
                     }}
                   >
-                    <MenuItem value="multiple_choice">چند گزینه‌ای</MenuItem>
-                    <MenuItem value="true_false">صحیح/غلط</MenuItem>
-                    <MenuItem value="multiple_select">چند گزینه‌ای (چند پاسخ)</MenuItem>
-                    <MenuItem value="essay">تشریحی</MenuItem>
+                    {getSupportedQuestionTypeIds().map((id) => (
+                      <MenuItem key={id} value={id}>
+                        {getQuestionTypeLabel(id)}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               )}
@@ -144,16 +146,14 @@ export const QuestionFormDialog = React.memo(function QuestionFormDialog({
           />
 
           {/* Essay type info */}
-          {questionType === 'essay' && (
+          {isEssay(questionType) && (
             <Alert severity="info">
               سوالات تشریحی نیازی به گزینه یا پاسخ صحیح ندارند. پاسخ‌ها به صورت دستی بررسی می‌شوند.
             </Alert>
           )}
 
           {/* Options Management */}
-          {(questionType === 'multiple_choice' ||
-            questionType === 'true_false' ||
-            questionType === 'multiple_select') && (
+          {isOptionsBased(questionType) && (
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                 <Typography variant="subtitle1">گزینه‌ها</Typography>

@@ -20,6 +20,7 @@ import {
   Typography,
   CircularProgress,
 } from '@mui/material';
+import { getQuestionTypeLabel } from '@/lib/question-types';
 import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, Difficulty, PaginatedResponse } from '@/types';
 import AddIcon from '@mui/icons-material/Add';
@@ -231,12 +232,7 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                                 <Chip label={questionCategory.name} size="small" variant="outlined" />
                               )}
                               <Chip 
-                                label={
-                                  questionType === 'multiple_choice' ? 'چند گزینه‌ای' : 
-                                  questionType === 'true_false' ? 'صحیح/غلط' : 
-                                  questionType === 'multiple_select' ? 'چند گزینه‌ای (چند پاسخ)' : 
-                                  'تشریحی'
-                                } 
+                                label={getQuestionTypeLabel(questionType)} 
                                 size="small" 
                                 variant="outlined"
                               />

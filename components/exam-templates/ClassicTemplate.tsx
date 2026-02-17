@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -129,7 +130,8 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
         const payload = examQuestion.payload || {};
         const questionText = payload.question_text || 'سوال';
         const questionType = payload.type || 'multiple_choice';
-        const isEssay = questionType === 'essay';
+        const isEssayType = isEssay(questionType);
+        const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
 
         return (
@@ -140,7 +142,7 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
               mb: 3.125,
               padding: 1.875,
               border: '1px solid #ddd',
-              background: isEssay ? '#fffef0' : '#fafafa',
+              background: isEssayType ? '#fffef0' : '#fafafa',
               pageBreakInside: 'avoid',
             }}
           >
@@ -154,7 +156,7 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
             >
               <Box
                 sx={{
-                  background: isEssay ? '#666' : '#333',
+                  background: isEssayType ? '#666' : '#333',
                   color: 'white',
                   width: '30px',
                   height: '30px',
@@ -187,18 +189,12 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
                     fontStyle: 'italic',
                   }}
                 >
-                  {isEssay
-                    ? 'تشریحی'
-                    : questionType === 'multiple_choice'
-                    ? 'چند گزینه‌ای'
-                    : questionType === 'multiple_select'
-                    ? 'چند انتخابی'
-                    : 'صحیح/غلط'}
+                  {typeLabel}
                 </Typography>
               </Box>
             </Box>
 
-            {isEssay ? (
+            {isEssayType ? (
               <Box
                 sx={{
                   minHeight: '120px',

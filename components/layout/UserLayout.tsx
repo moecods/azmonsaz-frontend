@@ -5,6 +5,7 @@ import { Box, useTheme, useMediaQuery } from '@mui/material';
 import UserSidebar from './UserSidebar';
 import MobileBottomNav from './MobileBottomNav';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import StartedExamsAlert from '@/components/StartedExamsAlert';
 import { type Permission } from '@/lib/permissions';
 
 interface UserLayoutProps {
@@ -49,6 +50,7 @@ export default function UserLayout({ children, requiredPermission, requiredRole 
         }}
       >
         <Box sx={{ p: { xs: 2, md: 3 } }}>
+          <StartedExamsAlert />
           {children}
         </Box>
       </Box>

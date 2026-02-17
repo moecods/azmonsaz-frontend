@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography, Chip } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -139,7 +140,8 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
         const payload = examQuestion.payload || {};
         const questionText = payload.question_text || 'سوال';
         const questionType = payload.type || 'multiple_choice';
-        const isEssay = questionType === 'essay';
+        const isEssayType = isEssay(questionType);
+        const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
 
         return (
@@ -150,9 +152,9 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
               mb: 3.125,
               padding: 2.5,
               border: '1px solid #333',
-              borderRight: isEssay ? '5px solid #000' : '4px solid #000',
+              borderRight: isEssayType ? '5px solid #000' : '4px solid #000',
               pageBreakInside: 'avoid',
-              background: isEssay ? '#fffef0' : '#fafafa',
+              background: isEssayType ? '#fffef0' : '#fafafa',
             }}
           >
             <Box
@@ -165,7 +167,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
             >
               <Box
                 sx={{
-                  background: isEssay ? '#333' : '#000',
+                  background: isEssayType ? '#333' : '#000',
                   color: 'white',
                   width: '40px',
                   height: '40px',
@@ -196,13 +198,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
                 </Typography>
                 <Chip
                   label={
-                    isEssay
-                      ? 'تشریحی'
-                      : questionType === 'multiple_choice'
-                      ? 'چند گزینه‌ای'
-                      : questionType === 'multiple_select'
-                      ? 'چند انتخابی'
-                      : 'صحیح/غلط'
+                    typeLabel
                   }
                   size="small"
                   sx={{
@@ -219,7 +215,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
               </Box>
             </Box>
 
-            {isEssay ? (
+            {isEssayType ? (
               <Box
                 sx={{
                   minHeight: '200px',

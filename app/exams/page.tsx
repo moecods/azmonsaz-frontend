@@ -21,6 +21,9 @@ import {
   Pagination,
   Divider,
   Collapse,
+  Checkbox,
+  Toolbar,
+  Tooltip,
 } from '@mui/material';
 import { useExams } from '@/hooks/useExams';
 import { useRouter } from 'next/navigation';
@@ -52,13 +55,62 @@ function getExamTimeStatus(exam: ExamListItem): {
   isAfterEnd: boolean;
   startAt: Date | null;
   endAt: Date | null;
+  examDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
 } {
-  const startAt = exam.meta?.start_at && typeof exam.meta.start_at === 'string' 
-    ? new Date(exam.meta.start_at) 
-    : null;
-  const endAt = exam.meta?.end_at && typeof exam.meta.end_at === 'string' 
-    ? new Date(exam.meta.end_at) 
-    : null;
+  const meta = exam.meta || {};
+  
+  // Try new format first (date, start_time, end_time)
+  let examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
+  let startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
+  let endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
+  
+  let startAt: Date | null = null;
+  let endAt: Date | null = null;
+  
+  if (examDate && startTime) {
+    try {
+      startAt = new Date(`${examDate}T${startTime}:00`);
+    } catch (e) {
+      // Invalid format
+    }
+  }
+  
+  if (examDate && endTime) {
+    try {
+      endAt = new Date(`${examDate}T${endTime}:00`);
+    } catch (e) {
+      // Invalid format
+    }
+  }
+  
+  // Fallback to old format (start_at, end_at) for backward compatibility
+  if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
+    try {
+      startAt = new Date(meta.start_at);
+      // Extract date and time from old format
+      if (!examDate) {
+        examDate = startAt.toISOString().split('T')[0];
+      }
+      if (!startTime) {
+        startTime = startAt.toTimeString().slice(0, 5);
+      }
+    } catch (e) {
+      // Invalid format
+    }
+  }
+  
+  if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
+    try {
+      endAt = new Date(meta.end_at);
+      if (!endTime) {
+        endTime = endAt.toTimeString().slice(0, 5);
+      }
+    } catch (e) {
+      // Invalid format
+    }
+  }
   
   const hasTimeRestriction = startAt !== null || endAt !== null;
   
@@ -70,6 +122,9 @@ function getExamTimeStatus(exam: ExamListItem): {
       isAfterEnd: false,
       startAt: null,
       endAt: null,
+      examDate: null,
+      startTime: null,
+      endTime: null,
     };
   }
   
@@ -85,6 +140,9 @@ function getExamTimeStatus(exam: ExamListItem): {
     isAfterEnd,
     startAt,
     endAt,
+    examDate,
+    startTime,
+    endTime,
   };
 }
 
@@ -95,6 +153,8 @@ export default function ExamsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [showExtraFields, setShowExtraFields] = useState(false);
+  const [selectedExams, setSelectedExams] = useState<Set<number>>(new Set());
 
   const { data, isLoading, error } = useExams({
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -150,13 +210,19 @@ export default function ExamsPage() {
                 مشاهده و مدیریت آزمون‌های ایجاد شده
           </Typography>
             </Box>
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
               <Button
                 variant="outlined"
                 startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
                 onClick={() => setShowFilters(!showFilters)}
               >
                 {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setShowExtraFields(!showExtraFields)}
+              >
+                {showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
               </Button>
             <Button
               variant="contained"
@@ -221,6 +287,36 @@ export default function ExamsPage() {
           </Card>
         </Collapse>
 
+        {/* Bulk Actions Toolbar */}
+        {selectedExams.size > 0 && (
+          <Card>
+            <Toolbar sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+              <Typography variant="body1" sx={{ flexGrow: 1 }}>
+                {selectedExams.size} آزمون انتخاب شده
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="contained"
+                  color="inherit"
+                  onClick={() => setSelectedExams(new Set())}
+                >
+                  لغو انتخاب
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => {
+                    // TODO: Implement bulk delete
+                    setSelectedExams(new Set());
+                  }}
+                >
+                  حذف انتخاب شده‌ها
+                </Button>
+              </Stack>
+            </Toolbar>
+          </Card>
+        )}
+
         {/* Exams List */}
         {exams.length === 0 ? (
           <Card>
@@ -264,6 +360,8 @@ export default function ExamsPage() {
                   flexDirection: 'column',
                     transition: 'all 0.2s ease-in-out',
                     overflow: 'hidden',
+                    border: selectedExams.has(exam.id) ? '2px solid' : '1px solid',
+                    borderColor: selectedExams.has(exam.id) ? 'primary.main' : 'divider',
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: 4,
@@ -282,6 +380,20 @@ export default function ExamsPage() {
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack spacing={2}>
                     <Stack direction="row" alignItems="center" spacing={1}>
+                      <Checkbox
+                        checked={selectedExams.has(exam.id)}
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedExams);
+                          if (e.target.checked) {
+                            newSelected.add(exam.id);
+                          } else {
+                            newSelected.delete(exam.id);
+                          }
+                          setSelectedExams(newSelected);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        size="small"
+                      />
                       <SchoolIcon color="primary" />
                       <Typography variant="h6" sx={{ flexGrow: 1 }}>
                         {exam.title}
@@ -412,32 +524,33 @@ export default function ExamsPage() {
                               </Stack>
                             )}
                             
-                            {timeStatus.startAt && (
+                            {timeStatus.examDate && (
                               <Stack direction="row" spacing={1} alignItems="center">
-                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary">
-                                  شروع: {timeStatus.startAt.toLocaleDateString('fa-IR', {
+                                  روز آزمون: {new Date(timeStatus.examDate).toLocaleDateString('fa-IR', {
                                     year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
+                                    month: 'long',
+                                    day: 'numeric'
                                   })}
                                 </Typography>
                               </Stack>
                             )}
                             
-                            {timeStatus.endAt && (
+                            {timeStatus.startTime && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  شروع: {timeStatus.startTime}
+                                </Typography>
+                              </Stack>
+                            )}
+                            
+                            {timeStatus.endTime && (
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
-                                  پایان: {timeStatus.endAt.toLocaleDateString('fa-IR', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  پایان: {timeStatus.endTime}
                                 </Typography>
                               </Stack>
                             )}
@@ -457,52 +570,55 @@ export default function ExamsPage() {
                         </Box>
                       )}
 
-                      <Divider />
+                      {/* اطلاعات اضافی - فقط با toggle نمایش داده می‌شود */}
+                      {showExtraFields && (
+                        <>
+                          <Divider />
+                          <Stack spacing={1}>
+                            {exam.creator && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  ایجادکننده: {exam.creator.name}
+                                </Typography>
+                              </Stack>
+                            )}
 
-                      {/* اطلاعات اضافی */}
-                      <Stack spacing={1}>
-                      {exam.creator && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                          ایجادکننده: {exam.creator.name}
-                      </Typography>
+                            {exam.partner && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  شریک: {exam.partner.name}
+                                </Typography>
+                              </Stack>
+                            )}
+
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </Typography>
+                            </Stack>
+
+                            {exam.updated_at && exam.updated_at !== exam.created_at && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  آخرین به‌روزرسانی: {new Date(exam.updated_at).toLocaleDateString('fa-IR', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </Typography>
+                              </Stack>
+                            )}
                           </Stack>
-                    )}
-
-                        {exam.partner && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
-                              شریک: {exam.partner.name}
-                            </Typography>
-                          </Stack>
-                        )}
-
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                            ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                      </Typography>
-                        </Stack>
-
-                        {exam.updated_at && exam.updated_at !== exam.created_at && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                              آخرین به‌روزرسانی: {new Date(exam.updated_at).toLocaleDateString('fa-IR', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                    </Typography>
-                          </Stack>
+                        </>
                       )}
-                      </Stack>
                     </Stack>
                   </CardContent>
                   

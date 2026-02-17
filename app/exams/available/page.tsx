@@ -19,6 +19,8 @@ import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import Breadcrumb from '@/components/Breadcrumb';
 import UserLayout from '@/components/layout/UserLayout';
 import { ExamMeta } from '@/types';
@@ -166,29 +168,82 @@ export default function AvailableExamsPage() {
                         </Stack>
 
                       {(() => {
-                        const startAt = exam.exam_start_at || (exam.meta && typeof exam.meta === 'object' && 'start_at' in exam.meta && typeof exam.meta.start_at === 'string' ? exam.meta.start_at : null);
-                        return startAt ? (
+                        // Ensure meta is an object
+                        const meta = exam.meta && typeof exam.meta === 'object' ? exam.meta : {};
+                        const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
+                        const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
+                        const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
+                        
+                        // Fallback to old format
+                        let fallbackDate: string | null = null;
+                        let fallbackStartTime: string | null = null;
+                        let fallbackEndTime: string | null = null;
+                        
+                        if (!examDate && (exam.exam_start_at || (meta.start_at && typeof meta.start_at === 'string'))) {
+                          try {
+                            const startAt = new Date(exam.exam_start_at || meta.start_at as string);
+                            fallbackDate = startAt.toISOString().split('T')[0];
+                            fallbackStartTime = startAt.toTimeString().slice(0, 5);
+                          } catch (e) {
+                            // Ignore
+                          }
+                        }
+                        
+                        if (!endTime && (exam.exam_end_at || (meta.end_at && typeof meta.end_at === 'string'))) {
+                          try {
+                            const endAt = new Date(exam.exam_end_at || meta.end_at as string);
+                            fallbackEndTime = endAt.toTimeString().slice(0, 5);
+                          } catch (e) {
+                            // Ignore
+                          }
+                        }
+                        
+                        const finalDate = examDate || fallbackDate;
+                        const finalStartTime = startTime || fallbackStartTime;
+                        const finalEndTime = endTime || fallbackEndTime;
+                        
+                        // Show if we have at least date or time information
+                        if (!finalDate && !finalStartTime && !finalEndTime) {
+                          return null;
+                        }
+                        
+                        // If we have date from fallback but not from new format, use it
+                        if (!examDate && fallbackDate) {
+                          // Already handled above
+                        }
+                        
+                        return (
+                          <Stack spacing={0.5}>
+                            {finalDate && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="body2" color="text.secondary">
-                            تاریخ شروع آزمون: {new Date(startAt).toLocaleDateString('fa-IR', {
+                                  روز آزمون: {new Date(finalDate).toLocaleDateString('fa-IR', {
                               year: 'numeric',
-                              month: 'short',
+                                    month: 'long',
                               day: 'numeric'
                             })}
                           </Typography>
-                        ) : null;
-                      })()}
-
-                      {(() => {
-                        const endAt = exam.exam_end_at || (exam.meta && typeof exam.meta === 'object' && 'end_at' in exam.meta && typeof exam.meta.end_at === 'string' ? exam.meta.end_at : null);
-                        return endAt ? (
+                              </Stack>
+                            )}
+                            {finalStartTime && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  شروع: {finalStartTime}
+                                </Typography>
+                              </Stack>
+                            )}
+                            {finalEndTime && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="body2" color="text.secondary">
-                            تاریخ پایان آزمون: {new Date(endAt).toLocaleDateString('fa-IR', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                                  پایان: {finalEndTime}
                           </Typography>
-                        ) : null;
+                              </Stack>
+                            )}
+                          </Stack>
+                        );
                       })()}
                     </Stack>
 

@@ -35,7 +35,10 @@ import PublishIcon from '@mui/icons-material/Publish';
 import UnpublishedIcon from '@mui/icons-material/Unpublished';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import PowerOffIcon from '@mui/icons-material/PowerOff';
+import PrintIcon from '@mui/icons-material/Print';
+import GradeIcon from '@mui/icons-material/Grade';
 import Breadcrumb from '@/components/Breadcrumb';
+import { examService } from '@/services';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import ParticipantManagement from '@/components/exams/ParticipantManagement';
 
@@ -168,6 +171,13 @@ function ExamDetailContent() {
     });
   };
 
+  const handlePrintClick = () => {
+    if (!examId) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${origin}/exams/print?exam_id=${examId}&template=default`;
+    window.open(url, '_blank');
+  };
+
   if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -252,6 +262,23 @@ function ExamDetailContent() {
               >
                 مدیریت سوالات
               </Button>
+              <Button
+                variant="outlined"
+                startIcon={<GradeIcon />}
+                onClick={() => router.push(`/exams/${exam.id}/grading`)}
+                color="secondary"
+              >
+                تصحیح دستی
+              </Button>
+              {exam.type === 'offline' && (
+                <Button
+                variant="outlined"
+                startIcon={<PrintIcon />}
+                onClick={handlePrintClick}
+              >
+                چاپ برگه امتحان
+              </Button>
+              )}
               {exam.status === 'published' ? (
                 <Button
                   variant="outlined"

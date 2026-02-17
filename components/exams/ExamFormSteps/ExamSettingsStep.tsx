@@ -19,7 +19,9 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
         <FormNumberField
           name="duration_minutes"
           control={control}
-          label="مدت زمان (دقیقه)"
+          label="مدت زمان آزمون (دقیقه)"
+          min={1}
+          helperText="مدت زمان مجاز برای پاسخگویی به آزمون"
         />
 
         <FormNumberField
@@ -28,15 +30,17 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
           label="نمره قبولی (%)"
           min={0}
           max={100}
-        />
-
-        <FormNumberField
-          name="max_attempts"
-          control={control}
-          label="حداکثر تلاش"
-          min={1}
+          helperText="حداقل نمره برای قبولی در آزمون"
         />
       </Stack>
+
+      <FormNumberField
+        name="max_attempts"
+        control={control}
+        label="حداکثر تعداد تلاش"
+        min={1}
+        helperText="تعداد دفعاتی که شرکت‌کننده می‌تواند در آزمون شرکت کند"
+      />
 
       <FormField
         name="instructions"
@@ -45,6 +49,7 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
         multiline
         rows={4}
         placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
+        helperText="این دستورالعمل‌ها به شرکت‌کنندگان نمایش داده می‌شود"
       />
 
       <Controller
@@ -73,7 +78,7 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
                 label="تگ‌ها"
                 placeholder="تگ اضافه کنید و Enter بزنید"
                 error={!!errors.tags}
-                helperText={errors.tags?.message}
+                helperText={errors.tags?.message || "تگ‌ها برای دسته‌بندی و جستجوی آزمون‌ها استفاده می‌شوند"}
               />
             )}
           />

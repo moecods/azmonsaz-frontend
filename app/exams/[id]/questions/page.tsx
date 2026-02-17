@@ -56,13 +56,13 @@ import Breadcrumb from '@/components/Breadcrumb';
 import AddQuestionFromBank from '@/components/questions/AddQuestionFromBank';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
 import { ExamQuestion } from '@/types';
+import { getQuestionTypeLabel } from '@/lib/question-types/registry';
 import {
   getQuestionText,
   getQuestionOptions,
   getQuestionType,
   buildBankQuestionPayload,
   buildCustomQuestionPayload,
-  QUESTION_TYPE_LABELS,
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
 import { handleError, getErrorMessage } from '@/lib/error-handler';
@@ -129,7 +129,7 @@ const SortableQuestionItem = memo(function SortableQuestionItem({ question, inde
               <Box sx={{ flex: 1 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                   <Chip
-                    label={`سوال ${index + 1}`}
+                    label={`سوال ${question.payload?.order ?? index + 1}`}
                     size="small"
                     color="primary"
                     variant="outlined"
@@ -140,7 +140,7 @@ const SortableQuestionItem = memo(function SortableQuestionItem({ question, inde
                     <Chip label="سفارشی" size="small" color="secondary" />
                   )}
                   <Chip
-                    label={QUESTION_TYPE_LABELS[questionType] || questionType}
+                    label={getQuestionTypeLabel(questionType)}
                     size="small"
                     variant="outlined"
                   />
@@ -256,7 +256,18 @@ function ExamQuestionsContent() {
         }));
         
         const sorted = sortQuestionsByOrder(mappedQuestions);
-        setQuestions(sorted);
+        // Ensure all questions have proper order starting from 1
+        const normalized = sorted.map((q, idx) => {
+          const normalizedOrder = idx + 1;
+          if (q.payload) {
+            q.payload.order = normalizedOrder;
+          } else {
+            q.payload = { order: normalizedOrder };
+          }
+          q.order = normalizedOrder;
+          return q;
+        });
+        setQuestions(normalized);
       } else {
         // If no questions, reset to empty array
         setQuestions([]);
@@ -503,7 +514,7 @@ function ExamQuestionsContent() {
         <Divider />
         <Stack spacing={2}>
           <AddQuestionFromBank onAddQuestion={handleAddQuestion} />
-          <CreateCustomQuestion onAddQuestion={handleAddQuestion} />
+          <CreateCustomQuestion examId={examId} />
         </Stack>
       </Stack>
     </Paper>

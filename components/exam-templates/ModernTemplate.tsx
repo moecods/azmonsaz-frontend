@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Typography, Chip } from '@mui/material';
+import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 
 interface Exam {
   id: number;
@@ -142,7 +143,8 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
           const payload = examQuestion.payload || {};
           const questionText = payload.question_text || 'سوال';
           const questionType = payload.type || 'multiple_choice';
-          const isEssay = questionType === 'essay';
+          const isEssayType = isEssay(questionType);
+          const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
 
           return (
@@ -152,9 +154,9 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
               sx={{
                 mb: 3.125,
                 padding: 3.125,
-                background: isEssay ? '#fff5f5' : '#f8f9fa',
+                background: isEssayType ? '#fff5f5' : '#f8f9fa',
                 borderRadius: '10px',
-                borderLeft: isEssay ? '5px solid #ff6b6b' : '5px solid #667eea',
+                borderLeft: isEssayType ? '5px solid #ff6b6b' : '5px solid #667eea',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
                 pageBreakInside: 'avoid',
                 transition: 'transform 0.2s',
@@ -174,7 +176,7 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
               >
                 <Box
                   sx={{
-                    background: isEssay
+                    background: isEssayType
                       ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)'
                       : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: 'white',
@@ -204,15 +206,7 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
                     ))}
                   </Typography>
                   <Chip
-                    label={
-                      isEssay
-                        ? 'تشریحی'
-                        : questionType === 'multiple_choice'
-                        ? 'چند گزینه‌ای'
-                        : questionType === 'multiple_select'
-                        ? 'چند انتخابی'
-                        : 'صحیح/غلط'
-                    }
+                    label={typeLabel}
                     size="small"
                     sx={{
                       background: '#ff6b6b',
@@ -227,7 +221,7 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
                 </Box>
               </Box>
 
-              {isEssay ? (
+              {isEssayType ? (
                 <Box
                   sx={{
                     minHeight: '150px',

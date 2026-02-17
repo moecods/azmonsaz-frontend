@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -12,25 +13,21 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
-  Checkbox,
-  TextField,
   LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
 } from '@mui/material';
-import { useStartExam, useSaveAnswer, useSubmitExam } from '@/hooks/useExams';
+import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo, useExamQuestions } from '@/hooks/useExams';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { QuestionAnswerInput } from '@/components/questions/QuestionAnswerInput';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SaveIcon from '@mui/icons-material/Save';
 import SendIcon from '@mui/icons-material/Send';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 interface Question {
   id: number;
@@ -57,56 +54,149 @@ export default function TakeExamPage() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({
+    open: false,
+    message: '',
+    severity: 'error',
+  });
+  const hasStartedRef = useRef(false);
 
   const startExamMutation = useStartExam();
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
+  const { data: examInfo } = useExamInfo(examId);
+  
+  // Get participant status
+  const participantStatus = examInfo?.registration_status;
+  
+  // Get exam questions using the new endpoint (only if exam is started or completed)
+  // Don't fetch if status is 'registered' or null (user needs to start exam first)
+  // Also check if exam time has started
+  const shouldFetchQuestions = (participantStatus === 'started' || participantStatus === 'completed') 
+    && examStarted 
+    && canAccessQuestions;
+  const { data: examQuestionsData, isLoading: questionsLoading, error: questionsError } = useExamQuestions(
+    shouldFetchQuestions ? examId : null
+  );
 
   const handleStartExam = useCallback(async () => {
-    if (!examId) return;
+    if (!examId) {
+      return;
+    }
+    
+    if (examStarted) {
+      return;
+    }
+    
+    if (startExamMutation.isPending) {
+      return;
+    }
+    
+    if (hasStartedRef.current) {
+      return;
+    }
+
+    hasStartedRef.current = true;
 
     try {
-      const response = await startExamMutation.mutateAsync(examId);
-      // Map API response questions to local Question interface
-      const mappedQuestions: Question[] = (response.questions || []).map((q) => ({
-        id: q.id,
-        payload: q.payload as Question['payload'],
-      }));
-      setQuestions(mappedQuestions);
+      // Call startExam API - this will change participant status from 'registered' to 'started'
+      await startExamMutation.mutateAsync(examId);
+      // After successful start, set examStarted to true so questions will be fetched
       setExamStarted(true);
       
-      // Load saved answers if resuming
-      if (response.answers && typeof response.answers === 'object') {
-        const savedAnswers: Record<number, any> = {};
-        Object.entries(response.answers).forEach(([key, value]) => {
-          const questionId = parseInt(key);
-          if (!isNaN(questionId)) {
-            savedAnswers[questionId] = value;
-          }
-        });
-        setAnswers(savedAnswers);
-      }
-
-      // Set timer if duration is provided
-      if (response.exam?.meta && typeof response.exam.meta === 'object' && 'duration_minutes' in response.exam.meta) {
-        const durationMinutes = response.exam.meta.duration_minutes;
-        if (typeof durationMinutes === 'number') {
-          const durationSeconds = durationMinutes * 60;
-          setTimeRemaining(durationSeconds);
-        }
-      } else if (response.remaining_seconds !== null && response.remaining_seconds !== undefined) {
-        setTimeRemaining(Math.floor(response.remaining_seconds));
-      }
+      // Timer will be set from examInfo or examQuestionsData
     } catch (error) {
-      // Error handled by mutation
+      hasStartedRef.current = false; // Reset on error so user can retry
+      // Show error toast
+      const errorMessage = error instanceof Error ? error.message : 'خطا در شروع آزمون';
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error',
+      });
     }
-  }, [examId, startExamMutation]);
+  }, [examId, examStarted, startExamMutation.isPending, startExamMutation.mutateAsync]);
 
+  // Load questions when examQuestionsData is available
   useEffect(() => {
-    if (examId && !examStarted) {
-      handleStartExam();
+    if (examQuestionsData?.questions && Array.isArray(examQuestionsData.questions)) {
+      const mappedQuestions: Question[] = examQuestionsData.questions.map((q, index) => {
+        const payload = q.payload as Question['payload'] || {};
+        // Ensure order is set, defaulting to index + 1
+        if (!payload.order) {
+          payload.order = index + 1;
+        }
+        return {
+          id: q.id,
+          payload,
+        };
+      });
+      
+      // Sort by order to ensure correct sequence
+      mappedQuestions.sort((a, b) => {
+        const orderA = a.payload?.order ?? a.id ?? 0;
+        const orderB = b.payload?.order ?? b.id ?? 0;
+        return orderA - orderB;
+      });
+      
+      // Normalize order to start from 1
+      mappedQuestions.forEach((q, index) => {
+        if (q.payload) {
+          q.payload.order = index + 1;
+        }
+      });
+      
+      if (mappedQuestions.length > 0) {
+        setQuestions(mappedQuestions);
+        setExamStarted(true);
+      }
     }
-  }, [examId, examStarted, handleStartExam]);
+  }, [examQuestionsData]);
+
+  // Load saved answers from examInfo or startExam response
+  useEffect(() => {
+    if (examInfo && participantStatus === 'started') {
+      // Try to get answers from participant data if available
+      // This would need to be added to getExamInfo endpoint if needed
+    }
+  }, [examInfo, participantStatus]);
+
+  // Set timer from examInfo meta
+  useEffect(() => {
+    if (examInfo?.meta && typeof examInfo.meta === 'object' && 'duration_minutes' in examInfo.meta) {
+      const durationMinutes = examInfo.meta.duration_minutes;
+      if (typeof durationMinutes === 'number' && !timeRemaining) {
+        const durationSeconds = durationMinutes * 60;
+        setTimeRemaining(durationSeconds);
+      }
+    }
+  }, [examInfo, timeRemaining]);
+
+  // If status is 'started', just load questions (don't call startExam API again)
+  // If status is 'registered' or null, user needs to click start button
+  useEffect(() => {
+    // Reset ref when examId changes
+    hasStartedRef.current = false;
+    
+    // If exam is already started, just set examStarted to true (questions will be loaded via useExamQuestions)
+    if (participantStatus === 'started' && examId && !examStarted) {
+      setExamStarted(true);
+    }
+  }, [examId, examStarted, participantStatus]);
+
+  // Show error toast when mutation fails
+  useEffect(() => {
+    if (startExamMutation.isError && startExamMutation.error) {
+      const errorMessage = startExamMutation.error instanceof Error 
+        ? startExamMutation.error.message 
+        : 'خطا در شروع آزمون';
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error',
+      });
+    }
+  }, [startExamMutation.isError, startExamMutation.error]);
 
   const handleSubmitClick = useCallback(() => {
     if (!examId || submitted) return;
@@ -188,7 +278,186 @@ export default function TakeExamPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (startExamMutation.isPending || !examStarted) {
+  // Check exam time status
+  const getExamTimeStatus = () => {
+    if (!examInfo?.meta || typeof examInfo.meta !== 'object') {
+      return { hasTimeRestriction: false, isBeforeStart: false, isAfterEnd: false, startAt: null, endAt: null };
+    }
+    
+    const meta = examInfo.meta;
+    let startAt: Date | null = null;
+    let endAt: Date | null = null;
+    
+    // Try new format first (date, start_time, end_time)
+    const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
+    const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
+    const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
+    
+    if (examDate && startTime) {
+      try {
+        startAt = new Date(`${examDate}T${startTime}:00`);
+      } catch (e) {
+        // Invalid format
+      }
+    }
+    
+    if (examDate && endTime) {
+      try {
+        endAt = new Date(`${examDate}T${endTime}:00`);
+      } catch (e) {
+        // Invalid format
+      }
+    }
+    
+    // Fallback to old format
+    if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
+      try {
+        startAt = new Date(meta.start_at);
+      } catch (e) {
+        // Invalid format
+      }
+    }
+    
+    if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
+      try {
+        endAt = new Date(meta.end_at);
+      } catch (e) {
+        // Invalid format
+      }
+    }
+    
+    const hasTimeRestriction = startAt !== null || endAt !== null;
+    const now = new Date();
+    const isBeforeStart = startAt ? now < startAt : false;
+    const isAfterEnd = endAt ? now > endAt : false;
+    
+    return { hasTimeRestriction, isBeforeStart, isAfterEnd, startAt, endAt };
+  };
+
+  const timeStatus = getExamTimeStatus();
+
+  // Show start button if user is registered but hasn't started yet
+  const isRegistered = examInfo?.is_registered;
+  const shouldShowStartButton = isRegistered && (participantStatus === 'registered' || participantStatus === null);
+  
+  // Prevent access to questions if exam hasn't started yet (time check)
+  const canAccessQuestions = !timeStatus.hasTimeRestriction || !timeStatus.isBeforeStart;
+
+  // Show loading while fetching questions
+  if (shouldFetchQuestions && questionsLoading && !examStarted) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // Show error if questions failed to load
+  if (shouldFetchQuestions && questionsError && !examStarted) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Alert severity="error">
+            {questionsError instanceof Error
+              ? questionsError.message
+              : 'خطا در دریافت سوالات آزمون'}
+          </Alert>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // Show message if exam hasn't started yet (time restriction)
+  if (timeStatus.hasTimeRestriction && timeStatus.isBeforeStart && timeStatus.startAt) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={3} alignItems="center">
+                <Typography variant="h5" gutterBottom>
+                  {examInfo?.title || 'آزمون'}
+                </Typography>
+                <Alert severity="warning" sx={{ width: '100%' }}>
+                  <Typography variant="body1" fontWeight="bold" gutterBottom>
+                    آزمون هنوز شروع نشده است
+                  </Typography>
+                  <Typography variant="body2">
+                    زمان شروع آزمون: {timeStatus.startAt.toLocaleString('fa-IR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </Typography>
+                </Alert>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push(`/exams/participate/${examId}`)}
+                >
+                  بازگشت به صفحه ثبت‌نام
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  if (shouldShowStartButton && !examStarted) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={3} alignItems="center">
+                <Typography variant="h5" gutterBottom>
+                  {examInfo?.title || 'آزمون'}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" textAlign="center">
+                  شما در این آزمون ثبت‌نام کرده‌اید. برای شروع آزمون روی دکمه زیر کلیک کنید.
+                </Typography>
+                {examInfo?.time_message && (
+                  <Alert severity="info" sx={{ width: '100%' }}>
+                    {examInfo.time_message}
+                  </Alert>
+                )}
+                {startExamMutation.isError && (
+                  <Alert severity="error" sx={{ width: '100%' }}>
+                    {startExamMutation.error instanceof Error
+                      ? startExamMutation.error.message
+                      : 'خطا در شروع آزمون'}
+                  </Alert>
+                )}
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleStartExam();
+                  }}
+                  disabled={startExamMutation.isPending || !canAccessQuestions}
+                  sx={{ minWidth: 200, zIndex: 1000 }}
+                >
+                  {startExamMutation.isPending ? 'در حال شروع...' : 'شروع آزمون'}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  if (startExamMutation.isPending || (!examStarted && participantStatus === 'started')) {
     return (
       <ProtectedRoute>
         <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -257,8 +526,21 @@ export default function TakeExamPage() {
     );
   }
 
+  // Show error if exam started but no questions
+  if (examStarted && questions.length === 0) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Alert severity="error">
+            سوالات آزمون دریافت نشد. لطفاً صفحه را رفرش کنید یا با پشتیبانی تماس بگیرید.
+          </Alert>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
   return (
     <ProtectedRoute>
@@ -300,78 +582,11 @@ export default function TakeExamPage() {
                     {currentQuestion.payload.question_text}
                   </Typography>
 
-                  {currentQuestion.payload.type === 'multiple_choice' && (
-                    <FormControl>
-                      <RadioGroup
-                        value={answers[currentQuestion.id] ?? ''}
-                        onChange={(e) => handleAnswerChange(currentQuestion.id, parseInt(e.target.value))}
-                      >
-                        {currentQuestion.payload.options?.map((option, index) => (
-                          <FormControlLabel
-                            key={index}
-                            value={index.toString()}
-                            control={<Radio />}
-                            label={option}
-                          />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  )}
-
-                  {currentQuestion.payload.type === 'true_false' && (
-                    <FormControl>
-                      <RadioGroup
-                        value={answers[currentQuestion.id] ?? ''}
-                        onChange={(e) => handleAnswerChange(currentQuestion.id, parseInt(e.target.value))}
-                      >
-                        <FormControlLabel value="0" control={<Radio />} label="درست" />
-                        <FormControlLabel value="1" control={<Radio />} label="نادرست" />
-                      </RadioGroup>
-                    </FormControl>
-                  )}
-
-                  {currentQuestion.payload.type === 'multiple_select' && (
-                    <FormControl>
-                      <FormLabel>انتخاب چند گزینه</FormLabel>
-                      <Stack>
-                        {currentQuestion.payload.options?.map((option, index) => (
-                          <FormControlLabel
-                            key={index}
-                            control={
-                              <Checkbox
-                                checked={
-                                  Array.isArray(answers[currentQuestion.id])
-                                    ? answers[currentQuestion.id].includes(index)
-                                    : false
-                                }
-                                onChange={(e) => {
-                                  const current = Array.isArray(answers[currentQuestion.id])
-                                    ? answers[currentQuestion.id]
-                                    : [];
-                                  const newAnswer = e.target.checked
-                                    ? [...current, index]
-                                    : current.filter((i: number) => i !== index);
-                                  handleAnswerChange(currentQuestion.id, newAnswer);
-                                }}
-                              />
-                            }
-                            label={option}
-                          />
-                        ))}
-                      </Stack>
-                    </FormControl>
-                  )}
-
-                  {currentQuestion.payload.type === 'essay' && (
-                    <TextField
-                      multiline
-                      rows={6}
-                      fullWidth
-                      value={answers[currentQuestion.id] ?? ''}
-                      onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                      placeholder="پاسخ خود را اینجا بنویسید..."
-                    />
-                  )}
+                  <QuestionAnswerInput
+                    payload={currentQuestion.payload}
+                    value={answers[currentQuestion.id]}
+                    onChange={(v) => handleAnswerChange(currentQuestion.id, v)}
+                  />
 
                   {saveAnswerMutation.isPending && (
                     <Alert severity="info" icon={<SaveIcon />}>
@@ -453,6 +668,22 @@ export default function TakeExamPage() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar for error notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </ProtectedRoute>
   );

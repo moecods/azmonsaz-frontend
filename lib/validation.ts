@@ -1,6 +1,8 @@
 // Validation schemas using Zod for form validation
 
 import { z } from 'zod';
+import { QUESTION_TYPE_IDS } from '@/lib/question-types/constants';
+import { getQuestionTypeKind } from '@/lib/question-types/registry';
 
 // Question validation schemas
 export const questionOptionSchema = z.object({
@@ -9,62 +11,118 @@ export const questionOptionSchema = z.object({
   is_correct: z.boolean(),
 });
 
+const blankSchema = z.object({
+  position: z.number(),
+  correct_answer: z.string().min(1, 'پاسخ جای خالی الزامی است'),
+});
+
+const leftRightItemSchema = z.object({
+  text: z.string().min(1, 'متن الزامی است'),
+});
+
+const matchSchema = z.object({
+  left_index: z.number(),
+  right_index: z.number(),
+});
+
+const orderingItemSchema = z.object({
+  text: z.string().min(1, 'متن مورد الزامی است'),
+  order: z.number(),
+});
+
 export const questionSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
-  type: z.enum(['multiple_choice', 'true_false', 'multiple_select', 'essay']),
+  type: z.enum(QUESTION_TYPE_IDS as unknown as [string, ...string[]]),
   options: z.array(questionOptionSchema).optional(),
-  correct_answer: z.union([z.number(), z.array(z.number()), z.null()]),
+  correct_answer: z.union([z.number(), z.array(z.number()), z.string(), z.null()]),
   category_id: z.number().positive('Category is required'),
   tags: z.array(z.string()),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-}).refine((data) => {
-  // For essay type, options and correct_answer are not required
-  if (data.type === 'essay') {
-    return true;
+  blanks: z.array(blankSchema).optional(),
+  left_items: z.array(leftRightItemSchema).optional(),
+  right_items: z.array(leftRightItemSchema).optional(),
+  matches: z.array(matchSchema).optional(),
+  items: z.array(orderingItemSchema).optional(),
+  correct_order: z.array(z.number()).optional(),
+}).superRefine((data, ctx) => {
+  const kind = getQuestionTypeKind(data.type);
+  const t = data.type;
+
+  // text: essay (correct_answer null) vs short_answer (correct_answer string)
+  if (kind === 'text') {
+    if (t === 'essay') {
+      if (data.correct_answer !== null && data.correct_answer !== undefined) {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'برای سوال تشریحی نیازی به پاسخ صحیح نیست' });
+      }
+      return;
+    }
+    if (t === 'short_answer') {
+      if (typeof data.correct_answer !== 'string' || (data.correct_answer as string).trim() === '') {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'پاسخ صحیح را وارد کنید' });
+      }
+      return;
+    }
+    return;
   }
-  // For other types, at least 2 options are required
-  if (!data.options || data.options.length < 2) {
-    return false;
+
+  if (kind === 'ordering') {
+    const items = data.items ?? [];
+    if (items.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['items'], message: 'حداقل ۲ مورد برای ترتیب‌دهی لازم است' });
+    }
+    const order = data.correct_order ?? [];
+    if (order.length !== items.length) {
+      ctx.addIssue({ code: 'custom', path: ['correct_order'], message: 'ترتیب صحیح را مشخص کنید' });
+    }
+    return;
   }
-  return true;
-}, {
-  message: 'At least 2 options are required for this question type',
-  path: ['options'],
-}).refine((data) => {
-  // For essay type, skip option validation
-  if (data.type === 'essay') {
-    return true;
+
+  if (kind === 'matching') {
+    const left = data.left_items ?? [];
+    const right = data.right_items ?? [];
+    if (left.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['left_items'], message: 'حداقل ۲ مورد در ستون چپ لازم است' });
+    }
+    if (right.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['right_items'], message: 'حداقل ۲ مورد در ستون راست لازم است' });
+    }
+    const matches = data.matches ?? [];
+    if (left.length >= 2 && right.length >= 2 && matches.length !== left.length) {
+      ctx.addIssue({ code: 'custom', path: ['matches'], message: 'هر مورد چپ باید با یک مورد راست تطبیق داده شود' });
+    }
+    return;
   }
-  // Validate that at least one option is marked as correct
-  if (!data.options || data.options.length === 0) {
-    return false;
+
+  if (kind === 'blanks') {
+    const blanks = data.blanks ?? [];
+    if (blanks.length < 1) {
+      ctx.addIssue({ code: 'custom', path: ['blanks'], message: 'حداقل یک جای خالی لازم است' });
+    }
+    return;
   }
-  const hasCorrectOption = data.options.some(option => option.is_correct);
-  return hasCorrectOption;
-}, {
-  message: 'At least one option must be marked as correct',
-  path: ['options'],
-}).refine((data) => {
-  // For essay type, correct_answer should be null
-  if (data.type === 'essay') {
-    return data.correct_answer === null;
+
+  // options_single, options_multiple, options_fixed: options 2+ and at least one correct
+  if (kind === 'options_single' || kind === 'options_multiple' || kind === 'options_fixed') {
+    const options = data.options ?? [];
+    if (options.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'حداقل ۲ گزینه لازم است' });
+      return;
+    }
+    const hasCorrect = options.some(opt => opt.is_correct);
+    if (!hasCorrect) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'حداقل یک گزینه را به عنوان صحیح انتخاب کنید' });
+    }
+    const optionsLength = options.length;
+    if (typeof data.correct_answer === 'number') {
+      if (data.correct_answer < 0 || data.correct_answer >= optionsLength) {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شاخص پاسخ صحیح نامعتبر است' });
+      }
+    } else if (Array.isArray(data.correct_answer)) {
+      if (!data.correct_answer.every(i => i >= 0 && i < optionsLength)) {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شاخص پاسخ صحیح نامعتبر است' });
+      }
+    }
   }
-  // Validate correct_answer matches the options
-  if (!data.options || data.options.length === 0) {
-    return false;
-  }
-  const optionsLength = data.options.length;
-  if (typeof data.correct_answer === 'number') {
-    return data.correct_answer >= 0 && data.correct_answer < optionsLength;
-  } else if (Array.isArray(data.correct_answer)) {
-    return data.correct_answer.every(index => 
-      index >= 0 && index < optionsLength
-    );
-  }
-  return false;
-}, {
-  message: 'Correct answer index is invalid',
-  path: ['correct_answer'],
 });
 
 // Exam validation schemas
@@ -82,6 +140,9 @@ export const examSchema = z.object({
   title: z.string().min(1, 'Exam title is required'),
   description: z.string().optional(),
   subject: z.string().optional(),
+  type: z.enum(['online', 'offline'], {
+    errorMap: () => ({ message: 'نوع آزمون باید آنلاین یا آفلاین باشد' })
+  }).default('online'),
   questions: z.array(examQuestionSchema).optional(),
   // Meta fields
   duration_minutes: z.number().int().positive('مدت زمان باید عدد مثبت باشد').optional().nullable(),
@@ -89,17 +150,39 @@ export const examSchema = z.object({
   max_attempts: z.number().int().positive('حداکثر تلاش باید عدد مثبت باشد').optional().nullable(),
   instructions: z.string().max(1000, 'دستورالعمل نمی‌تواند بیشتر از 1000 کاراکتر باشد').optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
-  start_at: z.string().datetime('فرمت تاریخ شروع معتبر نیست').optional().nullable(),
-  end_at: z.string().datetime('فرمت تاریخ پایان معتبر نیست').optional().nullable(),
+  // Scheduling fields
+  exam_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'فرمت تاریخ معتبر نیست (YYYY-MM-DD)').optional().nullable(),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'فرمت زمان معتبر نیست (HH:mm)').optional().nullable(),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, 'فرمت زمان معتبر نیست (HH:mm)').optional().nullable(),
 }).refine((data) => {
-  // If both start_at and end_at are provided, end_at must be after start_at
-  if (data.start_at && data.end_at) {
-    return new Date(data.end_at) > new Date(data.start_at);
+  // If exam_date, start_time, and end_time are provided, validate time order
+  if (data.exam_date && data.start_time && data.end_time) {
+    const startDateTime = `${data.exam_date}T${data.start_time}:00`;
+    const endDateTime = `${data.exam_date}T${data.end_time}:00`;
+    return new Date(endDateTime) > new Date(startDateTime);
   }
   return true;
 }, {
-  message: 'تاریخ پایان باید بعد از تاریخ شروع باشد',
-  path: ['end_at'],
+  message: 'ساعت پایان باید بعد از ساعت شروع باشد',
+  path: ['end_time'],
+}).refine((data) => {
+  // If exam_date, start_time, end_time, and duration_minutes are provided, validate duration
+  if (data.exam_date && data.start_time && data.end_time && data.duration_minutes) {
+    const startDateTime = `${data.exam_date}T${data.start_time}:00`;
+    const endDateTime = `${data.exam_date}T${data.end_time}:00`;
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+    
+    if (endDate > startDate) {
+      const maxDurationMs = endDate.getTime() - startDate.getTime();
+      const maxDurationMinutes = Math.floor(maxDurationMs / (1000 * 60));
+      return data.duration_minutes <= maxDurationMinutes;
+    }
+  }
+  return true;
+}, {
+  message: 'مدت زمان آزمون نمی‌تواند بیشتر از اختلاف زمان شروع و پایان باشد',
+  path: ['duration_minutes'],
 });
 
 // Partner validation schemas

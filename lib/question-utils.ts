@@ -62,24 +62,36 @@ export function buildCustomQuestionPayload(
   return payload;
 }
 
-/**
- * Question type labels in Persian
- */
-export const QUESTION_TYPE_LABELS: Record<string, string> = {
-  multiple_choice: 'چند گزینه‌ای',
-  true_false: 'صحیح/غلط',
-  multiple_select: 'چند گزینه‌ای (چند پاسخ)',
-  essay: 'تشریحی',
-};
+/** Question type labels – use getQuestionTypeLabel(type) from @/lib/question-types/registry */
+export { getQuestionTypeLabel } from '@/lib/question-types/registry';
 
 /**
- * Sort questions by order
+ * Sort questions by order and normalize order to start from 1
  */
 export function sortQuestionsByOrder(questions: ExamQuestion[]): ExamQuestion[] {
-  return [...questions].sort((a, b) => {
-    const orderA = a.payload?.order ?? a.id;
-    const orderB = b.payload?.order ?? b.id;
+  const sorted = [...questions].sort((a, b) => {
+    const orderA = a.payload?.order ?? a.id ?? 0;
+    const orderB = b.payload?.order ?? b.id ?? 0;
     return orderA - orderB;
   });
+  
+  // Normalize order to start from 1
+  return sorted.map((q, index) => {
+    const normalizedOrder = index + 1;
+    if (q.payload) {
+      q.payload.order = normalizedOrder;
+    } else {
+      q.payload = { order: normalizedOrder };
+    }
+    q.order = normalizedOrder;
+    return q;
+  });
+}
+
+/**
+ * Ensure question order is valid (starts from 1, sequential)
+ */
+export function normalizeQuestionOrders(questions: ExamQuestion[]): ExamQuestion[] {
+  return sortQuestionsByOrder(questions);
 }
 

@@ -23,7 +23,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-// Removed unused imports
+import { getQuestionTypeLabel } from '@/lib/question-types';
 import { Question } from './QuestionBankBuilder';
 
 interface ExamAnswer {
@@ -236,7 +236,7 @@ export default function CustomExamRenderer({
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Chip label={question.type} size="small" color="primary" />
+            <Chip label={getQuestionTypeLabel(question.type)} size="small" color="primary" />
             <Chip label={question.difficulty} size="small" color="secondary" />
             <Chip label={`${question.points} pts`} size="small" />
           </Box>
@@ -390,7 +390,7 @@ export default function CustomExamRenderer({
                   </Typography>
                   
                   <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Chip label={question.type} size="small" color="primary" />
+                    <Chip label={getQuestionTypeLabel(question.type)} size="small" color="primary" />
                     <Chip label={`${question.points} pts`} size="small" />
                   </Box>
 

@@ -10,26 +10,43 @@ type Direction = "ltr" | "rtl";
 type Locale = "en" | "fa";
 
 function createEmotionCache(direction: Direction) {
+  // Always create cache with RTL settings since HTML is always RTL
+  // This ensures consistency between server and client rendering
+  // Use prepend: false to prevent hydration mismatch with Next.js App Router
   return createCache({
-    key: direction === "rtl" ? "mui-rtl" : "mui",
-    stylisPlugins: direction === "rtl" ? [prefixer, rtlPlugin] : [prefixer],
-    prepend: true,
+    key: "mui-rtl", // Always use RTL key since HTML is RTL
+    stylisPlugins: [prefixer, rtlPlugin], // Always use RTL plugins
+    prepend: false, // Set to false to prevent hydration mismatch
   });
 }
 
 function getDocumentDirection(): Direction {
-  if (typeof document === "undefined") return "ltr";
-  return (document.documentElement.getAttribute("dir") as Direction) || "ltr";
+  if (typeof document === "undefined") return "rtl"; // Default to RTL to match HTML
+  return (document.documentElement.getAttribute("dir") as Direction) || "rtl";
 }
 
 function getDocumentLocale(): Locale {
-  if (typeof document === "undefined") return "en";
-  return (document.documentElement.getAttribute("lang") as Locale) || "en";
+  if (typeof document === "undefined") return "fa"; // Default to FA to match HTML
+  return (document.documentElement.getAttribute("lang") as Locale) || "fa";
 }
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const [direction, setDirection] = React.useState<Direction>("ltr");
-  const [locale, setLocale] = React.useState<Locale>("en");
+  // Initialize with values from HTML to prevent hydration mismatch
+  // The HTML has lang="fa" dir="rtl", so we start with those values
+  const [direction, setDirection] = React.useState<Direction>(() => {
+    if (typeof document !== "undefined") {
+      return getDocumentDirection();
+    }
+    // Default to RTL to match the HTML attribute
+    return "rtl";
+  });
+  const [locale, setLocale] = React.useState<Locale>(() => {
+    if (typeof document !== "undefined") {
+      return getDocumentLocale();
+    }
+    // Default to FA to match the HTML attribute
+    return "fa";
+  });
 
   React.useEffect(() => {
     const dir = getDocumentDirection();
@@ -41,7 +58,10 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     document.documentElement.classList.add(dir === "rtl" ? "dir-rtl" : "dir-ltr");
   }, []);
 
-  const cache = React.useMemo(() => createEmotionCache(direction), [direction]);
+  // Create cache with fixed RTL direction to prevent hydration mismatch
+  // Since our HTML is always RTL, we always create cache with RTL settings
+  // This ensures server and client use the same cache configuration
+  const cache = React.useMemo(() => createEmotionCache("rtl"), []);
   const theme = React.useMemo(
     () =>
       createTheme({
@@ -278,7 +298,11 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
 
   return (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <ThemeProvider theme={theme}>
+        <div suppressHydrationWarning style={{ display: 'contents' }}>
+          {children}
+        </div>
+      </ThemeProvider>
     </CacheProvider>
   );
 }

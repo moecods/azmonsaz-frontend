@@ -11,6 +11,7 @@ import type {
   AvailableExam, 
   ExamInfo, 
   ExamStartResponse, 
+  ExamQuestionsResponse,
   ExamSubmissionResult, 
   ExamResultDetail,
   SearchUsersParams,
@@ -28,7 +29,6 @@ export function useExam(id: number | null) {
     queryKey: queryKeys.exam(id!),
     queryFn: async () => {
       if (!id) return null;
-      // Use getExamForEdit instead of getExam to avoid signature requirement
       const response = await examService.getExamForEdit(id);
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch exam');
@@ -36,21 +36,6 @@ export function useExam(id: number | null) {
       return response.data;
     },
     enabled: !!id,
-  });
-}
-
-export function useExamBySignedUrl(signedUrl: string | null) {
-  return useQuery({
-    queryKey: ['exam', 'signed', signedUrl],
-    queryFn: async () => {
-      if (!signedUrl) return null;
-      const response = await examService.getExamBySignedUrl(signedUrl);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch exam');
-      }
-      return response.data;
-    },
-    enabled: !!signedUrl,
   });
 }
 
@@ -407,7 +392,30 @@ export function useStartExam() {
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
       queryClient.invalidateQueries({ queryKey: ['exam', 'info', examId] });
+      // Invalidate questions query so it will refetch after exam starts
+      queryClient.invalidateQueries({ queryKey: ['exam', 'questions', examId] });
     },
+  });
+}
+
+export function useExamQuestions(examId: number | null) {
+  return useQuery({
+    queryKey: ['exam', 'questions', examId],
+    queryFn: async () => {
+      if (!examId) return null;
+      const response = await examService.getExamQuestions(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to fetch exam questions',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    enabled: !!examId,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 }
 

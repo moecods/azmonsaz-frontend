@@ -92,7 +92,7 @@ export interface Question {
   updated_at: string;
 }
 
-export type QuestionType = 'multiple_choice' | 'true_false' | 'multiple_select' | 'essay';
+export type { QuestionTypeId as QuestionType } from '@/lib/question-types/constants';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface QuestionOption {
@@ -114,6 +114,7 @@ export interface Exam {
   title: string;
   description?: string;
   subject?: string;
+  type?: 'online' | 'offline';
   partner_id?: number | null;
   partner?: Partner;
   questions: ExamQuestion[];
@@ -133,6 +134,11 @@ export interface ExamMeta {
   max_attempts?: number;
   instructions?: string;
   tags?: string[];
+  // New format
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  // Old format (for backward compatibility)
   start_at?: string;
   end_at?: string;
 }
@@ -165,6 +171,7 @@ export interface UpdateExamRequest {
   title?: string;
   description?: string;
   subject?: string;
+  type?: 'online' | 'offline';
   questions?: ExamQuestion[];
   meta?: ExamMeta;
 }

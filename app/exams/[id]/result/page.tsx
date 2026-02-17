@@ -21,8 +21,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import { QuestionResultDisplay } from '@/components/questions/QuestionResultDisplay';
 
 export default function ExamResultPage() {
   const params = useParams();
@@ -201,148 +200,7 @@ export default function ExamResultPage() {
                           </Stack>
                         </Stack>
 
-                        {question.type === 'multiple_choice' || question.type === 'true_false' ? (
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              گزینه‌ها:
-                            </Typography>
-                            {question.options?.map((option, optIndex) => {
-                              const isCorrect = Array.isArray(question.correct_answer)
-                                ? question.correct_answer.includes(optIndex)
-                                : question.correct_answer === optIndex;
-                              const isYourAnswer = question.your_answer === optIndex;
-
-                              return (
-                                <Box
-                                  key={optIndex}
-                                  sx={{
-                                    p: 1.5, // 12px - follows spacing system
-                                    mb: 1, // 8px - follows spacing system
-                                    borderRadius: 1, // 8px - Medium border radius
-                                    bgcolor: isCorrect
-                                      ? 'success.light'
-                                      : isYourAnswer && !isCorrect
-                                      ? 'error.light'
-                                      : 'grey.100',
-                                    border: isYourAnswer ? '2px solid' : 'none',
-                                    borderColor: isYourAnswer
-                                      ? isCorrect
-                                        ? 'success.main'
-                                        : 'error.main'
-                                      : 'transparent',
-                                  }}
-                                >
-                                  <Stack direction="row" alignItems="center" spacing={1}>
-                                    {isYourAnswer ? (
-                                      <RadioButtonCheckedIcon
-                                        color={isCorrect ? 'success' : 'error'}
-                                      />
-                                    ) : (
-                                      <RadioButtonUncheckedIcon />
-                                    )}
-                                    <Typography
-                                      variant="body1"
-                                      sx={{
-                                        fontWeight: isCorrect ? 'bold' : 'normal',
-                                        color: isCorrect ? 'success.dark' : 'text.primary',
-                                      }}
-                                    >
-                                      {option.text}
-                                    </Typography>
-                                    {isCorrect && (
-                                      <Chip label="پاسخ صحیح" color="success" size="small" />
-                                    )}
-                                    {isYourAnswer && !isCorrect && (
-                                      <Chip label="پاسخ شما" color="error" size="small" />
-                                    )}
-                                  </Stack>
-                                </Box>
-                              );
-                            })}
-                          </Box>
-                        ) : question.type === 'multiple_select' ? (
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              گزینه‌ها:
-                            </Typography>
-                            {question.options?.map((option, optIndex) => {
-                              const correctAnswers = Array.isArray(question.correct_answer)
-                                ? question.correct_answer
-                                : [question.correct_answer];
-                              const yourAnswers = Array.isArray(question.your_answer)
-                                ? question.your_answer
-                                : question.your_answer !== null
-                                ? [question.your_answer]
-                                : [];
-                              const isCorrect = correctAnswers.includes(optIndex);
-                              const isYourAnswer = yourAnswers.includes(optIndex);
-
-                              return (
-                                <Box
-                                  key={optIndex}
-                                  sx={{
-                                    p: 1.5, // 12px - follows spacing system
-                                    mb: 1, // 8px - follows spacing system
-                                    borderRadius: 1, // 8px - Medium border radius
-                                    bgcolor: isCorrect
-                                      ? 'success.light'
-                                      : isYourAnswer && !isCorrect
-                                      ? 'error.light'
-                                      : 'grey.100',
-                                    border: isYourAnswer ? '2px solid' : 'none',
-                                    borderColor: isYourAnswer
-                                      ? isCorrect
-                                        ? 'success.main'
-                                        : 'error.main'
-                                      : 'transparent',
-                                  }}
-                                >
-                                  <Stack direction="row" alignItems="center" spacing={1}>
-                                    <Typography
-                                      variant="body1"
-                                      sx={{
-                                        fontWeight: isCorrect ? 'bold' : 'normal',
-                                        color: isCorrect ? 'success.dark' : 'text.primary',
-                                      }}
-                                    >
-                                      {option.text}
-                                    </Typography>
-                                    {isCorrect && (
-                                      <Chip label="پاسخ صحیح" color="success" size="small" />
-                                    )}
-                                    {isYourAnswer && !isCorrect && (
-                                      <Chip label="پاسخ شما" color="error" size="small" />
-                                    )}
-                                    {isYourAnswer && isCorrect && (
-                                      <Chip label="پاسخ شما (صحیح)" color="success" size="small" />
-                                    )}
-                                  </Stack>
-                                </Box>
-                              );
-                            })}
-                          </Box>
-                        ) : (
-                          <Box>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              پاسخ شما:
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                p: 2,
-                                bgcolor: question.is_correct ? 'success.light' : 'error.light',
-                                borderRadius: 1,
-                              }}
-                            >
-                              {question.your_answer || 'پاسخی داده نشده'}
-                            </Typography>
-                            {question.is_correct && (
-                              <Alert severity="success" sx={{ mt: 1 }}>
-                                پاسخ شما صحیح است
-                              </Alert>
-                            )}
-                          </Box>
-                        )}
+                        <QuestionResultDisplay question={question} />
                       </Stack>
                     </CardContent>
                   </Card>

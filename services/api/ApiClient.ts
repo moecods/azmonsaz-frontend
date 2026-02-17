@@ -194,6 +194,13 @@ export class ApiClient {
 
       // Handle non-ok responses
       if (!response.ok) {
+        // status 0 = CORS/network (opaque response); avoid reading body
+        if (response.status === 0) {
+          throw new ApiError(
+            'اتصال به سرور برقرار نشد. آدرس API و تنظیمات CORS سرور را بررسی کنید.',
+            0
+          );
+        }
         const errorData = await response.json().catch(() => ({}));
 
         // Handle Laravel validation errors (422 status)

@@ -87,7 +87,7 @@ The CJS build of Vite's Node API is deprecated
 اگر با خطای CORS مواجه شدید:
 
 ```
-Access to fetch at 'http://localhost:3000/' (redirected from 'http://azmonsaz.test/api/questions') 
+Access to fetch at 'http://localhost:3000/' (redirected from 'http://127.0.0.1:8030/api/questions') 
 from origin 'http://localhost:3000' has been blocked by CORS policy
 ```
 
@@ -95,7 +95,7 @@ from origin 'http://localhost:3000' has been blocked by CORS policy
 
 1. **بررسی `.env.local`**:
    ```env
-   NEXT_PUBLIC_API_URL=http://azmonsaz.test/api
+   NEXT_PUBLIC_API_URL=http://127.0.0.1:8030/api
    ```
    یا اگر از Laravel built-in server استفاده می‌کنید:
    ```env
@@ -106,7 +106,7 @@ from origin 'http://localhost:3000' has been blocked by CORS policy
 
 3. **بررسی Laravel backend**:
 ```bash
-   curl http://azmonsaz.test/api/question-categories
+   curl http://127.0.0.1:8030/api/question-categories
    ```
 
 4. **Clear کردن Laravel cache**:

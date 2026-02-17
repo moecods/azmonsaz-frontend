@@ -23,31 +23,42 @@ export function useMe() {
   // This prevents unnecessary API calls when user is not authenticated
   // Use useState to ensure we check token on client side only (prevents /me calls for guests)
   const [hasToken, setHasToken] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     // Only check token on client side after mount
     // This ensures guests on landing page don't trigger /me requests
+    setMounted(true);
     setHasToken(authService.isAuthenticated());
   }, []);
   
+  // Check if we're on a public page
+  const isPublicPage = typeof window !== 'undefined' && (
+    window.location.pathname === '/login' ||
+    window.location.pathname === '/register' ||
+    window.location.pathname.startsWith('/reset-password')
+  );
+  
   return useQuery({
     queryKey: queryKeys.me(),
-    // Only enable if token exists (user might be authenticated)
-    // This prevents /me requests on landing page for guests
-    enabled: hasToken,
+    // Only enable if token exists AND not on public page AND component is mounted
+    // This prevents /me requests on landing page for guests and public pages
+    enabled: mounted && hasToken && !isPublicPage,
     queryFn: async () => {
       // Double check token before making request
-      if (!authService.isAuthenticated()) {
+      if (!authService.isAuthenticated() || isPublicPage) {
         return null;
       }
       const response = await authService.getMe();
       return response.success ? response.data : null;
     },
-    retry: false,
+    retry: false, // Never retry
+    retryOnMount: false, // Don't retry on mount
+    refetchOnMount: false, // Don't refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    // Don't refetch when window regains focus (prevents unnecessary requests)
-    refetchOnWindowFocus: false,
     // Ignore 401 errors (unauthorized) - this is expected when user is not logged in
     throwOnError: (error: any) => {
       // Don't throw if it's a 401 error (user not authenticated)
