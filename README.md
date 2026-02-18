@@ -159,6 +159,19 @@ The application includes comprehensive RTL support for Persian/Farsi:
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run cy:open` - Open Cypress E2E test runner (interactive)
+- `npm run cy:run` - Run Cypress E2E tests headless (app must be running)
+- `npm run test:e2e` - Build, start server, then run Cypress (for CI)
+
+### E2E Testing (Cypress)
+
+E2E tests run against a running app. **Prerequisites:** App running (e.g. `npm run dev`); optionally Laravel backend at `NEXT_PUBLIC_API_URL` for login and data.
+
+- **Interactive:** `npm run cy:open`
+- **Headless:** `npm run cy:run` (start app first)
+- **Full pipeline:** `npm run build && npm run test:e2e`
+
+Set `CYPRESS_BASE_URL` if the app is not at `http://localhost:3000`. Put test credentials in `cypress/fixtures/auth.json` (e.g. `phone`, `password`; optional `admin.phone`, `admin.password` for admin specs). See [docs/e2e-testing.md](docs/e2e-testing.md) for conventions.
 
 ### Code Style
 

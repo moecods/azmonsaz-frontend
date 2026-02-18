@@ -25,7 +25,6 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 
 export default function DashboardPage() {
@@ -82,17 +81,14 @@ export default function DashboardPage() {
 
   if (stats.isLoading) {
     return (
-      <UserLayout>
-        <Box display="flex" justifyContent="center" p={3}>
-          <CircularProgress />
-        </Box>
-      </UserLayout>
+      <Box display="flex" justifyContent="center" p={3}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <UserLayout>
-      <Stack spacing={4}>
+    <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'داشبورد' }]} />
         
         <Box>
@@ -435,7 +431,6 @@ export default function DashboardPage() {
           </Grid>
         </Grid>
       </Stack>
-    </UserLayout>
   );
 }
 

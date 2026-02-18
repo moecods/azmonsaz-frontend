@@ -2,7 +2,8 @@
 // This can be replaced with Zustand or React Context if preferred
 
 import { AuthUser, LoginCredentials } from '@/types';
-import { apiClient } from './api';
+import { getApiClient, authService } from '@/services';
+import { handleError } from './error-handler';
 
 interface AuthState {
   user: AuthUser | null;
@@ -37,7 +38,7 @@ class AuthStore {
     const token = localStorage.getItem('auth_token');
     if (token) {
       this.state.token = token;
-      apiClient.setToken(token);
+      getApiClient().setToken(token);
       // Try to fetch user info
       this.loadUser();
     } else {
@@ -66,13 +67,13 @@ class AuthStore {
     this.notify();
 
     try {
-      const response = await apiClient.login(credentials);
-      
+      const response = await authService.login(credentials);
+
       if (response.success && response.data) {
         this.state.user = response.data.user;
         this.state.token = response.data.token;
         this.state.isAuthenticated = true;
-        apiClient.setToken(response.data.token);
+        getApiClient().setToken(response.data.token);
       } else {
         throw new Error('Login failed');
       }
@@ -88,14 +89,14 @@ class AuthStore {
 
   async logout(): Promise<void> {
     try {
-      await apiClient.logout();
+      await authService.logout();
     } catch (error) {
       handleError(error, { context: 'Logout', logToConsole: true });
     } finally {
       this.state.user = null;
       this.state.token = null;
       this.state.isAuthenticated = false;
-      apiClient.setToken(null);
+      getApiClient().setToken(null);
       this.notify();
     }
   }
@@ -109,7 +110,7 @@ class AuthStore {
     this.notify();
 
     try {
-      const response = await apiClient.getMe();
+      const response = await authService.getMe();
       if (response.success && response.data) {
         this.state.user = response.data;
         this.state.isAuthenticated = true;

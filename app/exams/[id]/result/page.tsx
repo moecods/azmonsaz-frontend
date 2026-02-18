@@ -154,7 +154,7 @@ export default function ExamResultPage() {
                           تاریخ تکمیل
                         </Typography>
                         <Typography variant="body1">
-                          {new Date(result.completed_at).toLocaleString('fa-IR')}
+                          {new Date(result.completed_at).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' })}
                         </Typography>
                       </Box>
                     )}

@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Test Admin",
+    "phone_number": "09120000001",
+    "roles": ["admin"]
+  },
+  {
+    "id": 2,
+    "name": "Test Creator",
+    "phone_number": "09120000002",
+    "roles": ["creator"]
+  }
+]

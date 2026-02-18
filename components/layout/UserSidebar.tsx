@@ -255,6 +255,7 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
               <ListItemButton
                 onClick={() => handleNavigation(item.path)}
                 selected={isActive}
+                data-cy={`nav-${item.path.slice(1).replace(/\//g, '-')}`}
                 sx={{
                   mx: 1,
                   mb: 0.5,

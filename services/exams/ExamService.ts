@@ -286,10 +286,11 @@ export class ExamService {
   }
 
   /**
-   * Search users by phone number or national ID
+   * Search users by phone number or national ID (for adding exam participants).
+   * Backend route: GET /users/search
    */
-  async searchUsers(examId: number, params: SearchUsersParams): Promise<ApiResponse<{ data: SearchUsersResponse[] }>> {
-    return this.apiClient.get<{ data: SearchUsersResponse[] }>(`/exams/${examId}/search-users`, { params });
+  async searchUsers(_examId: number, params: SearchUsersParams): Promise<ApiResponse<SearchUsersResponse[]>> {
+    return this.apiClient.get<SearchUsersResponse[]>('/users/search', { params });
   }
 
   /**

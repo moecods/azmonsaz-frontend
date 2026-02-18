@@ -9,4 +9,3 @@ export default function DashboardLayout({
 }) {
   return <UserLayout>{children}</UserLayout>;
 }
-

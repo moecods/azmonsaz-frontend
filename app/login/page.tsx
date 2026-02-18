@@ -177,7 +177,7 @@ export default function LoginPage() {
                 <Tab label="ورود با کد یکبار مصرف" value="otp" />
               </Tabs>
 
-              {error && <Alert severity="error">{error}</Alert>}
+              {error && <Alert severity="error" data-cy="login-error">{error}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
               {debugCode && (
                 <Alert severity="info">
@@ -203,6 +203,7 @@ export default function LoginPage() {
                           error={!!passwordForm.formState.errors.phone_number}
                           helperText={passwordForm.formState.errors.phone_number?.message || 'فرمت: 09123456789 یا +989123456789'}
                           disabled={isLoggingIn}
+                        inputProps={{ 'data-cy': 'login-phone' }}
                       />
                     )}
                   />
@@ -220,6 +221,7 @@ export default function LoginPage() {
                           error={!!passwordForm.formState.errors.password}
                           helperText={passwordForm.formState.errors.password?.message}
                           disabled={isLoggingIn}
+                        inputProps={{ 'data-cy': 'login-password' }}
                         />
                       )}
                     />
@@ -230,6 +232,7 @@ export default function LoginPage() {
                       fullWidth
                       size="large"
                       disabled={isLoggingIn}
+                      data-cy="login-submit"
                     >
                       {isLoggingIn ? 'در حال ورود...' : 'ورود'}
                     </Button>

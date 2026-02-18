@@ -1,3 +1,6 @@
+/** Default timezone for date/time display (Iran) */
+export const DEFAULT_TIMEZONE = 'Asia/Tehran';
+
 /**
  * Format date to Persian/Farsi format
  * @param date - Date object or string
@@ -20,7 +23,7 @@ export function formatDate(
     return '-';
   }
 
-  return new Intl.DateTimeFormat('fa-IR', options).format(dateObj);
+  return new Intl.DateTimeFormat('fa-IR', { timeZone: DEFAULT_TIMEZONE, ...options }).format(dateObj);
 }
 
 /**
@@ -40,6 +43,7 @@ export function formatTime(date: Date | string | null | undefined): string {
   return new Intl.DateTimeFormat('fa-IR', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: DEFAULT_TIMEZONE,
   }).format(dateObj);
 }
 
@@ -63,6 +67,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: DEFAULT_TIMEZONE,
   }).format(dateObj);
 }
 

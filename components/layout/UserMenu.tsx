@@ -119,6 +119,7 @@ export default function UserMenu() {
         aria-controls={open ? 'user-menu' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
+        data-cy="user-menu-button"
       >
         <Avatar
           sx={{
@@ -145,6 +146,7 @@ export default function UserMenu() {
           aria-controls={open ? 'user-menu' : undefined}
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
+          data-cy="user-menu-button"
         >
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Typography variant="body2" fontWeight="medium" noWrap>
@@ -216,7 +218,7 @@ export default function UserMenu() {
           پروفایل
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }} data-cy="logout-button">
           <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
           خروج
         </MenuItem>

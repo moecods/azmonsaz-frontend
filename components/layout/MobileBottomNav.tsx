@@ -240,7 +240,7 @@ export default function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
               پروفایل
             </MenuItem>
             <Divider />
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }} data-cy="logout-button">
               <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
               خروج
             </MenuItem>

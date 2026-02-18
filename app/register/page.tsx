@@ -66,7 +66,7 @@ export default function RegisterPage() {
                 ثبت‌نام
               </Typography>
 
-              {error && <Alert severity="error">{error}</Alert>}
+              {error && <Alert severity="error" data-cy="register-error">{error}</Alert>}
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Stack spacing={3}>
@@ -83,6 +83,7 @@ export default function RegisterPage() {
                         error={!!errors.first_name}
                         helperText={errors.first_name?.message}
                         disabled={registerMutation.isPending}
+                        inputProps={{ 'data-cy': 'register-first-name' }}
                       />
                     )}
                   />
@@ -100,6 +101,7 @@ export default function RegisterPage() {
                         error={!!errors.last_name}
                         helperText={errors.last_name?.message}
                         disabled={registerMutation.isPending}
+                        inputProps={{ 'data-cy': 'register-last-name' }}
                       />
                     )}
                   />
@@ -118,6 +120,7 @@ export default function RegisterPage() {
                         error={!!errors.phone_number}
                         helperText={errors.phone_number?.message || 'فرمت: 09123456789 یا +989123456789'}
                         disabled={registerMutation.isPending}
+                        inputProps={{ 'data-cy': 'register-phone' }}
                       />
                     )}
                   />
@@ -135,6 +138,7 @@ export default function RegisterPage() {
                         error={!!errors.password}
                         helperText={errors.password?.message}
                         disabled={registerMutation.isPending}
+                        inputProps={{ 'data-cy': 'register-password' }}
                       />
                     )}
                   />
@@ -152,6 +156,7 @@ export default function RegisterPage() {
                         error={!!errors.password_confirmation}
                         helperText={errors.password_confirmation?.message}
                         disabled={registerMutation.isPending}
+                        inputProps={{ 'data-cy': 'register-password-confirmation' }}
                       />
                     )}
                   />
@@ -162,6 +167,7 @@ export default function RegisterPage() {
                     fullWidth
                     size="large"
                     disabled={registerMutation.isPending}
+                    data-cy="register-submit"
                   >
                     {registerMutation.isPending ? 'در حال ثبت‌نام...' : 'ثبت‌نام'}
                   </Button>

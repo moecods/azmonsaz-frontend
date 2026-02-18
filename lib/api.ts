@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use getApiClient() and services (authService, examService, etc.) from '@/services' instead.
+ * This legacy client is no longer used by auth-store or new code. Kept for backward compatibility only.
+ */
 // API integration layer for Azmoon-Saz frontend
 
 import { 
