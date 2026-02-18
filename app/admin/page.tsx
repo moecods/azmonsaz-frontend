@@ -103,6 +103,7 @@ export default function AdminPage() {
       phone_number: '',
       password: '',
       role: 'creator',
+      roles: ['content_manager'],
     },
   });
 
@@ -167,23 +168,25 @@ export default function AdminPage() {
     setEditingUser(null);
     userForm.reset({
       name: '',
-      email: '',
+      phone_number: '',
       password: '',
       role: 'content_manager',
+      roles: ['content_manager'],
     });
     setUserOpen(true);
   };
 
   const handleOpenEditUser = (user: User) => {
     setEditingUser(user);
-    const firstRole = user.roles?.[0] || 'creator';
+    const roles = user.roles?.length
+      ? user.roles.filter((r) => ['admin', 'content_manager', 'creator'].includes(r))
+      : ['creator'];
     userForm.reset({
       name: user.name,
       phone_number: user.phone_number,
-      password: '', // Don't pre-fill password
-      role: (firstRole === 'admin' || firstRole === 'content_manager' || firstRole === 'creator') 
-        ? firstRole 
-        : 'creator' as 'admin' | 'content_manager' | 'creator',
+      password: '',
+      role: roles[0] ?? 'creator',
+      roles: roles.length ? roles : ['creator'],
     });
     setUserOpen(true);
   };
@@ -222,9 +225,10 @@ export default function AdminPage() {
     setEditingUser(null);
     userForm.reset({
       name: '',
-      email: '',
+      phone_number: '',
       password: '',
       role: 'content_manager',
+      roles: ['content_manager'],
     });
   };
 
@@ -279,13 +283,12 @@ export default function AdminPage() {
 
   const onSubmitUser = (data: UserFormData) => {
     if (editingUser) {
-      // For updates, only send fields that are provided (password is optional)
-      const updateData: { name?: string; phone_number?: string; password?: string; role?: string } = {
+      const roles = (data.roles ?? []) as string[];
+      const updateData: { name?: string; phone_number?: string; password?: string; roles?: string[] } = {
         name: data.name,
         phone_number: data.phone_number,
-        role: data.role,
+        roles,
       };
-      // Only include password if it's provided
       if (data.password && data.password.trim() !== '') {
         updateData.password = data.password;
       }
@@ -300,22 +303,23 @@ export default function AdminPage() {
               phone_number: '',
               password: '',
               role: 'content_manager',
+              roles: ['content_manager'],
             });
           },
         }
       );
     } else {
-      // For creation, password is required
       if (!data.password || data.password.trim() === '') {
         userForm.setError('password', { message: 'رمز عبور برای کاربران جدید الزامی است' });
         return;
       }
+      const createRoles = (data.roles ?? []) as string[];
       createUserMutation.mutate(
         {
           name: data.name,
           phone_number: data.phone_number,
           password: data.password,
-          role: data.role,
+          roles: createRoles,
         },
         {
           onSuccess: () => {
@@ -326,6 +330,7 @@ export default function AdminPage() {
               phone_number: '',
               password: '',
               role: 'content_manager',
+              roles: ['content_manager'],
             });
           },
         }
@@ -416,7 +421,7 @@ export default function AdminPage() {
                             />
                           </TableCell>
                           <TableCell>
-                            {new Date(partner.created_at).toLocaleDateString()}
+                            {new Date(partner.created_at).toLocaleDateString('fa-IR', { calendar: 'persian', year: 'numeric', month: 'long', day: 'numeric' })}
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={1}>
@@ -527,7 +532,7 @@ export default function AdminPage() {
                             />
                           </TableCell>
                           <TableCell>
-                            {new Date(user.created_at).toLocaleDateString()}
+                            {new Date(user.created_at).toLocaleDateString('fa-IR', { calendar: 'persian', year: 'numeric', month: 'long', day: 'numeric' })}
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={1}>
@@ -549,7 +554,7 @@ export default function AdminPage() {
                               </IconButton>
                               <IconButton
                                 size="small"
-                                color={user.is_active ? 'warning' : 'success'}
+                                color={user.is_active ? 'success' : 'warning'}
                                 onClick={() => handleToggleUserActive(user)}
                                 disabled={toggleUserActiveMutation.isPending}
                                 title={user.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
@@ -705,15 +710,28 @@ export default function AdminPage() {
                 />
 
                 <Controller
-                  name="role"
+                  name="roles"
                   control={userForm.control}
                   render={({ field }) => (
                     <FormControl fullWidth>
-                      <InputLabel>نقش</InputLabel>
-                      <Select {...field} label="نقش">
+                      <InputLabel>نقش‌ها</InputLabel>
+                      <Select
+                        {...field}
+                        multiple
+                        label="نقش‌ها"
+                        renderValue={(selected) =>
+                          (selected as string[])
+                            .map(
+                              (r) =>
+                                ({ admin: 'مدیر', content_manager: 'مدیر محتوا', creator: 'سازنده' } as Record<string, string>
+                              )[r] ?? r
+                            )
+                            .join('، ')
+                        }
+                      >
                         <MenuItem value="admin">مدیر</MenuItem>
                         <MenuItem value="content_manager">مدیر محتوا</MenuItem>
-                        <MenuItem value="partner_user">کاربر شریک</MenuItem>
+                        <MenuItem value="creator">سازنده</MenuItem>
                       </Select>
                     </FormControl>
                   )}

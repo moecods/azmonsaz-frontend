@@ -247,8 +247,12 @@ export const userSchema = z.object({
   name: z.string().min(1, 'نام الزامی است').max(255, 'نام نمی‌تواند بیشتر از 255 کاراکتر باشد'),
   phone_number: z.string().min(1, 'شماره تلفن الزامی است').regex(/^(\+98|0)?9\d{9}$/, 'شماره تلفن معتبر نیست. فرمت صحیح: 09123456789 یا +989123456789'),
   email: z.string().email('ایمیل معتبر نیست').max(255, 'ایمیل نمی‌تواند بیشتر از 255 کاراکتر باشد').optional().nullable(),
-  password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد').optional(),
-  role: z.enum(['admin', 'content_manager', 'creator']),
+  password: z
+    .string()
+    .optional()
+    .refine((val) => val === undefined || val === '' || (val && val.length >= 8), 'رمز عبور باید حداقل ۸ کاراکتر باشد'),
+  role: z.enum(['admin', 'content_manager', 'creator']).optional(),
+  roles: z.array(z.enum(['admin', 'content_manager', 'creator'])).optional(),
 });
 
 // Question category validation schemas

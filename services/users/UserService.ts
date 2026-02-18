@@ -17,6 +17,7 @@ export interface CreateUserData {
   email?: string | null;
   password: string;
   role?: string;
+  roles?: string[];
 }
 
 export interface UpdateUserData {
@@ -25,6 +26,7 @@ export interface UpdateUserData {
   email?: string | null;
   password?: string;
   role?: string;
+  roles?: string[];
 }
 
 export class UserService {
