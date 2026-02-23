@@ -22,6 +22,12 @@ import {
   Paper,
   Tabs,
   Tab,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam } from '@/hooks/useExams';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -37,6 +43,7 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import PowerOffIcon from '@mui/icons-material/PowerOff';
 import PrintIcon from '@mui/icons-material/Print';
 import GradeIcon from '@mui/icons-material/Grade';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Breadcrumb from '@/components/Breadcrumb';
 import { examService } from '@/services';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
@@ -73,6 +80,7 @@ function ExamDetailContent() {
     const tab = searchParams.get('tab');
     return tab === 'participants' ? 1 : 0;
   });
+  const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -247,81 +255,106 @@ function ExamDetailContent() {
                 />
               </Stack>
             </Box>
-            <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
               <Button
                 variant="contained"
+                size="medium"
                 startIcon={<EditIcon />}
                 onClick={() => router.push(`/exams/create?exam_id=${exam.id}`)}
               >
-                ویرایش اطلاعات آزمون
+                ویرایش
               </Button>
               <Button
                 variant="outlined"
+                size="medium"
                 startIcon={<QuestionAnswerIcon />}
                 onClick={() => router.push(`/exams/${exam.id}/questions`)}
               >
-                مدیریت سوالات
+                سوالات
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<GradeIcon />}
-                onClick={() => router.push(`/exams/${exam.id}/grading`)}
-                color="secondary"
+              <IconButton
+                aria-label="عملیات بیشتر"
+                onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
+                sx={{ border: 1, borderColor: 'divider' }}
               >
-                تصحیح دستی
-              </Button>
-              {exam.type === 'offline' && (
-                <Button
-                variant="outlined"
-                startIcon={<PrintIcon />}
-                onClick={handlePrintClick}
+                <MoreVertIcon />
+              </IconButton>
+              <Menu
+                anchorEl={actionsMenuAnchor}
+                open={Boolean(actionsMenuAnchor)}
+                onClose={() => setActionsMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
               >
-                چاپ برگه امتحان
-              </Button>
-              )}
-              {exam.status === 'published' ? (
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  startIcon={<UnpublishedIcon />}
-                  onClick={handleUnpublish}
-                  disabled={unpublishExamMutation.isPending}
+                <MenuItem
+                  onClick={() => {
+                    router.push(`/exams/${exam.id}/grading`);
+                    setActionsMenuAnchor(null);
+                  }}
                 >
-                  {unpublishExamMutation.isPending ? 'در حال انجام...' : 'لغو انتشار'}
-                </Button>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color="success"
-                  startIcon={<PublishIcon />}
-                  onClick={handlePublish}
-                  disabled={publishExamMutation.isPending || (exam.questions_count || 0) === 0}
-                  title={(exam.questions_count || 0) === 0 ? 'ابتدا باید حداقل یک سوال به آزمون اضافه کنید' : ''}
-                >
-                  {publishExamMutation.isPending ? 'در حال انجام...' : 'انتشار آزمون'}
-                </Button>
-              )}
-              {exam.is_active ? (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<PowerOffIcon />}
-                  onClick={handleDeactivate}
-                  disabled={deactivateExamMutation.isPending}
-                >
-                  {deactivateExamMutation.isPending ? 'در حال انجام...' : 'غیرفعال کردن'}
-                </Button>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color="success"
-                  startIcon={<PowerSettingsNewIcon />}
-                  onClick={handleActivate}
-                  disabled={activateExamMutation.isPending}
-                >
-                  {activateExamMutation.isPending ? 'در حال انجام...' : 'فعال کردن'}
-                </Button>
-              )}
+                  <ListItemIcon><GradeIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>تصحیح دستی</ListItemText>
+                </MenuItem>
+                {exam.type === 'offline' && (
+                  <MenuItem
+                    onClick={() => {
+                      handlePrintClick();
+                      setActionsMenuAnchor(null);
+                    }}
+                  >
+                    <ListItemIcon><PrintIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>چاپ برگه امتحان</ListItemText>
+                  </MenuItem>
+                )}
+                <Divider />
+                {exam.status === 'published' ? (
+                  <MenuItem
+                    onClick={() => {
+                      handleUnpublish();
+                      setActionsMenuAnchor(null);
+                    }}
+                    disabled={unpublishExamMutation.isPending}
+                  >
+                    <ListItemIcon><UnpublishedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{unpublishExamMutation.isPending ? 'در حال انجام...' : 'لغو انتشار'}</ListItemText>
+                  </MenuItem>
+                ) : (
+                  <MenuItem
+                    onClick={() => {
+                      handlePublish();
+                      setActionsMenuAnchor(null);
+                    }}
+                    disabled={publishExamMutation.isPending || (exam.questions_count || 0) === 0}
+                    title={(exam.questions_count || 0) === 0 ? 'ابتدا حداقل یک سوال اضافه کنید' : ''}
+                  >
+                    <ListItemIcon><PublishIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{publishExamMutation.isPending ? 'در حال انجام...' : 'انتشار آزمون'}</ListItemText>
+                  </MenuItem>
+                )}
+                {exam.is_active ? (
+                  <MenuItem
+                    onClick={() => {
+                      handleDeactivate();
+                      setActionsMenuAnchor(null);
+                    }}
+                    disabled={deactivateExamMutation.isPending}
+                  >
+                    <ListItemIcon><PowerOffIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{deactivateExamMutation.isPending ? 'در حال انجام...' : 'غیرفعال کردن'}</ListItemText>
+                  </MenuItem>
+                ) : (
+                  <MenuItem
+                    onClick={() => {
+                      handleActivate();
+                      setActionsMenuAnchor(null);
+                    }}
+                    disabled={activateExamMutation.isPending}
+                  >
+                    <ListItemIcon><PowerSettingsNewIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{activateExamMutation.isPending ? 'در حال انجام...' : 'فعال کردن'}</ListItemText>
+                  </MenuItem>
+                )}
+              </Menu>
             </Stack>
           </Stack>
         </Box>

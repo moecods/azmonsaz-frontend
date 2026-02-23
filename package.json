@@ -40,6 +40,7 @@
     "next": "^15.5.9",
     "next-seo": "^7.0.1",
     "react": "19.1.0",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.53.0",
     "react-multi-date-picker": "^4.5.2",

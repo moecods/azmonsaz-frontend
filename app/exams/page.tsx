@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Container,
   Stack,
   Typography,
   Alert,
@@ -17,13 +16,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  IconButton,
   Pagination,
   Divider,
   Collapse,
-  Checkbox,
-  Toolbar,
-  Tooltip,
 } from '@mui/material';
 import { useExams } from '@/hooks/useExams';
 import { useRouter } from 'next/navigation';
@@ -33,6 +28,8 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FilterListOffIcon from '@mui/icons-material/FilterListOff';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import QuizIcon from '@mui/icons-material/Quiz';
 import PeopleIcon from '@mui/icons-material/People';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -44,6 +41,7 @@ import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import { ExamListItem } from '@/services/exams/ExamService';
 import Breadcrumb from '@/components/Breadcrumb';
+import ExamsCalendarView from '@/components/exams/ExamsCalendarView';
 import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -154,14 +152,14 @@ export default function ExamsPage() {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [showExtraFields, setShowExtraFields] = useState(false);
-  const [selectedExams, setSelectedExams] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const { data, isLoading, error } = useExams({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     search: searchQuery || undefined,
-    page,
-    per_page: 20,
+    page: viewMode === 'calendar' ? 1 : page,
+    per_page: viewMode === 'calendar' ? 200 : 20,
   });
 
   const exams: ExamListItem[] = Array.isArray(data?.data) ? data.data : [];
@@ -212,18 +210,36 @@ export default function ExamsPage() {
             </Box>
             <Stack direction="row" spacing={2} flexWrap="wrap">
               <Button
+                variant={viewMode === 'list' ? 'contained' : 'outlined'}
+                size="small"
+                startIcon={<ViewListIcon />}
+                onClick={() => setViewMode('list')}
+              >
+                لیست
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'contained' : 'outlined'}
+                size="small"
+                startIcon={<CalendarMonthIcon />}
+                onClick={() => setViewMode('calendar')}
+              >
+                تقویم
+              </Button>
+              <Button
                 variant="outlined"
                 startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
                 onClick={() => setShowFilters(!showFilters)}
               >
                 {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
               </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setShowExtraFields(!showExtraFields)}
-              >
-                {showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
-              </Button>
+              {viewMode === 'list' && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowExtraFields(!showExtraFields)}
+                >
+                  {showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
+                </Button>
+              )}
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -287,37 +303,7 @@ export default function ExamsPage() {
           </Card>
         </Collapse>
 
-        {/* Bulk Actions Toolbar */}
-        {selectedExams.size > 0 && (
-          <Card>
-            <Toolbar sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-              <Typography variant="body1" sx={{ flexGrow: 1 }}>
-                {selectedExams.size} آزمون انتخاب شده
-              </Typography>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="contained"
-                  color="inherit"
-                  onClick={() => setSelectedExams(new Set())}
-                >
-                  لغو انتخاب
-                </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => {
-                    // TODO: Implement bulk delete
-                    setSelectedExams(new Set());
-                  }}
-                >
-                  حذف انتخاب شده‌ها
-                </Button>
-              </Stack>
-            </Toolbar>
-          </Card>
-        )}
-
-        {/* Exams List */}
+        {/* Exams List or Calendar */}
         {exams.length === 0 ? (
           <Card>
             <CardContent>
@@ -339,6 +325,12 @@ export default function ExamsPage() {
               </Box>
             </CardContent>
           </Card>
+        ) : viewMode === 'calendar' ? (
+          <Card>
+            <CardContent>
+              <ExamsCalendarView exams={exams} onSelectExam={handleViewExam} />
+            </CardContent>
+          </Card>
         ) : (
           <>
           <Box 
@@ -358,267 +350,193 @@ export default function ExamsPage() {
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                    transition: 'all 0.2s ease-in-out',
-                    overflow: 'hidden',
-                    border: selectedExams.has(exam.id) ? '2px solid' : '1px solid',
-                    borderColor: selectedExams.has(exam.id) ? 'primary.main' : 'divider',
+                  transition: 'all 0.2s ease-in-out',
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: 4,
-                      '& .exam-action-area': {
-                        bgcolor: 'primary.main',
-                        '& .action-icon': {
-                          color: 'primary.contrastText',
-                        },
-                        '& .action-text': {
-                          color: 'primary.contrastText',
-                        },
+                    '& .exam-action-area': {
+                      bgcolor: 'primary.main',
+                      '& .action-icon': {
+                        color: 'primary.contrastText',
                       },
+                      '& .action-text': {
+                        color: 'primary.contrastText',
+                      },
+                    },
                   },
                 }}
               >
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack spacing={2}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Checkbox
-                        checked={selectedExams.has(exam.id)}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedExams);
-                          if (e.target.checked) {
-                            newSelected.add(exam.id);
-                          } else {
-                            newSelected.delete(exam.id);
-                          }
-                          setSelectedExams(newSelected);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        size="small"
-                      />
-                      <SchoolIcon color="primary" />
-                      <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                        {exam.title}
-                      </Typography>
-                        <Chip 
-                          label={exam.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'} 
-                          color={exam.status === 'published' ? 'success' : 'default'}
-                          size="small"
-                        />
-                        {!exam.is_active && (
-                      <Chip 
-                            label="غیرفعال" 
-                            color="error"
-                        size="small"
-                          />
-                        )}
-                        {timeStatus.isOngoing && exam.status === 'published' && (
-                          <Chip 
-                            icon={<PlayCircleIcon />}
-                            label="در حال برگزاری" 
-                            color="warning"
-                            size="small"
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                        )}
-                      </Stack>
+                    {/* عنوان آزمون - عرض کامل بالای کارت */}
+                    <Typography variant="h6" sx={{ width: '100%' }}>
+                      {exam.title}
+                    </Typography>
 
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        <Chip 
-                          label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} 
+                    {/* بج‌ها زیر عنوان */}
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      {exam.status === 'draft' && (
+                        <Chip label="پیش‌نویس" color="default" size="small" />
+                      )}
+                      {!exam.is_active && (
+                        <Chip label="غیرفعال" color="error" size="small" />
+                      )}
+                      {timeStatus.isOngoing && exam.status === 'published' && (
+                        <Chip
+                          icon={<PlayCircleIcon />}
+                          label="در حال برگزاری"
+                          color="warning"
                           size="small"
-                          variant="outlined"
+                          sx={{ fontWeight: 'bold' }}
+                        />
+                      )}
+                      <Chip
+                        label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'}
+                        size="small"
+                        variant="outlined"
                       />
                     </Stack>
 
-                      {/* آمار اصلی */}
-                      <Box sx={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
-                        gap: 1.5,
-                        p: 1.5,
-                        bgcolor: 'grey.50',
-                        borderRadius: 1
-                      }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <QuizIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                          <Typography variant="body2" fontWeight="medium">
-                            سوالات:
-                          </Typography>
-                          <Typography variant="body2" fontWeight="bold" color="primary.main">
-                            {exam.questions_count || 0}
-                          </Typography>
-                        </Stack>
-                        
-                        {exam.status === 'published' && (
-                          <>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <PeopleIcon sx={{ fontSize: 18, color: 'info.main' }} />
-                              <Typography variant="body2" fontWeight="medium">
-                                شرکت‌کنندگان:
-                              </Typography>
-                              <Typography variant="body2" fontWeight="bold" color="info.main">
-                                {exam.participants_count || 0}
-                              </Typography>
-                            </Stack>
-                            
-                            {exam.completed_participants_count > 0 && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                                <Typography variant="body2" fontWeight="medium">
-                                  تکمیل شده:
-                                </Typography>
-                                <Typography variant="body2" fontWeight="bold" color="success.main">
-                                  {exam.completed_participants_count}
-                                </Typography>
-                              </Stack>
-                            )}
-                          </>
-                        )}
-                      </Box>
-
-                      {/* تنظیمات آزمون */}
-                      {(() => {
-                        const meta = exam.meta as { duration_minutes?: number; passing_score?: number } | undefined;
-                        const hasDuration = meta?.duration_minutes && typeof meta.duration_minutes === 'number';
-                        const hasPassingScore = meta?.passing_score && typeof meta.passing_score === 'number';
-                        
-                        if (!hasDuration && !hasPassingScore) return null;
-                        
-                        return (
-                          <Stack spacing={1}>
-                            {hasDuration && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  مدت زمان: {meta.duration_minutes} دقیقه
-                                </Typography>
-                              </Stack>
-                            )}
-                            
-                            {hasPassingScore && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <GradeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  نمره قبولی: {meta.passing_score}%
-                                </Typography>
-                              </Stack>
-                            )}
+                    {/* زمان آزمون - بدون بک‌گراند و کانتینر */}
+                    {timeStatus.hasTimeRestriction && (
+                      <Stack spacing={0.5}>
+                        {timeStatus.examDate && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              روز آزمون: {new Date(timeStatus.examDate).toLocaleDateString('fa-IR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </Typography>
                           </Stack>
-                        );
-                      })()}
-
-                      {/* زمان برگزاری */}
-                      {timeStatus.hasTimeRestriction && (
-                        <Box sx={{ 
-                          p: 1.5, 
-                          bgcolor: timeStatus.isOngoing ? 'warning.light' : 'info.light', 
-                          borderRadius: 1,
-                          border: `1px solid ${timeStatus.isOngoing ? 'warning.main' : 'info.main'}`,
-                        }}>
-                          <Stack spacing={1}>
-                            {timeStatus.isOngoing && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <PlayCircleIcon sx={{ fontSize: 18, color: 'warning.main' }} />
-                                <Typography variant="body2" fontWeight="bold" color="warning.dark">
-                                  در حال برگزاری
-                                </Typography>
-                              </Stack>
-                            )}
-                            
-                            {timeStatus.examDate && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  روز آزمون: {new Date(timeStatus.examDate).toLocaleDateString('fa-IR', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                  })}
-                                </Typography>
-                              </Stack>
-                            )}
-                            
-                            {timeStatus.startTime && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  شروع: {timeStatus.startTime}
-                                </Typography>
-                              </Stack>
-                            )}
-                            
-                            {timeStatus.endTime && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                                  پایان: {timeStatus.endTime}
-                                </Typography>
-                              </Stack>
-                            )}
-                            
-                            {timeStatus.isBeforeStart && timeStatus.startAt && (
-                              <Typography variant="caption" color="info.main" sx={{ fontStyle: 'italic' }}>
-                                آزمون هنوز شروع نشده است
-                      </Typography>
+                        )}
+                        {timeStatus.startTime && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              شروع: {timeStatus.startTime}
+                            </Typography>
+                          </Stack>
+                        )}
+                        {timeStatus.endTime && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              پایان: {timeStatus.endTime}
+                            </Typography>
+                          </Stack>
+                        )}
+                        {timeStatus.isBeforeStart && timeStatus.startAt && (
+                          <Typography variant="caption" color="info.main" sx={{ fontStyle: 'italic' }}>
+                            آزمون هنوز شروع نشده است
+                          </Typography>
+                        )}
+                        {timeStatus.isAfterEnd && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            زمان آزمون به پایان رسیده است
+                          </Typography>
+                        )}
+                      </Stack>
                     )}
 
-                            {timeStatus.isAfterEnd && (
-                              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                زمان آزمون به پایان رسیده است
-                              </Typography>
-                            )}
+                    {/* جزئیات - نمره قبولی، سوالات، شرکت‌کنندگان، تکمیل شده */}
+                    {showExtraFields && (
+                      <>
+                        <Divider />
+                        <Stack spacing={1}>
+                          {(() => {
+                            const meta = exam.meta as { duration_minutes?: number; passing_score?: number } | undefined;
+                            const hasDuration = meta?.duration_minutes && typeof meta.duration_minutes === 'number';
+                            const hasPassingScore = meta?.passing_score && typeof meta.passing_score === 'number';
+                            return (
+                              <>
+                                {hasDuration && (
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      مدت زمان: {meta.duration_minutes} دقیقه
+                                    </Typography>
+                                  </Stack>
+                                )}
+                                {hasPassingScore && (
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <GradeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      نمره قبولی: {meta.passing_score}%
+                                    </Typography>
+                                  </Stack>
+                                )}
+                              </>
+                            );
+                          })()}
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <QuizIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              سوالات: {exam.questions_count || 0}
+                            </Typography>
                           </Stack>
-                        </Box>
-                      )}
-
-                      {/* اطلاعات اضافی - فقط با toggle نمایش داده می‌شود */}
-                      {showExtraFields && (
-                        <>
-                          <Divider />
-                          <Stack spacing={1}>
-                            {exam.creator && (
+                          {exam.status === 'published' && (
+                            <>
                               <Stack direction="row" spacing={1} alignItems="center">
-                                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <PeopleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary">
-                                  ایجادکننده: {exam.creator.name}
+                                  شرکت‌کنندگان: {exam.participants_count || 0}
                                 </Typography>
                               </Stack>
-                            )}
-
-                            {exam.partner && (
                               <Stack direction="row" spacing={1} alignItems="center">
-                                <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <CheckCircleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                 <Typography variant="body2" color="text.secondary">
-                                  شریک: {exam.partner.name}
+                                  تکمیل شده: {exam.completed_participants_count || 0}
                                 </Typography>
                               </Stack>
-                            )}
-
+                            </>
+                          )}
+                          {exam.creator && (
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                ایجادکننده: {exam.creator.name}
+                              </Typography>
+                            </Stack>
+                          )}
+                          {exam.partner && (
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                شریک: {exam.partner.name}
+                              </Typography>
+                            </Stack>
+                          )}
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </Typography>
+                          </Stack>
+                          {exam.updated_at && exam.updated_at !== exam.created_at && (
                             <Stack direction="row" spacing={1} alignItems="center">
                               <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                               <Typography variant="body2" color="text.secondary">
-                                ایجاد: {new Date(exam.created_at).toLocaleDateString('fa-IR', {
+                                آخرین به‌روزرسانی: {new Date(exam.updated_at).toLocaleDateString('fa-IR', {
                                   year: 'numeric',
                                   month: 'short',
                                   day: 'numeric'
                                 })}
                               </Typography>
                             </Stack>
-
-                            {exam.updated_at && exam.updated_at !== exam.created_at && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  آخرین به‌روزرسانی: {new Date(exam.updated_at).toLocaleDateString('fa-IR', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </Typography>
-                              </Stack>
-                            )}
-                          </Stack>
-                        </>
-                      )}
+                          )}
+                        </Stack>
+                      </>
+                    )}
                     </Stack>
                   </CardContent>
                   

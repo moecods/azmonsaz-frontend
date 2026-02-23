@@ -366,7 +366,7 @@ export default function ExamParticipatePage() {
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => router.push(`/exams/${examId}`)}
+                    onClick={() => router.push(`/exams/${examId}/result`)}
                   >
                     مشاهده نتایج
                   </Button>

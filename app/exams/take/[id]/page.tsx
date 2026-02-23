@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo } from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
@@ -20,7 +19,7 @@ import {
   DialogActions,
   Snackbar,
 } from '@mui/material';
-import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo, useExamQuestions } from '@/hooks/useExams';
+import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo } from '@/hooks/useExams';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { QuestionAnswerInput } from '@/components/questions/QuestionAnswerInput';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -68,16 +67,66 @@ export default function TakeExamPage() {
   
   // Get participant status
   const participantStatus = examInfo?.registration_status;
-  
-  // Get exam questions using the new endpoint (only if exam is started or completed)
-  // Don't fetch if status is 'registered' or null (user needs to start exam first)
-  // Also check if exam time has started
-  const shouldFetchQuestions = (participantStatus === 'started' || participantStatus === 'completed') 
-    && examStarted 
-    && canAccessQuestions;
-  const { data: examQuestionsData, isLoading: questionsLoading, error: questionsError } = useExamQuestions(
-    shouldFetchQuestions ? examId : null
-  );
+
+  // Check exam time status (must be defined before shouldFetchQuestions)
+  const getExamTimeStatus = useCallback(() => {
+    if (!examInfo?.meta || typeof examInfo.meta !== 'object') {
+      return { hasTimeRestriction: false, isBeforeStart: false, isAfterEnd: false, startAt: null, endAt: null };
+    }
+    const meta = examInfo.meta;
+    let startAt: Date | null = null;
+    let endAt: Date | null = null;
+    const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
+    const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
+    const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
+    if (examDate && startTime) {
+      try { startAt = new Date(`${examDate}T${startTime}:00`); } catch { /* invalid */ }
+    }
+    if (examDate && endTime) {
+      try { endAt = new Date(`${examDate}T${endTime}:00`); } catch { /* invalid */ }
+    }
+    if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
+      try { startAt = new Date(meta.start_at); } catch { /* invalid */ }
+    }
+    if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
+      try { endAt = new Date(meta.end_at); } catch { /* invalid */ }
+    }
+    const hasTimeRestriction = startAt !== null || endAt !== null;
+    const now = new Date();
+    const isBeforeStart = startAt ? now < startAt : false;
+    const isAfterEnd = endAt ? now > endAt : false;
+    return { hasTimeRestriction, isBeforeStart, isAfterEnd, startAt, endAt };
+  }, [examInfo?.meta]);
+  const timeStatus = getExamTimeStatus();
+  const canAccessQuestions = !timeStatus.hasTimeRestriction || !timeStatus.isBeforeStart;
+
+  // Helper to map API questions to our format
+  const mapApiQuestionsToState = useCallback((apiQuestions: Array<{ id: number; payload: Record<string, unknown> }>): Question[] => {
+    const mapped = apiQuestions.map((q, index) => {
+      const payload = (q.payload || {}) as Question['payload'];
+      if (!payload.order) payload.order = index + 1;
+      return { id: q.id, payload };
+    });
+    mapped.sort((a, b) => (a.payload?.order ?? a.id ?? 0) - (b.payload?.order ?? b.id ?? 0));
+    mapped.forEach((q, i) => { if (q.payload) q.payload.order = i + 1; });
+    return mapped;
+  }, []);
+
+  const applyStartExamResponse = useCallback((data: { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> }) => {
+    if (data.questions && data.questions.length > 0) {
+      setQuestions(mapApiQuestionsToState(data.questions));
+    }
+    if (data.answers && typeof data.answers === 'object') {
+      setAnswers(data.answers as Record<number, unknown>);
+    }
+    if (data.remaining_seconds != null && typeof data.remaining_seconds === 'number') {
+      setTimeRemaining(data.remaining_seconds);
+    } else if (examInfo?.meta && typeof examInfo.meta === 'object' && 'duration_minutes' in examInfo.meta) {
+      const dm = (examInfo.meta as { duration_minutes?: number }).duration_minutes;
+      if (typeof dm === 'number') setTimeRemaining(dm * 60);
+    }
+    setExamStarted(true);
+  }, [mapApiQuestionsToState, examInfo?.meta]);
 
   const handleStartExam = useCallback(async () => {
     if (!examId) {
@@ -99,12 +148,9 @@ export default function TakeExamPage() {
     hasStartedRef.current = true;
 
     try {
-      // Call startExam API - this will change participant status from 'registered' to 'started'
-      await startExamMutation.mutateAsync(examId);
-      // After successful start, set examStarted to true so questions will be fetched
-      setExamStarted(true);
-      
-      // Timer will be set from examInfo or examQuestionsData
+      // Call startExam API - returns questions, answers, remaining_seconds in one response
+      const data = await startExamMutation.mutateAsync(examId);
+      applyStartExamResponse(data as { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> });
     } catch (error) {
       hasStartedRef.current = false; // Reset on error so user can retry
       // Show error toast
@@ -115,74 +161,35 @@ export default function TakeExamPage() {
         severity: 'error',
       });
     }
-  }, [examId, examStarted, startExamMutation.isPending, startExamMutation.mutateAsync]);
+  }, [examId, examStarted, startExamMutation.isPending, startExamMutation.mutateAsync, applyStartExamResponse]);
 
-  // Load questions when examQuestionsData is available
+  // When resuming (status 'started'), call startExam to load questions + answers + remaining_seconds
+  const hasLoadedResumeRef = useRef(false);
   useEffect(() => {
-    if (examQuestionsData?.questions && Array.isArray(examQuestionsData.questions)) {
-      const mappedQuestions: Question[] = examQuestionsData.questions.map((q, index) => {
-        const payload = q.payload as Question['payload'] || {};
-        // Ensure order is set, defaulting to index + 1
-        if (!payload.order) {
-          payload.order = index + 1;
-        }
-        return {
-          id: q.id,
-          payload,
-        };
-      });
-      
-      // Sort by order to ensure correct sequence
-      mappedQuestions.sort((a, b) => {
-        const orderA = a.payload?.order ?? a.id ?? 0;
-        const orderB = b.payload?.order ?? b.id ?? 0;
-        return orderA - orderB;
-      });
-      
-      // Normalize order to start from 1
-      mappedQuestions.forEach((q, index) => {
-        if (q.payload) {
-          q.payload.order = index + 1;
-        }
-      });
-      
-      if (mappedQuestions.length > 0) {
-        setQuestions(mappedQuestions);
-        setExamStarted(true);
-      }
-    }
-  }, [examQuestionsData]);
-
-  // Load saved answers from examInfo or startExam response
-  useEffect(() => {
-    if (examInfo && participantStatus === 'started') {
-      // Try to get answers from participant data if available
-      // This would need to be added to getExamInfo endpoint if needed
-    }
-  }, [examInfo, participantStatus]);
-
-  // Set timer from examInfo meta
-  useEffect(() => {
-    if (examInfo?.meta && typeof examInfo.meta === 'object' && 'duration_minutes' in examInfo.meta) {
-      const durationMinutes = examInfo.meta.duration_minutes;
-      if (typeof durationMinutes === 'number' && !timeRemaining) {
-        const durationSeconds = durationMinutes * 60;
-        setTimeRemaining(durationSeconds);
-      }
-    }
-  }, [examInfo, timeRemaining]);
-
-  // If status is 'started', just load questions (don't call startExam API again)
-  // If status is 'registered' or null, user needs to click start button
-  useEffect(() => {
-    // Reset ref when examId changes
     hasStartedRef.current = false;
-    
-    // If exam is already started, just set examStarted to true (questions will be loaded via useExamQuestions)
-    if (participantStatus === 'started' && examId && !examStarted) {
-      setExamStarted(true);
+    hasLoadedResumeRef.current = false;
+  }, [examId]);
+
+  useEffect(() => {
+    if (
+      participantStatus === 'started' &&
+      examId &&
+      !examStarted &&
+      canAccessQuestions &&
+      !hasLoadedResumeRef.current &&
+      !startExamMutation.isPending
+    ) {
+      hasLoadedResumeRef.current = true;
+      startExamMutation
+        .mutateAsync(examId)
+        .then((data) => {
+          applyStartExamResponse(data as { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> });
+        })
+        .catch(() => {
+          hasLoadedResumeRef.current = false;
+        });
     }
-  }, [examId, examStarted, participantStatus]);
+  }, [participantStatus, examId, examStarted, canAccessQuestions, startExamMutation.mutateAsync, applyStartExamResponse]);
 
   // Show error toast when mutation fails
   useEffect(() => {
@@ -278,94 +285,19 @@ export default function TakeExamPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Check exam time status
-  const getExamTimeStatus = () => {
-    if (!examInfo?.meta || typeof examInfo.meta !== 'object') {
-      return { hasTimeRestriction: false, isBeforeStart: false, isAfterEnd: false, startAt: null, endAt: null };
-    }
-    
-    const meta = examInfo.meta;
-    let startAt: Date | null = null;
-    let endAt: Date | null = null;
-    
-    // Try new format first (date, start_time, end_time)
-    const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
-    const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
-    const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
-    
-    if (examDate && startTime) {
-      try {
-        startAt = new Date(`${examDate}T${startTime}:00`);
-      } catch (e) {
-        // Invalid format
-      }
-    }
-    
-    if (examDate && endTime) {
-      try {
-        endAt = new Date(`${examDate}T${endTime}:00`);
-      } catch (e) {
-        // Invalid format
-      }
-    }
-    
-    // Fallback to old format
-    if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
-      try {
-        startAt = new Date(meta.start_at);
-      } catch (e) {
-        // Invalid format
-      }
-    }
-    
-    if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
-      try {
-        endAt = new Date(meta.end_at);
-      } catch (e) {
-        // Invalid format
-      }
-    }
-    
-    const hasTimeRestriction = startAt !== null || endAt !== null;
-    const now = new Date();
-    const isBeforeStart = startAt ? now < startAt : false;
-    const isAfterEnd = endAt ? now > endAt : false;
-    
-    return { hasTimeRestriction, isBeforeStart, isAfterEnd, startAt, endAt };
-  };
-
-  const timeStatus = getExamTimeStatus();
-
   // Show start button if user is registered but hasn't started yet
   const isRegistered = examInfo?.is_registered;
   const shouldShowStartButton = isRegistered && (participantStatus === 'registered' || participantStatus === null);
-  
-  // Prevent access to questions if exam hasn't started yet (time check)
-  const canAccessQuestions = !timeStatus.hasTimeRestriction || !timeStatus.isBeforeStart;
 
-  // Show loading while fetching questions
-  if (shouldFetchQuestions && questionsLoading && !examStarted) {
+  // If already completed, redirect to result page
+  if (participantStatus === 'completed' && examId) {
+    router.replace(`/exams/${examId}/result`);
     return (
       <ProtectedRoute>
         <Container maxWidth="lg" sx={{ py: 4 }}>
           <Box display="flex" justifyContent="center" p={3}>
             <CircularProgress />
           </Box>
-        </Container>
-      </ProtectedRoute>
-    );
-  }
-
-  // Show error if questions failed to load
-  if (shouldFetchQuestions && questionsError && !examStarted) {
-    return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Alert severity="error">
-            {questionsError instanceof Error
-              ? questionsError.message
-              : 'خطا در دریافت سوالات آزمون'}
-          </Alert>
         </Container>
       </ProtectedRoute>
     );

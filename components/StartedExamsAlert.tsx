@@ -9,9 +9,9 @@ import {
   Button,
   Stack,
   Typography,
-  Chip,
   IconButton,
   Collapse,
+  Grid,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -71,16 +71,16 @@ export default function StartedExamsAlert() {
 
   return (
     <Collapse in={!dismissed && startedExams.length > 0}>
-      <Alert
-        severity="warning"
-        sx={{
-          mb: 2,
-          '& .MuiAlert-action': {
-            alignItems: 'flex-start',
-            pt: 1,
-          },
-        }}
-        action={
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        <Box
+          sx={{
+
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+          }}
+        >
+          <AlertTitle sx={{ mb: 0 }}>آزمون‌های در حال برگزاری</AlertTitle>
           <IconButton
             aria-label="close"
             color="inherit"
@@ -89,49 +89,49 @@ export default function StartedExamsAlert() {
           >
             <CloseIcon fontSize="inherit" />
           </IconButton>
-        }
-      >
-        <AlertTitle>آزمون‌های در حال برگزاری</AlertTitle>
-        <Stack spacing={2} sx={{ mt: 1 }}>
+        </Box>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
           {startedExams.map((exam: any) => (
-            <Box
-              key={exam.id}
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 1.5,
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="body1" fontWeight="medium">
-                  {exam.title || `آزمون ${exam.id}`}
-                </Typography>
-                {exam.meta?.duration_minutes && (
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                    <AccessTimeIcon fontSize="small" color="action" />
-                    <Typography variant="caption" color="text.secondary">
-                      مدت زمان: {exam.meta.duration_minutes} دقیقه
-                    </Typography>
-                  </Stack>
-                )}
-              </Box>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<PlayArrowIcon />}
-                onClick={() => router.push(`/exams/take/${exam.id}`)}
-                sx={{ ml: 2 }}
+            <Grid item xs={12} md={4} key={exam.id}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  height: '100%',
+                  p: 1.5,
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
               >
-                ادامه آزمون
-              </Button>
-            </Box>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="body1" fontWeight="medium">
+                    {exam.title || `آزمون ${exam.id}`}
+                  </Typography>
+                  {exam.meta?.duration_minutes && (
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                      <AccessTimeIcon fontSize="small" color="action" />
+                      <Typography variant="caption" color="text.secondary">
+                        مدت زمان: {exam.meta.duration_minutes} دقیقه
+                      </Typography>
+                    </Stack>
+                  )}
+                </Box>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => router.push(`/exams/take/${exam.id}`)}
+                  sx={{ mt: 1.5, alignSelf: 'flex-start' }}
+                >
+                  ادامه آزمون
+                </Button>
+              </Box>
+            </Grid>
           ))}
-        </Stack>
+        </Grid>
       </Alert>
     </Collapse>
   );

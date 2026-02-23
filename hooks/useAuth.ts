@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authService, ApiError } from '@/services';
+import { authService, getApiClient, ApiError } from '@/services';
 import {
   LoginCredentials,
   RegisterCredentials,
@@ -223,16 +223,23 @@ export function useIsAuthenticated() {
  * @returns Object with authentication state and methods
  */
 export function useAuth() {
+  const queryClient = useQueryClient();
   // useMe automatically checks for token before making request
   const { data: user, isLoading, error } = useMe();
   const loginMutation = useLogin();
   const logoutMutation = useLogout();
+
+  const setToken = (token: string | null) => {
+    getApiClient().setToken(token);
+    queryClient.invalidateQueries({ queryKey: queryKeys.me() });
+  };
 
   return {
     user,
     isLoading,
     error,
     isAuthenticated: !!user && !error,
+    setToken,
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,
     logout: logoutMutation.mutate,
