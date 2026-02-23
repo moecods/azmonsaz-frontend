@@ -5,9 +5,11 @@ import UserLayout from '@/components/layout/UserLayout';
 import { Box, Card, Tabs, Tab, Stack, Typography } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
+import CategoryIcon from '@mui/icons-material/Category';
 import Breadcrumb from '@/components/Breadcrumb';
 import { AdminPartnersTab } from '@/components/admin/AdminPartnersTab';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
+import { AdminQuestionCategoriesTab } from '@/components/admin/AdminQuestionCategoriesTab';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -51,6 +53,7 @@ export default function AdminPage() {
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab icon={<BusinessIcon />} label="شرکا" iconPosition="start" data-cy="admin-tab-partners" />
               <Tab icon={<PeopleIcon />} label="کاربران" iconPosition="start" data-cy="admin-tab-users" />
+              <Tab icon={<CategoryIcon />} label="دسته‌بندی سوالات" iconPosition="start" data-cy="admin-tab-question-categories" />
             </Tabs>
           </Box>
 
@@ -60,6 +63,10 @@ export default function AdminPage() {
 
           <TabPanel value={tabValue} index={1}>
             <AdminUsersTab isActive={tabValue === 1} />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            <AdminQuestionCategoriesTab isActive={tabValue === 2} />
           </TabPanel>
         </Card>
       </Stack>

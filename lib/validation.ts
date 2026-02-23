@@ -257,7 +257,7 @@ export const userSchema = z.object({
 
 // Question category validation schemas
 export const questionCategorySchema = z.object({
-  name: z.string().min(1, 'Category name is required'),
+  name: z.string().min(1, 'نام دسته‌بندی الزامی است'),
   description: z.string().optional(),
 });
 

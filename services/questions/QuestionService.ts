@@ -85,5 +85,22 @@ export class QuestionService {
   }): Promise<ApiResponse<QuestionCategory>> {
     return this.apiClient.post<QuestionCategory>('/question-categories', data);
   }
+
+  /**
+   * Update question category
+   */
+  async updateCategory(
+    id: number,
+    data: { name?: string; description?: string }
+  ): Promise<ApiResponse<QuestionCategory>> {
+    return this.apiClient.put<QuestionCategory>(`/question-categories/${id}`, data);
+  }
+
+  /**
+   * Delete question category
+   */
+  async deleteCategory(id: number): Promise<ApiResponse<void>> {
+    return this.apiClient.delete<void>(`/question-categories/${id}`);
+  }
 }
 
