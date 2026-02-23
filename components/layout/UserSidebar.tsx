@@ -26,6 +26,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import GroupIcon from '@mui/icons-material/Group';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { useAuth } from '@/hooks';
 import { hasPermission, type Permission } from '@/lib/permissions';
 
@@ -84,6 +86,16 @@ const menuItems: MenuItem[] = [
     label: 'پروفایل',
     icon: <PersonIcon />,
     path: '/profile',
+  },
+  {
+    label: 'اشتراک Pro',
+    icon: <WorkspacePremiumIcon />,
+    path: '/subscription',
+  },
+  {
+    label: 'پشتیبانی و آموزش',
+    icon: <HelpOutlineIcon />,
+    path: '/support',
   },
   {
     label: 'پنل مدیریت',

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -14,21 +15,37 @@ import {
   CircularProgress,
   Divider,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import { useMyExamResult } from '@/hooks/useExams';
+import { useAuth } from '@/hooks';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { QuestionResultDisplay } from '@/components/questions/QuestionResultDisplay';
+import { handleError } from '@/lib/error-handler';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030';
+const getAuthHeader = () => ({
+  Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+  'Content-Type': 'application/json',
+});
 
 export default function ExamResultPage() {
   const params = useParams();
   const router = useRouter();
   const examId = params?.id ? parseInt(params.id as string) : null;
+  const [aiReviewQuestion, setAiReviewQuestion] = useState<number | null>(null);
+  const [aiReviewData, setAiReviewData] = useState<{ explanation: string; feedback: string } | null>(null);
 
   const { data: resultData, isLoading, error } = useMyExamResult(examId);
+  const { user } = useAuth();
+  const hasPro = !!user?.subscription?.ends_at && new Date(user.subscription.ends_at) > new Date();
 
   if (isLoading) {
     return (
@@ -64,6 +81,24 @@ export default function ExamResultPage() {
   const { exam, result, questions } = resultData;
   const correctCount = questions.filter((q) => q.is_correct).length;
   const incorrectCount = questions.length - correctCount;
+
+  const handleAiReview = async (examQuestionId: number) => {
+    if (!examId) return;
+    setAiReviewQuestion(examQuestionId);
+    setAiReviewData(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/exams/${examId}/my-result/ai-review/${examQuestionId}`,
+        { method: 'POST', headers: getAuthHeader() }
+      );
+      if (!res.ok) throw new Error((await res.json()).message || 'AI review failed');
+      const { data } = await res.json();
+      setAiReviewData({ explanation: data.explanation || '', feedback: data.feedback || '' });
+    } catch (e) {
+      handleError(e, { context: 'AI Review' });
+      setAiReviewQuestion(null);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -186,7 +221,7 @@ export default function ExamResultPage() {
                           <Typography variant="h6">
                             سوال {index + 1}: {question.question_text}
                           </Typography>
-                          <Stack direction="row" spacing={1}>
+                          <Stack direction="row" spacing={1} flexWrap="wrap">
                             <Chip
                               label={question.is_correct ? 'صحیح' : 'نادرست'}
                               color={question.is_correct ? 'success' : 'error'}
@@ -197,6 +232,17 @@ export default function ExamResultPage() {
                               variant="outlined"
                               size="small"
                             />
+                            {hasPro && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={aiReviewQuestion === question.id ? <CircularProgress size={14} /> : <SmartToyIcon />}
+                                onClick={() => handleAiReview(question.id)}
+                                disabled={aiReviewQuestion !== null}
+                              >
+                                بررسی با AI
+                              </Button>
+                            )}
                           </Stack>
                         </Stack>
 
@@ -208,6 +254,22 @@ export default function ExamResultPage() {
               </Stack>
             </CardContent>
           </Card>
+
+          <Dialog open={!!aiReviewData} onClose={() => { setAiReviewData(null); setAiReviewQuestion(null); }} maxWidth="sm" fullWidth>
+            <DialogTitle>بررسی با هوش مصنوعی</DialogTitle>
+            <DialogContent>
+              {aiReviewData && (
+                <Stack spacing={2} sx={{ pt: 1 }}>
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                    {aiReviewData.explanation}
+                  </Typography>
+                  {aiReviewData.feedback && (
+                    <Alert severity="info">{aiReviewData.feedback}</Alert>
+                  )}
+                </Stack>
+              )}
+            </DialogContent>
+          </Dialog>
         </Stack>
       </Container>
     </ProtectedRoute>

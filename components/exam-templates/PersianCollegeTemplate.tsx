@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -143,6 +144,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
+        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
         return (
           <Box
@@ -196,22 +198,27 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
                     <span key={i}>{line}<br /></span>
                   ))}
                 </Typography>
-                <Chip
-                  label={
-                    typeLabel
-                  }
-                  size="small"
-                  sx={{
-                    display: 'inline-block',
-                    background: '#666',
-                    color: 'white',
-                    padding: '3px 10px',
-                    borderRadius: '3px',
-                    fontSize: '9pt',
-                    mt: 1,
-                    height: 'auto',
-                  }}
-                />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
+                  <Chip
+                    label={typeLabel}
+                    size="small"
+                    sx={{
+                      display: 'inline-block',
+                      background: '#666',
+                      color: 'white',
+                      padding: '3px 10px',
+                      borderRadius: '3px',
+                      fontSize: '9pt',
+                      height: 'auto',
+                    }}
+                  />
+                  <Chip
+                    label={`بارم: ${points}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontSize: '9pt', height: 'auto' }}
+                  />
+                </Box>
               </Box>
             </Box>
 

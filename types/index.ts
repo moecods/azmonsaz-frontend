@@ -1,5 +1,11 @@
 // Core types for the Azmoon-Saz application
 
+export interface UserSubscription {
+  id: number;
+  plan: string;
+  ends_at: string;
+}
+
 export interface User {
   id: number;
   name: string;
@@ -8,6 +14,7 @@ export interface User {
   roles: string[];
   permissions: string[];
   is_active: boolean;
+  subscription?: UserSubscription | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +29,7 @@ export interface AuthUser {
   roles: string[];
   permissions: string[];
   is_active: boolean;
+  subscription?: UserSubscription | null;
 }
 
 export interface LoginCredentials {

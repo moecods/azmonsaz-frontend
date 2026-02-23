@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -146,6 +147,7 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
           const isEssayType = isEssay(questionType);
           const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
+          const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
           return (
             <Box
@@ -205,19 +207,26 @@ export default function ModernTemplate({ exam }: ModernTemplateProps) {
                       <span key={i}>{line}<br /></span>
                     ))}
                   </Typography>
-                  <Chip
-                    label={typeLabel}
-                    size="small"
-                    sx={{
-                      background: '#ff6b6b',
-                      color: 'white',
-                      padding: '5px 15px',
-                      borderRadius: '20px',
-                      fontSize: '11px',
-                      mt: 1,
-                      height: 'auto',
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={typeLabel}
+                      size="small"
+                      sx={{
+                        background: '#ff6b6b',
+                        color: 'white',
+                        padding: '5px 15px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        height: 'auto',
+                      }}
+                    />
+                    <Chip
+                      label={`بارم: ${points}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '11px', height: 'auto' }}
+                    />
+                  </Box>
                 </Box>
               </Box>
 

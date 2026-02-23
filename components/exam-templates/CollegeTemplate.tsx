@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -125,6 +126,7 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
+        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
         return (
           <Box
@@ -166,16 +168,20 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
                 ))}
               </Typography>
             </Box>
-            <Typography
-              sx={{
-                fontSize: '9pt',
-                fontStyle: 'italic',
-                color: '#666',
-                mt: 0.6,
-              }}
-            >
-              {typeLabel}
-            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 0.6 }}>
+              <Typography
+                sx={{
+                  fontSize: '9pt',
+                  fontStyle: 'italic',
+                  color: '#666',
+                }}
+              >
+                {typeLabel}
+              </Typography>
+              <Typography sx={{ fontSize: '9pt', color: '#666' }}>
+                | Points: {points}
+              </Typography>
+            </Box>
 
             {isEssayType ? (
               <Box

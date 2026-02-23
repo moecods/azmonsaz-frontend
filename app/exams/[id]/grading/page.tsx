@@ -18,17 +18,23 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip,
   Divider,
   Grid,
 } from '@mui/material';
 import { useExamWithParticipants } from '@/hooks/useExams';
+import { useAuth } from '@/hooks';
 import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { handleError } from '@/lib/error-handler';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030';
+const getAuthHeader = () => ({
+  Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+  'Content-Type': 'application/json',
+});
 
 interface GradingData {
   exam_question_id: number;
@@ -64,12 +70,17 @@ export default function ExamGradingPage() {
   const [loadingGrading, setLoadingGrading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [aiGradingQuestion, setAiGradingQuestion] = useState<number | null>(null);
+  const [aiGradingAll, setAiGradingAll] = useState(false);
+  const { user } = useAuth();
+  const hasPro = !!user?.subscription?.ends_at && new Date(user.subscription.ends_at) > new Date();
 
   // Load grading data when participant is selected
   useEffect(() => {
     if (selectedParticipant && examId) {
       loadGradingData(selectedParticipant);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadGradingData is stable
   }, [selectedParticipant, examId]);
 
   const loadGradingData = async (participantId: number) => {
@@ -78,13 +89,8 @@ export default function ExamGradingPage() {
     setLoadingGrading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030'}/api/exams/${examId}/participants/${participantId}/answers`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        `${API_URL}/api/exams/${examId}/participants/${participantId}/answers`,
+        { headers: getAuthHeader() }
       );
 
       if (!response.ok) {
@@ -160,8 +166,54 @@ export default function ExamGradingPage() {
     }
   };
 
+  const handleAiGradeQuestion = async (examQuestionId: number) => {
+    if (!examId || !selectedParticipant) return;
+    setAiGradingQuestion(examQuestionId);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/exams/${examId}/participants/${selectedParticipant}/ai-grade-essay`,
+        {
+          method: 'POST',
+          headers: getAuthHeader(),
+          body: JSON.stringify({ exam_question_id: examQuestionId }),
+        }
+      );
+      if (!res.ok) throw new Error((await res.json()).message || 'AI grading failed');
+      const { data } = await res.json();
+      setScores((prev) => ({ ...prev, [examQuestionId]: data.score }));
+      setSuccessMessage(`نمره پیشنهادی AI: ${data.score} - ${data.feedback || ''}`);
+    } catch (e) {
+      handleError(e, { context: 'AI Grade' });
+    } finally {
+      setAiGradingQuestion(null);
+    }
+  };
+
+  const handleAiGradeAll = async () => {
+    if (!examId || !selectedParticipant) return;
+    setAiGradingAll(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/exams/${examId}/participants/${selectedParticipant}/ai-grade-all`,
+        { method: 'POST', headers: getAuthHeader() }
+      );
+      if (!res.ok) throw new Error((await res.json()).message || 'AI grading failed');
+      const { data } = await res.json();
+      const newScores = { ...scores };
+      Object.entries(data.grades || {}).forEach(([eqId, g]: [string, { score?: number }]) => {
+        newScores[parseInt(eqId)] = g.score ?? 0;
+      });
+      setScores(newScores);
+      setSuccessMessage('نمرات پیشنهادی AI اعمال شد. در صورت تایید ذخیره کنید.');
+    } catch (e) {
+      handleError(e, { context: 'AI Grade All' });
+    } finally {
+      setAiGradingAll(false);
+    }
+  };
+
   // Get participants with essay questions
-  const participantsWithEssays = examData?.participants?.filter((p: any) => {
+  const participantsWithEssays = examData?.participants?.filter((p: { id: number; status: string }) => {
     // For now, show all completed participants
     // In future, we can filter to only show those with essay questions
     return p.status === 'completed';
@@ -235,7 +287,7 @@ export default function ExamGradingPage() {
                   {participantsWithEssays.length === 0 ? (
                     <Alert severity="info">هیچ شرکت‌کننده‌ای یافت نشد.</Alert>
                   ) : (
-                    participantsWithEssays.map((participant: any) => (
+                    participantsWithEssays.map((participant: { id: number; user?: { name?: string }; user_id: number }) => (
                       <Button
                         key={participant.id}
                         variant={selectedParticipant === participant.id ? 'contained' : 'outlined'}
@@ -282,12 +334,26 @@ export default function ExamGradingPage() {
                 <CardContent>
                   <Stack spacing={3}>
                     <Box>
-                      <Typography variant="h6" gutterBottom>
-                        تصحیح سوالات تشریحی
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        شرکت‌کننده: {gradingData.participant.user_name}
-                      </Typography>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            تصحیح سوالات تشریحی
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            شرکت‌کننده: {gradingData.participant.user_name}
+                          </Typography>
+                        </Box>
+                        {hasPro && (
+                          <Button
+                            variant="outlined"
+                            startIcon={aiGradingAll ? <CircularProgress size={18} /> : <SmartToyIcon />}
+                            onClick={handleAiGradeAll}
+                            disabled={aiGradingAll}
+                          >
+                            تصحیح کل با AI
+                          </Button>
+                        )}
+                      </Stack>
                     </Box>
 
                     <Divider />
@@ -301,6 +367,7 @@ export default function ExamGradingPage() {
                             <TableCell>پاسخ</TableCell>
                             <TableCell>نمره</TableCell>
                             <TableCell>حداکثر</TableCell>
+                            {hasPro && <TableCell>AI</TableCell>}
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -347,6 +414,19 @@ export default function ExamGradingPage() {
                                   {question.max_points}
                                 </Typography>
                               </TableCell>
+                              {hasPro && (
+                                <TableCell>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={aiGradingQuestion === question.exam_question_id ? <CircularProgress size={16} /> : <SmartToyIcon />}
+                                    onClick={() => handleAiGradeQuestion(question.exam_question_id)}
+                                    disabled={aiGradingQuestion !== null}
+                                  >
+                                    AI
+                                  </Button>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))}
                         </TableBody>

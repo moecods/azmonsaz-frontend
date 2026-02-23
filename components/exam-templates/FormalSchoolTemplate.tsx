@@ -12,6 +12,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -156,7 +157,7 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
             const isEssayType = isEssay(questionType);
             const typeLabel = getQuestionTypeLabel(questionType);
             const questionNumber = index + 1;
-            const points = payload.points || 2;
+            const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
             return (
               <TableRow key={examQuestion.id}>

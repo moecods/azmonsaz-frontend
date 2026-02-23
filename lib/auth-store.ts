@@ -27,6 +27,7 @@ class AuthStore {
     // Don't initialize on server-side
     if (typeof window !== 'undefined') {
       this.initialize();
+      window.addEventListener('auth-refresh', () => this.loadUser());
     }
   }
 

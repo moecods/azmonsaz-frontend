@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -141,6 +142,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
           const isEssayType = isEssay(questionType);
           const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
+          const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
           return (
             <Box
@@ -192,21 +194,26 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                       <span key={i}>{line}<br /></span>
                     ))}
                   </Typography>
-                  <Chip
-                    label={
-                      typeLabel
-                    }
-                    size="small"
-                    sx={{
-                      background: '#FF9800',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      mt: 0.6,
-                      height: 'auto',
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.6, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={typeLabel}
+                      size="small"
+                      sx={{
+                        background: '#FF9800',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        height: 'auto',
+                      }}
+                    />
+                    <Chip
+                      label={`بارم: ${points}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '12px', height: 'auto' }}
+                    />
+                  </Box>
                 </Box>
               </Box>
 

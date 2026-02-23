@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -107,6 +108,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
+        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
         return (
           <Box
@@ -117,13 +119,18 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
               pageBreakInside: 'avoid',
             }}
           >
-            <Box sx={{ fontSize: '11pt', mb: 1.5, textAlign: 'justify' }}>
+            <Box sx={{ fontSize: '11pt', mb: 1.5, textAlign: 'justify', display: 'flex', alignItems: 'start', gap: 1 }}>
               <Box component="span" sx={{ fontWeight: 'bold', fontSize: '12pt', ml: 1, minWidth: '25px', display: 'inline-block' }}>
                 {questionNumber}.
               </Box>
+              <Box sx={{ flex: 1 }}>
               {questionText.split('\n').map((line, i) => (
                 <span key={i}>{line}<br /></span>
               ))}
+              <Box component="span" sx={{ fontSize: '10pt', color: '#666', mr: 1 }}>
+                (بارم: {points})
+              </Box>
+              </Box>
             </Box>
 
             {isEssayType ? (

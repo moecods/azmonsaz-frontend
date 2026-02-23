@@ -88,8 +88,9 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
 
   const handleOpenEditUser = (user: User) => {
     setEditingUser(user);
-    const filtered = user.roles?.filter((r) =>
-      ['admin', 'content_manager', 'creator'].includes(r)
+    const validRoles = ['admin', 'content_manager', 'creator'] as const;
+    const filtered = user.roles?.filter((r): r is typeof validRoles[number] =>
+      validRoles.includes(r as typeof validRoles[number])
     ) ?? [];
     const roles = filtered.length ? filtered : ['creator'];
     userForm.reset({
@@ -230,6 +231,7 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                   <TableCell key="user-phone">شماره تلفن</TableCell>
                   <TableCell key="user-role">نقش</TableCell>
                   <TableCell key="user-status">وضعیت</TableCell>
+                  <TableCell key="user-subscription">اشتراک Pro</TableCell>
                   <TableCell key="user-created">تاریخ ایجاد</TableCell>
                   <TableCell key="user-actions">عملیات</TableCell>
                 </TableRow>
@@ -277,6 +279,21 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                         color={user.is_active ? 'success' : 'default'}
                         size="small"
                       />
+                    </TableCell>
+                    <TableCell>
+                      {user.subscription?.ends_at ? (
+                        new Date(user.subscription.ends_at) > new Date() ? (
+                          <Chip
+                            label={`فعال تا ${new Date(user.subscription.ends_at).toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' })}`}
+                            color="success"
+                            size="small"
+                          />
+                        ) : (
+                          <Chip label="منقضی" color="default" size="small" />
+                        )
+                      ) : (
+                        <Chip label="ندارد" color="default" size="small" variant="outlined" />
+                      )}
                     </TableCell>
                     <TableCell>
                       {new Date(user.created_at).toLocaleDateString('fa-IR', {

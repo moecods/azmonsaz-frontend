@@ -10,6 +10,7 @@ interface Exam {
     duration_minutes?: number;
     passing_score?: number;
     instructions?: string;
+    points_per_question?: number;
   };
   exam_questions?: Array<{
     id: number;
@@ -126,13 +127,14 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
         </Box>
       )}
 
-      {exam.exam_questions.map((examQuestion, index) => {
+      {(exam.exam_questions || []).map((examQuestion, index) => {
         const payload = examQuestion.payload || {};
         const questionText = payload.question_text || 'سوال';
         const questionType = payload.type || 'multiple_choice';
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
+        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
 
         return (
           <Box
@@ -181,16 +183,20 @@ export default function ClassicTemplate({ exam }: ClassicTemplateProps) {
                     <span key={i}>{line}<br /></span>
                   ))}
                 </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '11px',
-                    color: '#666',
-                    mt: 0.6,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {typeLabel}
-                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.6 }}>
+                  <Typography
+                    sx={{
+                      fontSize: '11px',
+                      color: '#666',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {typeLabel}
+                  </Typography>
+                  <Typography sx={{ fontSize: '11px', color: '#666' }}>
+                    | بارم: {points}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
 
