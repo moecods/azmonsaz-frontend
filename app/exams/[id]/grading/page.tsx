@@ -30,7 +30,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { handleError } from '@/lib/error-handler';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export default function ExamGradingPage() {
     setLoadingGrading(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/exams/${examId}/participants/${participantId}/answers`,
+        `${API_URL}/exams/${examId}/participants/${participantId}/answers`,
         { headers: getAuthHeader() }
       );
 
@@ -137,13 +137,10 @@ export default function ExamGradingPage() {
       }));
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030'}/api/exams/${examId}/participants/${selectedParticipant}/grade`,
+        `${API_URL}/exams/${examId}/participants/${selectedParticipant}/grade`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeader(),
           body: JSON.stringify({ grades }),
         }
       );
@@ -171,7 +168,7 @@ export default function ExamGradingPage() {
     setAiGradingQuestion(examQuestionId);
     try {
       const res = await fetch(
-        `${API_URL}/api/exams/${examId}/participants/${selectedParticipant}/ai-grade-essay`,
+        `${API_URL}/exams/${examId}/participants/${selectedParticipant}/ai-grade-essay`,
         {
           method: 'POST',
           headers: getAuthHeader(),
@@ -194,7 +191,7 @@ export default function ExamGradingPage() {
     setAiGradingAll(true);
     try {
       const res = await fetch(
-        `${API_URL}/api/exams/${examId}/participants/${selectedParticipant}/ai-grade-all`,
+        `${API_URL}/exams/${examId}/participants/${selectedParticipant}/ai-grade-all`,
         { method: 'POST', headers: getAuthHeader() }
       );
       if (!res.ok) throw new Error((await res.json()).message || 'AI grading failed');

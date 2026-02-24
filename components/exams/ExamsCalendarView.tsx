@@ -28,42 +28,29 @@ export interface ExamCalendarEvent {
 }
 
 function examToEvent(exam: ExamListItem): ExamCalendarEvent | null {
-  const meta = exam.meta || {};
+  const examWithDates = exam as ExamListItem & { exam_date?: string; start_time?: string; end_time?: string; start_at?: string; end_at?: string };
   let startAt: Date | null = null;
   let endAt: Date | null = null;
 
-  const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
-  const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
-  const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
-
-  if (examDate && startTime) {
+  if (examWithDates.exam_date && examWithDates.start_time) {
     try {
-      startAt = new Date(`${examDate}T${startTime}:00`);
-    } catch {
-      // invalid
-    }
+      startAt = new Date(`${examWithDates.exam_date}T${examWithDates.start_time}:00`);
+    } catch { /* invalid */ }
   }
-  if (examDate && endTime) {
+  if (examWithDates.exam_date && examWithDates.end_time) {
     try {
-      endAt = new Date(`${examDate}T${endTime}:00`);
-    } catch {
-      // invalid
-    }
+      endAt = new Date(`${examWithDates.exam_date}T${examWithDates.end_time}:00`);
+    } catch { /* invalid */ }
   }
-
-  if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
+  if (!startAt && examWithDates.start_at) {
     try {
-      startAt = new Date(meta.start_at);
-    } catch {
-      // invalid
-    }
+      startAt = new Date(examWithDates.start_at);
+    } catch { /* invalid */ }
   }
-  if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
+  if (!endAt && examWithDates.end_at) {
     try {
-      endAt = new Date(meta.end_at);
-    } catch {
-      // invalid
-    }
+      endAt = new Date(examWithDates.end_at);
+    } catch { /* invalid */ }
   }
 
   if (!startAt) {

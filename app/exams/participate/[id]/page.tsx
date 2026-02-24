@@ -288,14 +288,22 @@ export default function ExamParticipatePage() {
                 </Box>
               ) : examInfo.is_registered ? (
                 <Alert
-                  severity={examInfo.registration_status === 'completed' ? 'success' : 'info'}
+                  severity={
+                    examInfo.registration_status === 'completed'
+                      ? 'success'
+                      : examInfo.registration_status === 'absent'
+                        ? 'error'
+                        : 'info'
+                  }
                   sx={{ mb: 2 }}
                 >
                   {examInfo.registration_status === 'completed'
                     ? 'شما این آزمون را تکمیل کرده‌اید.'
                     : examInfo.registration_status === 'started'
-                    ? 'شما این آزمون را شروع کرده‌اید.'
-                    : 'شما در این آزمون ثبت‌نام کرده‌اید.'}
+                      ? 'شما این آزمون را شروع کرده‌اید.'
+                      : examInfo.registration_status === 'absent'
+                        ? 'شما در این آزمون غیبت داشتید.'
+                        : 'شما در این آزمون ثبت‌نام کرده‌اید.'}
                 </Alert>
               ) : null}
 

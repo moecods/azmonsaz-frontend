@@ -23,16 +23,6 @@ export function buildExamMeta(data: ExamFormData): Record<string, unknown> | und
   if (data.tags && data.tags.length > 0) {
     meta.tags = data.tags;
   }
-  // Send date, start_time, end_time instead of start_at and end_at
-  if (data.exam_date) {
-    meta.date = data.exam_date;
-  }
-  if (data.start_time) {
-    meta.start_time = data.start_time;
-  }
-  if (data.end_time) {
-    meta.end_time = data.end_time;
-  }
 
   return Object.keys(meta).length > 0 ? meta : undefined;
 }
@@ -42,32 +32,12 @@ export function buildExamMeta(data: ExamFormData): Record<string, unknown> | und
  */
 export function loadExamMetaToForm(exam: Exam): Partial<ExamFormData> {
   const meta = exam.meta || {};
-  
-  // Handle both old format (start_at, end_at) and new format (date, start_time, end_time)
-  let examDate = meta.date ?? null;
-  let startTime = meta.start_time ?? null;
-  let endTime = meta.end_time ?? null;
-  
-  // If old format exists, parse it to new format
-  if (!examDate && meta.start_at) {
-    try {
-      const startAt = new Date(meta.start_at as string);
-      examDate = startAt.toISOString().split('T')[0];
-      startTime = startAt.toTimeString().slice(0, 5); // HH:mm format
-    } catch (e) {
-      // Ignore parsing errors
-    }
-  }
-  
-  if (!endTime && meta.end_at) {
-    try {
-      const endAt = new Date(meta.end_at as string);
-      endTime = endAt.toTimeString().slice(0, 5); // HH:mm format
-    } catch (e) {
-      // Ignore parsing errors
-    }
-  }
-  
+  const examWithDates = exam as Exam & { exam_date?: string; start_time?: string; end_time?: string };
+
+  const examDate = examWithDates.exam_date ?? null;
+  const startTime = examWithDates.start_time ?? null;
+  const endTime = examWithDates.end_time ?? null;
+
   return {
     duration_minutes: meta.duration_minutes ?? null,
     passing_score: meta.passing_score ?? null,

@@ -1,5 +1,9 @@
 // Core types for the Azmoon-Saz application
 
+import type { QuestionTypeId } from '@/lib/question-types/constants';
+
+export type QuestionType = QuestionTypeId;
+
 export interface UserSubscription {
   id: number;
   plan: string;
@@ -100,7 +104,6 @@ export interface Question {
   updated_at: string;
 }
 
-export type { QuestionTypeId as QuestionType } from '@/lib/question-types/constants';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface QuestionOption {
@@ -130,6 +133,9 @@ export interface Exam {
   is_active: boolean;
   pdf_url?: string;
   meta?: ExamMeta;
+  exam_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -170,9 +176,12 @@ export interface CreateExamRequest {
   description?: string;
   subject?: string;
   type?: 'offline' | 'online';
-  callback_url?: string; // Optional for creator users
-  partner_id?: number; // Optional for creator users
+  callback_url?: string;
+  partner_id?: number;
   meta?: ExamMeta;
+  exam_date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 export interface UpdateExamRequest {
@@ -182,6 +191,9 @@ export interface UpdateExamRequest {
   type?: 'online' | 'offline';
   questions?: ExamQuestion[];
   meta?: ExamMeta;
+  exam_date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 export interface CreateQuestionRequest {

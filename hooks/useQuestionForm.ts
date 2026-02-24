@@ -1,0 +1,168 @@
+/**
+ * Custom hook for question form state and effects.
+ * Single Responsibility: form setup, sync effects, and field array management.
+ */
+
+import { useEffect, useRef } from 'react';
+import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { questionSchema, QuestionFormData } from '@/lib/validation';
+import { questionToFormData } from '@/lib/question-mappers';
+import type { Question } from '@/types';
+import type { QuestionCategory } from '@/types';
+
+const DEFAULT_VALUES: QuestionFormData = {
+  text: '',
+  type: 'multiple_choice',
+  options: [
+    { text: '', is_correct: false },
+    { text: '', is_correct: false },
+  ],
+  correct_answer: 0,
+  category_id: 0,
+  tags: [],
+  difficulty: 'medium',
+  items: [],
+  correct_order: [],
+  left_items: [],
+  right_items: [],
+  matches: [],
+  blanks: [],
+};
+
+export interface UseQuestionFormOptions {
+  questionId?: number;
+  questionData?: Question | null;
+  categories: QuestionCategory[];
+  isEditMode: boolean;
+}
+
+export interface UseQuestionFormReturn {
+  form: UseFormReturn<QuestionFormData>;
+  optionsFields: ReturnType<typeof useFieldArray<QuestionFormData, 'options'>>;
+  itemsFields: ReturnType<typeof useFieldArray<QuestionFormData, 'items'>>;
+  leftItemsFields: ReturnType<typeof useFieldArray<QuestionFormData, 'left_items'>>;
+  rightItemsFields: ReturnType<typeof useFieldArray<QuestionFormData, 'right_items'>>;
+  matchesFields: ReturnType<typeof useFieldArray<QuestionFormData, 'matches'>>;
+  blanksFields: ReturnType<typeof useFieldArray<QuestionFormData, 'blanks'>>;
+}
+
+export function useQuestionForm({
+  questionId,
+  questionData,
+  categories,
+  isEditMode,
+}: UseQuestionFormOptions): UseQuestionFormReturn {
+  const hasSetDefaultCategory = useRef(false);
+  const hasPopulatedEditForm = useRef(false);
+
+  const form = useForm<QuestionFormData>({
+    resolver: zodResolver(questionSchema),
+    defaultValues: DEFAULT_VALUES,
+  });
+
+  const { control, watch, setValue, reset, getValues } = form;
+
+  const optionsFields = useFieldArray({ control, name: 'options' });
+  const itemsFields = useFieldArray({ control, name: 'items' });
+  const leftItemsFields = useFieldArray({ control, name: 'left_items' });
+  const rightItemsFields = useFieldArray({ control, name: 'right_items' });
+  const matchesFields = useFieldArray({ control, name: 'matches' });
+  const blanksFields = useFieldArray({ control, name: 'blanks' });
+
+  const questionType = watch('type');
+  const questionOptions = watch('options');
+  const left_items = watch('left_items');
+  const matches = watch('matches');
+  const correctAnswer = watch('correct_answer');
+
+  // Populate form when editing and question data loads
+  useEffect(() => {
+    if (isEditMode && questionData && !hasPopulatedEditForm.current) {
+      hasPopulatedEditForm.current = true;
+      const formData = questionToFormData(questionData);
+      if (formData.category_id <= 0 && categories.length > 0) {
+        formData.category_id = categories[0].id;
+      }
+      reset(formData);
+    }
+  }, [isEditMode, questionData, categories, reset]);
+
+  // Set default category when categories load (create mode only)
+  useEffect(() => {
+    if (!isEditMode && categories.length > 0 && !hasSetDefaultCategory.current) {
+      hasSetDefaultCategory.current = true;
+      setValue('category_id', categories[0].id);
+    }
+  }, [isEditMode, categories, setValue]);
+
+  // Fix category_id in edit mode if it became 0
+  useEffect(() => {
+    if (isEditMode && categories.length > 0 && questionData && hasPopulatedEditForm.current) {
+      const current = getValues('category_id');
+      if (!current || current <= 0) {
+        const validId = (questionData.category_id as number) > 0 ? questionData.category_id : categories[0]?.id;
+        if (validId) setValue('category_id', validId as number);
+      }
+    }
+  }, [isEditMode, categories, questionData, setValue, getValues]);
+
+  // When type changes to true_false, set fixed options
+  useEffect(() => {
+    if (questionType === 'true_false') {
+      const opts = questionOptions ?? [];
+      const firstCorrect = opts[0]?.is_correct ?? false;
+      const secondCorrect = opts[1]?.is_correct ?? false;
+      setValue('options', [
+        { text: 'صحیح', is_correct: firstCorrect && !secondCorrect },
+        { text: 'غلط', is_correct: secondCorrect && !firstCorrect },
+      ]);
+    }
+  }, [questionType, setValue]);
+
+  // When type changes to essay, clear correct_answer
+  useEffect(() => {
+    if (questionType === 'essay') {
+      setValue('correct_answer', null);
+    }
+  }, [questionType, setValue]);
+
+  // When type changes to short_answer
+  useEffect(() => {
+    if (questionType === 'short_answer' && typeof correctAnswer !== 'string') {
+      setValue('correct_answer', '');
+    }
+  }, [questionType, setValue, correctAnswer]);
+
+  // Sync matches length with left_items for matching type
+  useEffect(() => {
+    if (questionType === 'matching') {
+      const leftLen = left_items?.length ?? 0;
+      const currentMatches = (matches ?? []) as { left_index: number; right_index: number }[];
+      if (currentMatches.length < leftLen) {
+        const newMatches = currentMatches.slice();
+        for (let i = currentMatches.length; i < leftLen; i++) {
+          newMatches.push({ left_index: i, right_index: 0 });
+        }
+        setValue('matches', newMatches);
+      } else if (currentMatches.length > leftLen) {
+        setValue('matches', currentMatches.slice(0, leftLen));
+      } else {
+        const fixed = currentMatches.map((m, i) => ({ ...m, left_index: i }));
+        if (JSON.stringify(fixed) !== JSON.stringify(currentMatches)) {
+          setValue('matches', fixed);
+        }
+      }
+    }
+  }, [questionType, left_items?.length, matches?.length, setValue]);
+
+  return {
+    form,
+    optionsFields,
+    itemsFields,
+    leftItemsFields,
+    rightItemsFields,
+    matchesFields,
+    blanksFields,
+  };
+}

@@ -13,6 +13,7 @@ export interface ResultQuestion {
   correct_answer?: number | number[] | string | null;
   your_answer?: number | number[] | string | null;
   is_correct?: boolean;
+  is_pending_grading?: boolean;
   points_earned?: number;
   points_total?: number;
 }
@@ -155,6 +156,14 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
     );
   }
 
+  // Essay and similar: show answer; for pending grading use neutral style
+  const isPendingGrading = question.is_pending_grading;
+  const bgColor = isPendingGrading
+    ? 'grey.100'
+    : question.is_correct
+      ? 'success.light'
+      : 'error.light';
+
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -164,7 +173,7 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
         variant="body1"
         sx={{
           p: 2,
-          bgcolor: question.is_correct ? 'success.light' : 'error.light',
+          bgcolor: bgColor,
           borderRadius: 1,
         }}
       >
@@ -172,7 +181,12 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
           ? String(question.your_answer)
           : 'پاسخی داده نشده'}
       </Typography>
-      {question.is_correct && (
+      {isPendingGrading && (
+        <Alert severity="info" sx={{ mt: 1 }}>
+          این سوال تشریحی است و در انتظار تصحیح معلم می‌باشد.
+        </Alert>
+      )}
+      {!isPendingGrading && question.is_correct && (
         <Alert severity="success" sx={{ mt: 1 }}>
           پاسخ شما صحیح است
         </Alert>

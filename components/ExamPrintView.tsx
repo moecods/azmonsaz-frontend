@@ -129,7 +129,7 @@ interface ExamPrintViewProps {
       passing_score?: number;
       instructions?: string;
     };
-    completed_at?: string | null;
+    published_at?: string | null;
     exam_questions?: Array<{
       id: number;
       question_id?: number | null;

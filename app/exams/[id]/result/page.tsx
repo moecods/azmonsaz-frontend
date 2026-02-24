@@ -30,7 +30,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { QuestionResultDisplay } from '@/components/questions/QuestionResultDisplay';
 import { handleError } from '@/lib/error-handler';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
@@ -80,7 +80,8 @@ export default function ExamResultPage() {
 
   const { exam, result, questions } = resultData;
   const correctCount = questions.filter((q) => q.is_correct).length;
-  const incorrectCount = questions.length - correctCount;
+  const pendingGradingCount = questions.filter((q) => (q as { is_pending_grading?: boolean }).is_pending_grading).length;
+  const incorrectCount = questions.length - correctCount - pendingGradingCount;
 
   const handleAiReview = async (examQuestionId: number) => {
     if (!examId) return;
@@ -88,7 +89,7 @@ export default function ExamResultPage() {
     setAiReviewData(null);
     try {
       const res = await fetch(
-        `${API_URL}/api/exams/${examId}/my-result/ai-review/${examQuestionId}`,
+        `${API_URL}/exams/${examId}/my-result/ai-review/${examQuestionId}`,
         { method: 'POST', headers: getAuthHeader() }
       );
       if (!res.ok) throw new Error((await res.json()).message || 'AI review failed');
@@ -183,6 +184,16 @@ export default function ExamResultPage() {
                         {incorrectCount} از {questions.length}
                       </Typography>
                     </Box>
+                    {pendingGradingCount > 0 && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          در انتظار تصحیح
+                        </Typography>
+                        <Typography variant="h6" color="warning.main">
+                          {pendingGradingCount} از {questions.length}
+                        </Typography>
+                      </Box>
+                    )}
                     {result.completed_at && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -206,12 +217,17 @@ export default function ExamResultPage() {
                 بررسی پاسخ‌ها
               </Typography>
               <Stack spacing={3}>
-                {questions.map((question, index) => (
+                {questions.map((question, index) => {
+                  const isPendingGrading = (question as { is_pending_grading?: boolean }).is_pending_grading;
+                  const statusLabel = isPendingGrading ? 'در انتظار تصحیح' : question.is_correct ? 'صحیح' : 'نادرست';
+                  const statusColor = isPendingGrading ? 'warning' : question.is_correct ? 'success' : 'error';
+                  const borderColor = isPendingGrading ? 'warning.main' : question.is_correct ? 'success.main' : 'error.main';
+                  return (
                   <Card
                     key={question.id}
                     variant="outlined"
                     sx={{
-                      borderColor: question.is_correct ? 'success.main' : 'error.main',
+                      borderColor,
                       borderWidth: 2,
                     }}
                   >
@@ -223,8 +239,8 @@ export default function ExamResultPage() {
                           </Typography>
                           <Stack direction="row" spacing={1} flexWrap="wrap">
                             <Chip
-                              label={question.is_correct ? 'صحیح' : 'نادرست'}
-                              color={question.is_correct ? 'success' : 'error'}
+                              label={statusLabel}
+                              color={statusColor}
                               size="small"
                             />
                             <Chip
@@ -246,11 +262,12 @@ export default function ExamResultPage() {
                           </Stack>
                         </Stack>
 
-                        <QuestionResultDisplay question={question} />
+                        <QuestionResultDisplay question={{ ...question, is_pending_grading: isPendingGrading }} />
                       </Stack>
                     </CardContent>
                   </Card>
-                ))}
+                );
+                })}
               </Stack>
             </CardContent>
           </Card>

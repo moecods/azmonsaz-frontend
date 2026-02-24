@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Container,
   Stack,
   Typography,
@@ -59,44 +60,33 @@ export default function TakeExamPage() {
     severity: 'error',
   });
   const hasStartedRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveRef = useRef<{ questionId: number; answer: any } | null>(null);
+
+  const SAVE_DEBOUNCE_MS = 500;
 
   const startExamMutation = useStartExam();
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
-  const { data: examInfo } = useExamInfo(examId);
+  const { data: examInfo, isLoading: isLoadingExamInfo, error: examInfoError } = useExamInfo(examId);
   
   // Get participant status
   const participantStatus = examInfo?.registration_status;
 
-  // Check exam time status (must be defined before shouldFetchQuestions)
+  // Check exam time status (uses start_at, end_at from API)
   const getExamTimeStatus = useCallback(() => {
-    if (!examInfo?.meta || typeof examInfo.meta !== 'object') {
-      return { hasTimeRestriction: false, isBeforeStart: false, isAfterEnd: false, startAt: null, endAt: null };
-    }
-    const meta = examInfo.meta;
-    let startAt: Date | null = null;
-    let endAt: Date | null = null;
-    const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
-    const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
-    const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
-    if (examDate && startTime) {
-      try { startAt = new Date(`${examDate}T${startTime}:00`); } catch { /* invalid */ }
-    }
-    if (examDate && endTime) {
-      try { endAt = new Date(`${examDate}T${endTime}:00`); } catch { /* invalid */ }
-    }
-    if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
-      try { startAt = new Date(meta.start_at); } catch { /* invalid */ }
-    }
-    if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
-      try { endAt = new Date(meta.end_at); } catch { /* invalid */ }
-    }
+    const startAt = examInfo?.start_at && typeof examInfo.start_at === 'string'
+      ? (() => { try { return new Date(examInfo.start_at); } catch { return null; } })()
+      : null;
+    const endAt = examInfo?.end_at && typeof examInfo.end_at === 'string'
+      ? (() => { try { return new Date(examInfo.end_at); } catch { return null; } })()
+      : null;
     const hasTimeRestriction = startAt !== null || endAt !== null;
     const now = new Date();
     const isBeforeStart = startAt ? now < startAt : false;
     const isAfterEnd = endAt ? now > endAt : false;
     return { hasTimeRestriction, isBeforeStart, isAfterEnd, startAt, endAt };
-  }, [examInfo?.meta]);
+  }, [examInfo?.start_at, examInfo?.end_at]);
   const timeStatus = getExamTimeStatus();
   const canAccessQuestions = !timeStatus.hasTimeRestriction || !timeStatus.isBeforeStart;
 
@@ -113,7 +103,7 @@ export default function TakeExamPage() {
   }, []);
 
   const applyStartExamResponse = useCallback((data: { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> }) => {
-    if (data.questions && data.questions.length > 0) {
+    if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
       setQuestions(mapApiQuestionsToState(data.questions));
     }
     if (data.answers && typeof data.answers === 'object') {
@@ -205,6 +195,21 @@ export default function TakeExamPage() {
     }
   }, [startExamMutation.isError, startExamMutation.error]);
 
+  const flushPendingSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    const p = pendingSaveRef.current;
+    if (p && examId) {
+      pendingSaveRef.current = null;
+      saveAnswerMutation.mutate({
+        examId,
+        data: { exam_question_id: p.questionId, answer: p.answer },
+      });
+    }
+  }, [examId, saveAnswerMutation]);
+
   const handleSubmitClick = useCallback(() => {
     if (!examId || submitted) return;
     setShowSubmitDialog(true);
@@ -214,6 +219,7 @@ export default function TakeExamPage() {
     if (!examId || submitted) return;
 
     setShowSubmitDialog(false);
+    flushPendingSave();
     try {
       const result = await submitExamMutation.mutateAsync(examId);
       setResult(result);
@@ -221,7 +227,7 @@ export default function TakeExamPage() {
     } catch (error) {
       // Error handled by mutation
     }
-  }, [examId, submitted, submitExamMutation]);
+  }, [examId, submitted, submitExamMutation, flushPendingSave]);
 
   const handleAutoSubmit = useCallback(() => {
     if (!submitted && examId) {
@@ -247,33 +253,37 @@ export default function TakeExamPage() {
     }
   }, [timeRemaining, submitted, handleAutoSubmit]);
 
+  useEffect(() => () => flushPendingSave(), [flushPendingSave]);
 
-  const handleAnswerChange = (questionId: number, answer: any) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer,
-    }));
+  const handleAnswerChange = useCallback((questionId: number, answer: any) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
 
-    // Auto-save answer
-    if (examId) {
-      saveAnswerMutation.mutate({
-        examId,
-        data: {
-          exam_question_id: questionId,
-          answer,
-        },
-      });
-    }
-  };
+    if (!examId) return;
+    pendingSaveRef.current = { questionId, answer };
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
+      const p = pendingSaveRef.current;
+      if (p) {
+        pendingSaveRef.current = null;
+        saveAnswerMutation.mutate({
+          examId,
+          data: { exam_question_id: p.questionId, answer: p.answer },
+        });
+      }
+    }, SAVE_DEBOUNCE_MS);
+  }, [examId, saveAnswerMutation]);
 
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
+      flushPendingSave();
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
+      flushPendingSave();
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
@@ -288,6 +298,101 @@ export default function TakeExamPage() {
   // Show start button if user is registered but hasn't started yet
   const isRegistered = examInfo?.is_registered;
   const shouldShowStartButton = isRegistered && (participantStatus === 'registered' || participantStatus === null);
+
+  // Loading exam info
+  if (isLoadingExamInfo || (examId && !examInfo && !examInfoError)) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // Exam info failed to load (e.g. 404 - exam not published)
+  if (examInfoError || (examId && !examInfo)) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Alert severity="error">
+            {examInfoError instanceof Error
+              ? examInfoError.message
+              : 'Failed to load exam information.'}
+            {examInfoError && ' ممکن است آزمون منتشر نشده باشد.'}
+          </Alert>
+          <Button sx={{ mt: 2 }} variant="outlined" onClick={() => router.push('/exams/available')}>
+            بازگشت به لیست آزمون‌ها
+          </Button>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // User not registered - must register first to take the exam
+  if (!examInfo?.is_registered && !examStarted) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={3} alignItems="center">
+                <Typography variant="h5" gutterBottom>
+                  {examInfo?.title || 'آزمون'}
+                </Typography>
+                <Alert severity="warning" sx={{ width: '100%' }}>
+                  <Typography variant="body1" fontWeight="bold" gutterBottom>
+                    شما در این آزمون ثبت‌نام نکرده‌اید
+                  </Typography>
+                  <Typography variant="body2">
+                    برای شرکت در آزمون ابتدا باید ثبت‌نام کنید.
+                  </Typography>
+                </Alert>
+                <Button
+                  variant="contained"
+                  onClick={() => router.push(`/exams/participate/${examId}`)}
+                >
+                  رفتن به صفحه ثبت‌نام
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // If participant was absent (registered but never started when exam ended)
+  if (participantStatus === 'absent') {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={3} alignItems="center">
+                <Typography variant="h5" gutterBottom>
+                  {examInfo?.title || 'آزمون'}
+                </Typography>
+                <Alert severity="error" sx={{ width: '100%' }}>
+                  <Typography variant="body1" fontWeight="bold" gutterBottom>
+                    شما در این آزمون غیبت داشتید
+                  </Typography>
+                  <Typography variant="body2">
+                    شما در این آزمون ثبت‌نام کرده بودید اما تا پایان زمان آزمون آن را شروع نکردید.
+                  </Typography>
+                </Alert>
+                <Button variant="outlined" onClick={() => router.push('/exams/available')}>
+                  بازگشت به آزمون‌های من
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
 
   // If already completed, redirect to result page
   if (participantStatus === 'completed' && examId) {
@@ -334,6 +439,46 @@ export default function TakeExamPage() {
                   onClick={() => router.push(`/exams/participate/${examId}`)}
                 >
                   بازگشت به صفحه ثبت‌نام
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  // Show message if exam time has ended
+  if (timeStatus.hasTimeRestriction && timeStatus.isAfterEnd && timeStatus.endAt) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={3} alignItems="center">
+                <Typography variant="h5" gutterBottom>
+                  {examInfo?.title || 'آزمون'}
+                </Typography>
+                <Alert severity="error" sx={{ width: '100%' }}>
+                  <Typography variant="body1" fontWeight="bold" gutterBottom>
+                    زمان آزمون به پایان رسیده است
+                  </Typography>
+                  <Typography variant="body2">
+                    زمان پایان آزمون: {timeStatus.endAt.toLocaleString('fa-IR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'Asia/Tehran'
+                    })}
+                  </Typography>
+                </Alert>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push('/exams/available')}
+                >
+                  بازگشت به لیست آزمون‌ها
                 </Button>
               </Stack>
             </CardContent>
@@ -511,21 +656,39 @@ export default function TakeExamPage() {
             <Card>
               <CardContent>
                 <Stack spacing={3}>
-                  <Typography variant="h6" gutterBottom>
-                    {currentQuestion.payload.question_text}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                    <Typography variant="h6" gutterBottom sx={{ flex: 1 }}>
+                      {currentQuestion.payload.question_text}
+                    </Typography>
+                    <Chip
+                      icon={
+                        saveAnswerMutation.isPending ? (
+                          <SaveIcon
+                            sx={{
+                              fontSize: 18,
+                              '@keyframes pulse': {
+                                '0%, 100%': { opacity: 1 },
+                                '50%': { opacity: 0.6 },
+                              },
+                              animation: 'pulse 1.2s ease-in-out infinite',
+                            }}
+                          />
+                        ) : (
+                          <CheckCircleIcon sx={{ fontSize: 18 }} />
+                        )
+                      }
+                      label={saveAnswerMutation.isPending ? 'در حال ذخیره...' : 'ذخیره شد'}
+                      color={saveAnswerMutation.isPending ? 'primary' : 'success'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
 
                   <QuestionAnswerInput
                     payload={currentQuestion.payload}
                     value={answers[currentQuestion.id]}
                     onChange={(v) => handleAnswerChange(currentQuestion.id, v)}
                   />
-
-                  {saveAnswerMutation.isPending && (
-                    <Alert severity="info" icon={<SaveIcon />}>
-                      در حال ذخیره پاسخ...
-                    </Alert>
-                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -572,7 +735,10 @@ export default function TakeExamPage() {
                     key={q.id}
                     variant={index === currentQuestionIndex ? 'contained' : 'outlined'}
                     size="small"
-                    onClick={() => setCurrentQuestionIndex(index)}
+                    onClick={() => {
+                      flushPendingSave();
+                      setCurrentQuestionIndex(index);
+                    }}
                     sx={{ minWidth: 40 }}
                   >
                     {index + 1}

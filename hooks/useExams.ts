@@ -247,6 +247,27 @@ export function usePublishExam() {
   });
 }
 
+export function useGenerateExamLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.generateExamLink(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to generate exam link',
+          response as any
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
+    },
+  });
+}
+
 export function useUnpublishExam() {
   const queryClient = useQueryClient();
 

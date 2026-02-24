@@ -38,10 +38,31 @@ export default function AvailableExamsPage() {
     ? (Object.values(examsData) as AvailableExam[])
     : [];
 
+  const getExamEndAt = (exam: AvailableExam): Date | null => {
+    if (exam.exam_end_at) {
+      try { return new Date(exam.exam_end_at); } catch { /* invalid */ }
+    }
+    return null;
+  };
+
+  const getDisplayStatus = (exam: AvailableExam): string => {
+    if (exam.status === 'completed') return 'completed';
+    if (exam.status === 'absent') return 'absent';
+    if (exam.status === 'started') {
+      const endAt = getExamEndAt(exam);
+      if (endAt && new Date() > endAt) return 'time_ended';
+    }
+    return exam.status;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
         return 'success';
+      case 'time_ended':
+        return 'error';
+      case 'absent':
+        return 'error';
       case 'started':
         return 'warning';
       case 'registered':
@@ -55,6 +76,10 @@ export default function AvailableExamsPage() {
     switch (status) {
       case 'completed':
         return 'تکمیل شده';
+      case 'time_ended':
+        return 'زمان به پایان رسیده';
+      case 'absent':
+        return 'غیبت در امتحان';
       case 'started':
         return 'در حال انجام';
       case 'registered':
@@ -68,6 +93,9 @@ export default function AvailableExamsPage() {
     if (status === 'completed') {
       // Show user's own result page
       router.push(`/exams/${examId}/result`);
+    } else if (status === 'absent' || status === 'time_ended') {
+      // Cannot start - exam ended or user was absent
+      router.push(`/exams/take/${examId}`);
     } else {
       // Start or continue exam
       router.push(`/exams/take/${examId}`);
@@ -139,8 +167,8 @@ export default function AvailableExamsPage() {
                           {exam.title}
                         </Typography>
                         <Chip
-                          label={getStatusLabel(exam.status)}
-                          color={getStatusColor(exam.status)}
+                          label={getStatusLabel(getDisplayStatus(exam))}
+                          color={getStatusColor(getDisplayStatus(exam))}
                           size="small"
                         />
                       </Stack>
@@ -168,50 +196,25 @@ export default function AvailableExamsPage() {
                         </Stack>
 
                       {(() => {
-                        // Ensure meta is an object
-                        const meta = exam.meta && typeof exam.meta === 'object' ? exam.meta : {};
-                        const examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
-                        const startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
-                        const endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
-                        
-                        // Fallback to old format
-                        let fallbackDate: string | null = null;
-                        let fallbackStartTime: string | null = null;
-                        let fallbackEndTime: string | null = null;
-                        
-                        if (!examDate && (exam.exam_start_at || (meta.start_at && typeof meta.start_at === 'string'))) {
+                        let finalDate: string | null = null;
+                        let finalStartTime: string | null = null;
+                        let finalEndTime: string | null = null;
+                        if (exam.exam_start_at) {
                           try {
-                            const startAt = new Date(exam.exam_start_at || meta.start_at as string);
-                            fallbackDate = startAt.toISOString().split('T')[0];
-                            fallbackStartTime = startAt.toTimeString().slice(0, 5);
-                          } catch (e) {
-                            // Ignore
-                          }
+                            const startAt = new Date(exam.exam_start_at);
+                            finalDate = startAt.toISOString().split('T')[0];
+                            finalStartTime = startAt.toTimeString().slice(0, 5);
+                          } catch { /* ignore */ }
                         }
-                        
-                        if (!endTime && (exam.exam_end_at || (meta.end_at && typeof meta.end_at === 'string'))) {
+                        if (exam.exam_end_at) {
                           try {
-                            const endAt = new Date(exam.exam_end_at || meta.end_at as string);
-                            fallbackEndTime = endAt.toTimeString().slice(0, 5);
-                          } catch (e) {
-                            // Ignore
-                          }
+                            const endAt = new Date(exam.exam_end_at);
+                            if (!finalDate) finalDate = endAt.toISOString().split('T')[0];
+                            finalEndTime = endAt.toTimeString().slice(0, 5);
+                          } catch { /* ignore */ }
                         }
-                        
-                        const finalDate = examDate || fallbackDate;
-                        const finalStartTime = startTime || fallbackStartTime;
-                        const finalEndTime = endTime || fallbackEndTime;
-                        
-                        // Show if we have at least date or time information
-                        if (!finalDate && !finalStartTime && !finalEndTime) {
-                          return null;
-                        }
-                        
-                        // If we have date from fallback but not from new format, use it
-                        if (!examDate && fallbackDate) {
-                          // Already handled above
-                        }
-                        
+                        if (!finalDate && !finalStartTime && !finalEndTime) return null;
+
                         return (
                           <Stack spacing={0.5}>
                             {finalDate && (

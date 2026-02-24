@@ -105,6 +105,15 @@ export class ExamService {
   }
 
   /**
+   * Generate exam link (لینک شرکت در آزمون) - on demand
+   */
+  async generateExamLink(id: number): Promise<ApiResponse<{ exam_link: string }>> {
+    return this.apiClient.post<{ exam_link: string }>(
+      `/exams/${id}/generate-exam-link`
+    );
+  }
+
+  /**
    * Unpublish exam (change status to draft)
    */
   async unpublishExam(id: number): Promise<ApiResponse<{ id: number; status: string; is_active: boolean }>> {
@@ -334,6 +343,11 @@ export interface ExamListItem {
   title: string;
   type: 'online' | 'offline';
   meta?: Record<string, unknown>;
+  exam_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  start_at?: string | null;
+  end_at?: string | null;
   partner_id: number | null;
   partner?: {
     id: number;
@@ -346,7 +360,9 @@ export interface ExamListItem {
   } | null;
   status: 'published' | 'draft';
   is_active: boolean;
-  completed_at: string | null;
+  published_at: string | null;
+  registration_link: string | null;
+  exam_link: string | null;
   created_at: string;
   updated_at: string;
   questions_count: number;
@@ -394,8 +410,9 @@ export interface ExamWithParticipants {
   } | null;
   status: 'published' | 'draft';
   is_active: boolean;
-  completed_at: string | null;
-  participation_link: string | null;
+  published_at: string | null;
+  registration_link: string | null;
+  exam_link: string | null;
   questions_count: number;
   participants_count: number;
   participants: ExamParticipant[];
@@ -429,7 +446,7 @@ export interface AvailableExam {
   title: string;
   type: 'online' | 'offline';
   meta: Record<string, unknown>;
-  status: 'registered' | 'started' | 'completed';
+  status: 'registered' | 'started' | 'completed' | 'absent';
   registered_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -454,7 +471,7 @@ export interface ExamInfo {
     name: string;
   } | null;
   is_registered: boolean;
-  registration_status: 'registered' | 'started' | 'completed' | null;
+  registration_status: 'registered' | 'started' | 'completed' | 'absent' | null;
   can_start: boolean;
   time_message?: string | null;
 }

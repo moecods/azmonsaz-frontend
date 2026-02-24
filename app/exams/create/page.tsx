@@ -128,17 +128,21 @@ function CreateExamContent() {
 
   const onSubmit = (data: ExamFormData, redirectToQuestions: boolean = false) => {
     const meta = buildExamMeta(data);
-    
+    const baseData = {
+      title: data.title,
+      description: data.description,
+      subject: data.subject,
+      type: data.type,
+      meta,
+      exam_date: data.exam_date ?? undefined,
+      start_time: data.start_time ?? undefined,
+      end_time: data.end_time ?? undefined,
+    };
+
     if (existingExam) {
       updateExamMutation.mutate({
         id: existingExam.id,
-        data: {
-          title: data.title,
-          description: data.description,
-          subject: data.subject,
-          type: data.type,
-          meta,
-        },
+        data: baseData,
       }, {
         onSuccess: (response) => {
           if (redirectToQuestions) {
@@ -153,11 +157,7 @@ function CreateExamContent() {
       });
     } else {
       const examData = {
-        title: data.title,
-        description: data.description,
-        subject: data.subject,
-        type: data.type,
-        meta,
+        ...baseData,
         ...(validationResult.success && deepLinkParams.partner_id && {
           partner_id: parseInt(deepLinkParams.partner_id),
         }),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Box,
@@ -29,7 +30,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam } from '@/hooks/useExams';
+import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam, useGenerateExamLink } from '@/hooks/useExams';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SchoolIcon from '@mui/icons-material/School';
@@ -87,11 +88,13 @@ function ExamDetailContent() {
     severity: 'success',
   });
 
+  const queryClient = useQueryClient();
   const { data: exam, isLoading, error } = useExamWithParticipants(examId);
   const publishExamMutation = usePublishExam();
   const unpublishExamMutation = useUnpublishExam();
   const activateExamMutation = useActivateExam();
   const deactivateExamMutation = useDeactivateExam();
+  const generateExamLinkMutation = useGenerateExamLink();
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -432,13 +435,13 @@ function ExamDetailContent() {
                                 })}
                               </Typography>
                             </Box>
-                            {exam.completed_at ? (
+                            {exam.published_at ? (
                               <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                                 <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                  تاریخ تکمیل
+                                  تاریخ انتشار
                                 </Typography>
                                 <Typography variant="body2" fontWeight="medium">
-                                  {new Date(exam.completed_at).toLocaleDateString('fa-IR', {
+                                  {new Date(exam.published_at).toLocaleDateString('fa-IR', {
                                     year: 'numeric',
                                     month: 'short',
                                     day: 'numeric'
@@ -448,7 +451,7 @@ function ExamDetailContent() {
                             ) : (
                               <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                                 <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                  تاریخ تکمیل
+                                  تاریخ انتشار
                                 </Typography>
                                 <Typography variant="body2" fontWeight="medium" color="text.secondary">
                                   -
@@ -457,16 +460,16 @@ function ExamDetailContent() {
                             )}
                           </Box>
 
-                          {/* Participation Link */}
-                          {exam.participation_link && (
+                          {/* Registration Link (لینک ثبت‌نام آزمون) */}
+                          {exam.registration_link && exam.type === 'online' && (
                             <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                لینک شرکت در آزمون
+                                لینک ثبت‌نام آزمون
                               </Typography>
                               <Button
                                 variant="contained"
                                 component="a"
-                                href={exam.participation_link}
+                                href={exam.registration_link}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 size="small"
@@ -475,6 +478,45 @@ function ExamDetailContent() {
                               >
                                 باز کردن لینک
                               </Button>
+                            </Box>
+                          )}
+
+                          {/* Exam Link (لینک شرکت در آزمون) */}
+                          {exam.type === 'online' && exam.status === 'published' && (
+                            <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                                لینک شرکت در آزمون
+                              </Typography>
+                              {exam.exam_link ? (
+                                <Button
+                                  variant="contained"
+                                  component="a"
+                                  href={exam.exam_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                  fullWidth
+                                >
+                                  باز کردن لینک
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                  fullWidth
+                                  disabled={generateExamLinkMutation.isPending}
+                                  onClick={() => generateExamLinkMutation.mutate(examId!, {
+                                    onSuccess: () => {
+                                      setSnackbar({ open: true, message: 'لینک آزمون تولید شد', severity: 'success' });
+                                      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+                                    },
+                                  })}
+                                >
+                                  {generateExamLinkMutation.isPending ? 'در حال تولید...' : 'تولید لینک آزمون'}
+                                </Button>
+                              )}
                             </Box>
                           )}
                         </Stack>
@@ -548,7 +590,8 @@ function ExamDetailContent() {
                 examId={examId!}
                 participants={exam.participants}
                 groups={exam.groups || []}
-                participationLink={exam.participation_link}
+                registrationLink={exam.registration_link}
+                examLink={exam.exam_link}
                 onSuccess={() => {
                   // Refetch exam data
                   window.location.reload();

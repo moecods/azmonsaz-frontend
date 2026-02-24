@@ -57,57 +57,31 @@ function getExamTimeStatus(exam: ExamListItem): {
   startTime: string | null;
   endTime: string | null;
 } {
-  const meta = exam.meta || {};
-  
-  // Try new format first (date, start_time, end_time)
-  let examDate = meta.date && typeof meta.date === 'string' ? meta.date : null;
-  let startTime = meta.start_time && typeof meta.start_time === 'string' ? meta.start_time : null;
-  let endTime = meta.end_time && typeof meta.end_time === 'string' ? meta.end_time : null;
-  
+  const examWithDates = exam as typeof exam & { exam_date?: string; start_time?: string; end_time?: string; start_at?: string; end_at?: string };
+  let examDate = examWithDates.exam_date ?? null;
+  let startTime = examWithDates.start_time ?? null;
+  let endTime = examWithDates.end_time ?? null;
   let startAt: Date | null = null;
   let endAt: Date | null = null;
-  
+
   if (examDate && startTime) {
-    try {
-      startAt = new Date(`${examDate}T${startTime}:00`);
-    } catch (e) {
-      // Invalid format
-    }
+    try { startAt = new Date(`${examDate}T${startTime}:00`); } catch { /* invalid */ }
   }
-  
   if (examDate && endTime) {
-    try {
-      endAt = new Date(`${examDate}T${endTime}:00`);
-    } catch (e) {
-      // Invalid format
-    }
+    try { endAt = new Date(`${examDate}T${endTime}:00`); } catch { /* invalid */ }
   }
-  
-  // Fallback to old format (start_at, end_at) for backward compatibility
-  if (!startAt && meta.start_at && typeof meta.start_at === 'string') {
+  if (!startAt && examWithDates.start_at) {
     try {
-      startAt = new Date(meta.start_at);
-      // Extract date and time from old format
-      if (!examDate) {
-        examDate = startAt.toISOString().split('T')[0];
-      }
-      if (!startTime) {
-        startTime = startAt.toTimeString().slice(0, 5);
-      }
-    } catch (e) {
-      // Invalid format
-    }
+      startAt = new Date(examWithDates.start_at);
+      if (!examDate) examDate = startAt.toISOString().split('T')[0];
+      if (!startTime) startTime = startAt.toTimeString().slice(0, 5);
+    } catch { /* invalid */ }
   }
-  
-  if (!endAt && meta.end_at && typeof meta.end_at === 'string') {
+  if (!endAt && examWithDates.end_at) {
     try {
-      endAt = new Date(meta.end_at);
-      if (!endTime) {
-        endTime = endAt.toTimeString().slice(0, 5);
-      }
-    } catch (e) {
-      // Invalid format
-    }
+      endAt = new Date(examWithDates.end_at);
+      if (!endTime) endTime = endAt.toTimeString().slice(0, 5);
+    } catch { /* invalid */ }
   }
   
   const hasTimeRestriction = startAt !== null || endAt !== null;

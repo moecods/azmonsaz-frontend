@@ -26,6 +26,7 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
+  TextField,
 } from '@mui/material';
 import {
   DndContext,
@@ -45,17 +46,17 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useExam, useAddQuestionToExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/useExams';
-import { ExamWithParticipants } from '@/services/exams/ExamService';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
+import EditIcon from '@mui/icons-material/Edit';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
 import AddQuestionFromBank from '@/components/questions/AddQuestionFromBank';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
-import { ExamQuestion } from '@/types';
+import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
 import {
   getQuestionText,
@@ -70,11 +71,37 @@ import { handleError, getErrorMessage } from '@/lib/error-handler';
 interface SortableQuestionItemProps {
   question: ExamQuestion;
   index: number;
+  defaultPoints: number;
   onDelete: (questionId: number) => void;
+  onUpdatePoints: (question: ExamQuestion, points: number) => void;
   isDeleting: boolean;
+  isUpdating: boolean;
 }
 
-const SortableQuestionItem = memo(function SortableQuestionItem({ question, index, onDelete, isDeleting }: SortableQuestionItemProps) {
+const SortableQuestionItem = memo(function SortableQuestionItem({
+  question,
+  index,
+  defaultPoints,
+  onDelete,
+  onUpdatePoints,
+  isDeleting,
+  isUpdating,
+}: SortableQuestionItemProps) {
+  const points = (question.payload?.points as number) ?? defaultPoints;
+  const [pointsValue, setPointsValue] = useState<string>(String(points));
+
+  useEffect(() => {
+    setPointsValue(String(points));
+  }, [points]);
+
+  const handlePointsBlur = () => {
+    const val = parseInt(pointsValue, 10);
+    if (!Number.isNaN(val) && val >= 1 && val !== points) {
+      onUpdatePoints(question, val);
+    } else if (Number.isNaN(val) || val < 1) {
+      setPointsValue(String(points));
+    }
+  };
   const {
     attributes,
     listeners,
@@ -144,23 +171,53 @@ const SortableQuestionItem = memo(function SortableQuestionItem({ question, inde
                     size="small"
                     variant="outlined"
                   />
+                  <Tooltip title="بارم سوال">
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={pointsValue}
+                      onChange={(e) => setPointsValue(e.target.value)}
+                      onBlur={handlePointsBlur}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      disabled={isUpdating}
+                      inputProps={{ min: 1, max: 100 }}
+                      sx={{
+                        width: 48,
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 1,
+                          height: 40,
+                          backgroundColor: 'action.hover',
+                          '& fieldset': { borderColor: 'divider' },
+                          '&:hover fieldset': { borderColor: 'primary.main' },
+                          '&.Mui-focused fieldset': { borderWidth: 2 },
+                        },
+                        '& .MuiInputBase-input': {
+                          textAlign: 'center',
+                          py: 0.5,
+                          px: 0.5,
+                          fontSize: '0.875rem',
+                        },
+                      }}
+                    />
+                  </Tooltip>
                 </Stack>
                 <Typography variant="body1" fontWeight="medium">
                   {questionText}
                 </Typography>
               </Box>
             </Stack>
-            <Tooltip title="حذف سوال">
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => onDelete(question.id)}
-                disabled={isDeleting}
-                sx={{ ml: 1 }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
+            <Stack direction="row" spacing={0.5}>
+              <Tooltip title="حذف سوال">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => onDelete(question.id)}
+                  disabled={isDeleting}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
           </Stack>
 
           {options.length > 0 && (
@@ -237,22 +294,20 @@ function ExamQuestionsContent() {
   useEffect(() => {
     if (examWithQuestions) {
       // Backend returns exam_questions (not questions) in ExamDTO
-      const examWithParticipants = examWithQuestions as ExamWithParticipants;
-      const examQuestionsData = examWithParticipants.exam_questions || examWithParticipants.questions || [];
+      const examData = examWithQuestions as { exam_questions?: Array<{ id: number; question_id?: number; payload?: Record<string, unknown>; created_at?: string; updated_at?: string; question?: unknown }>; questions?: unknown[] };
+      const examQuestionsData = (examData.exam_questions || examData.questions || []) as Array<{ id: number; question_id?: number; payload?: Record<string, unknown>; created_at?: string; updated_at?: string; question?: unknown }>;
       
-      if (Array.isArray(examQuestionsData) && examQuestionsData.length > 0) {
+      if (examQuestionsData.length > 0) {
         // Map exam_questions to ExamQuestion format
         const mappedQuestions: ExamQuestion[] = examQuestionsData.map((eq) => ({
           id: eq.id,
           exam_id: examId || 0,
-          question_id: eq.question_id || null,
+          question_id: eq.question_id ?? undefined,
           payload: eq.payload || {},
-          order: eq.payload?.order || eq.id,
+          order: (typeof eq.payload?.order === 'number' ? eq.payload.order : eq.id) as number,
           created_at: eq.created_at || new Date().toISOString(),
           updated_at: eq.updated_at || new Date().toISOString(),
-          // If question_id exists, we might need to load the question object
-          // For now, we'll use payload for display
-          question: eq.question || null,
+          question: eq.question ? (eq.question as Question) : undefined,
         }));
         
         const sorted = sortQuestionsByOrder(mappedQuestions);
@@ -370,13 +425,16 @@ function ExamQuestionsContent() {
     }
   }, [questions, examId, updateQuestionMutation]);
 
+  const defaultPoints = (examWithQuestions as { meta?: { points_per_question?: number } })?.meta?.points_per_question ?? 10;
+
   const handleAddQuestion = useCallback((question: ExamQuestion) => {
     if (!examId) return;
     
     const nextOrder = questions.length + 1;
+    const points = defaultPoints;
     
     if (question.question_id) {
-      const payload = buildBankQuestionPayload(nextOrder);
+      const payload = buildBankQuestionPayload(nextOrder, points);
       addQuestionMutation.mutate(
         { 
           examId, 
@@ -401,7 +459,7 @@ function ExamQuestionsContent() {
         }
       );
     } else {
-      const payload = buildCustomQuestionPayload(question, nextOrder);
+      const payload = buildCustomQuestionPayload(question, nextOrder, points);
       addQuestionMutation.mutate(
         { 
           examId, 
@@ -427,7 +485,7 @@ function ExamQuestionsContent() {
       );
     }
     setMobileDrawerOpen(false);
-  }, [examId, questions.length, addQuestionMutation]);
+  }, [examId, questions.length, addQuestionMutation, defaultPoints]);
 
   const handleDeleteQuestion = useCallback((questionId: number) => {
     const question = questions.find((q) => q.id === questionId);
@@ -436,6 +494,50 @@ function ExamQuestionsContent() {
       setDeleteDialogOpen(true);
     }
   }, [questions]);
+
+  const handleUpdatePoints = useCallback(
+    (question: ExamQuestion, points: number) => {
+      if (!examId) return;
+      updateQuestionMutation.mutate(
+        {
+          examId,
+          questionId: question.id,
+          data: {
+            payload: {
+              ...question.payload,
+              order: question.payload?.order ?? question.order,
+              points,
+            },
+          },
+        },
+        {
+          onSuccess: () => {
+            setQuestions((prev) =>
+              prev.map((q) =>
+                q.id === question.id
+                  ? { ...q, payload: { ...q.payload, points } }
+                  : q
+              )
+            );
+            setSnackbar({
+              open: true,
+              message: 'بارم سوال با موفقیت به‌روزرسانی شد',
+              severity: 'success',
+            });
+          },
+          onError: (error) => {
+            handleError(error, { context: 'Update Question Points' });
+            setSnackbar({
+              open: true,
+              message: getErrorMessage(error, 'خطا در به‌روزرسانی بارم'),
+              severity: 'error',
+            });
+          },
+        }
+      );
+    },
+    [examId, updateQuestionMutation]
+  );
 
   const confirmDeleteQuestion = useCallback(() => {
     if (!examId || !questionToDelete) return;
@@ -514,7 +616,7 @@ function ExamQuestionsContent() {
         <Divider />
         <Stack spacing={2}>
           <AddQuestionFromBank onAddQuestion={handleAddQuestion} />
-          <CreateCustomQuestion examId={examId} />
+          <CreateCustomQuestion examId={examId ?? undefined} />
         </Stack>
       </Stack>
     </Paper>
@@ -638,8 +740,11 @@ function ExamQuestionsContent() {
                             key={question.id}
                             question={question}
                             index={index}
+                            defaultPoints={defaultPoints}
                             onDelete={handleDeleteQuestion}
+                            onUpdatePoints={handleUpdatePoints}
                             isDeleting={deleteQuestionMutation.isPending}
+                            isUpdating={updateQuestionMutation.isPending}
                           />
                         ))}
                       </SortableContext>

@@ -122,7 +122,8 @@ interface ParticipantManagementProps {
       } | null;
     }>;
   }>;
-  participationLink?: string | null;
+  registrationLink?: string | null;
+  examLink?: string | null;
   onSuccess?: () => void;
 }
 
@@ -130,7 +131,8 @@ export default function ParticipantManagement({
   examId,
   participants,
   groups = [],
-  participationLink,
+  registrationLink,
+  examLink,
   onSuccess,
 }: ParticipantManagementProps) {
   const [tabValue, setTabValue] = useState(0);
@@ -382,12 +384,23 @@ export default function ParticipantManagement({
 
   const existingParticipantIds = new Set(participants.map((p) => p.user?.id).filter(Boolean));
 
-  const handleCopyLink = () => {
-    if (participationLink) {
-      navigator.clipboard.writeText(participationLink);
+  const handleCopyRegistrationLink = () => {
+    if (registrationLink) {
+      navigator.clipboard.writeText(registrationLink);
       setAlert({
         open: true,
-        message: 'لینک با موفقیت کپی شد',
+        message: 'لینک ثبت‌نام کپی شد',
+        severity: 'success',
+      });
+    }
+  };
+
+  const handleCopyExamLink = () => {
+    if (examLink) {
+      navigator.clipboard.writeText(examLink);
+      setAlert({
+        open: true,
+        message: 'لینک آزمون کپی شد',
         severity: 'success',
       });
     }
@@ -400,7 +413,7 @@ export default function ParticipantManagement({
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="لینک شرکت در آزمون" icon={<LinkIcon />} iconPosition="start" />
+              <Tab label="لینک‌های آزمون" icon={<LinkIcon />} iconPosition="start" />
               <Tab label="گروه‌ها" icon={<GroupIcon />} iconPosition="start" />
               <Tab label="شماره تلفن" icon={<PhoneIcon />} iconPosition="start" />
               <Tab label="کد ملی" icon={<BadgeIcon />} iconPosition="start" />
@@ -408,35 +421,70 @@ export default function ParticipantManagement({
             </Tabs>
           </Box>
 
-          {/* Participation Link Tab */}
+          {/* Links Tab */}
           <TabPanel value={tabValue} index={0}>
             <CardContent>
-              {participationLink ? (
-                <Stack spacing={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    این لینک را برای شرکت‌کنندگان ارسال کنید. با کلیک روی این لینک، افراد می‌توانند خودشان ثبت‌نام کنند.
-                    در صورت عدم ثبت‌نام در سایت، به صورت خودکار ثبت‌نام می‌شوند.
+              <Stack spacing={3}>
+                {/* Registration Link */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    لینک ثبت‌نام آزمون
                   </Typography>
-                  <TextField
-                    value={participationLink}
-                    fullWidth
-                    InputProps={{
-                      readOnly: true,
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={handleCopyLink} edge="end">
-                            <ContentCopyIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Stack>
-              ) : (
-                <Alert severity="info">
-                  لینک شرکت در آزمون هنوز ایجاد نشده است.
-                </Alert>
-              )}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    این لینک را برای افرادی که می‌خواهید در آزمون شرکت کنند ارسال کنید. با کلیک روی این لینک، افراد به عنوان شرکت‌کننده ثبت‌نام می‌شوند.
+                  </Typography>
+                  {registrationLink ? (
+                    <TextField
+                      value={registrationLink}
+                      fullWidth
+                      size="small"
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={handleCopyRegistrationLink} edge="end">
+                              <ContentCopyIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    <Alert severity="info">لینک ثبت‌نام پس از انتشار آزمون ایجاد می‌شود.</Alert>
+                  )}
+                </Box>
+                <Divider />
+                {/* Exam Link */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    لینک شرکت در آزمون
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    این لینک را فقط به شرکت‌کنندگانی که قبلاً ثبت‌نام کرده‌اند ارسال کنید. با این لینک مستقیماً وارد آزمون می‌شوند.
+                  </Typography>
+                  {examLink ? (
+                    <TextField
+                      value={examLink}
+                      fullWidth
+                      size="small"
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={handleCopyExamLink} edge="end">
+                              <ContentCopyIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    <Alert severity="info">
+                      لینک شرکت در آزمون از صفحه اطلاعات آزمون با دکمه «تولید لینک آزمون» ایجاد می‌شود.
+                    </Alert>
+                  )}
+                </Box>
+              </Stack>
             </CardContent>
           </TabPanel>
 
@@ -729,6 +777,8 @@ export default function ParticipantManagement({
                                 color={participant.passed ? 'success' : 'error'}
                               size="small"
                               />
+                            ) : participant.status === 'absent' ? (
+                              <Chip label="غیبت در امتحان" color="error" size="small" />
                             ) : participant.started_at ? (
                               <Chip label="در حال انجام" color="warning" size="small" />
                             ) : (
@@ -850,6 +900,8 @@ export default function ParticipantManagement({
                                                 color={participant.passed ? 'success' : 'error'}
                                                 size="small"
                                               />
+                                            ) : participant.status === 'absent' ? (
+                                              <Chip label="غیبت در امتحان" color="error" size="small" />
                                             ) : participant.started_at ? (
                                               <Chip label="در حال انجام" color="warning" size="small" />
                                             ) : (
@@ -940,6 +992,8 @@ export default function ParticipantManagement({
                                 color={participant.passed ? 'success' : 'error'}
                                 size="small"
                               />
+                                          ) : participant.status === 'absent' ? (
+                              <Chip label="غیبت در امتحان" color="error" size="small" />
                                           ) : participant.started_at ? (
                               <Chip label="در حال انجام" color="warning" size="small" />
                                           ) : (

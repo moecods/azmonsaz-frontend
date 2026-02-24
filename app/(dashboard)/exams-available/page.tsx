@@ -43,6 +43,8 @@ export default function AvailableExamsPage() {
         return 'warning';
       case 'registered':
         return 'info';
+      case 'absent':
+        return 'error';
       default:
         return 'default';
     }
@@ -56,6 +58,8 @@ export default function AvailableExamsPage() {
         return 'در حال انجام';
       case 'registered':
         return 'ثبت‌نام شده';
+      case 'absent':
+        return 'غیبت در امتحان';
       default:
         return status;
     }

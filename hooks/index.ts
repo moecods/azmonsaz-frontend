@@ -10,4 +10,6 @@ export * from './useExams';
 export * from './useUsers';
 export * from './usePartners';
 export * from './useQuestionManagement';
+export * from './useQuestionForm';
+export * from './useQuestionSubmit';
 
