@@ -17,7 +17,7 @@ import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/hooks';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
 const getAuthHeader = () => ({
   Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
@@ -38,7 +38,7 @@ export default function SubscriptionPage() {
     setLoading(planId);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/subscriptions/checkout`, {
+      const res = await fetch(`${API_URL}/subscriptions/checkout`, {
         method: 'POST',
         headers: getAuthHeader(),
         body: JSON.stringify({ plan: planId }),

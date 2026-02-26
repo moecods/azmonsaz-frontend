@@ -1,8 +1,15 @@
 "use client";
 
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { isEssay } from '@/lib/question-types';
 import type { PrintHeaderOverrides } from '@/components/ExamPrintView';
+
+const EN_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
+function toPersianDigits(n: number | string): string {
+  return String(n).split('').map((c) => (EN_DIGITS.includes(c) ? FA_DIGITS[EN_DIGITS.indexOf(c)] : c)).join('');
+}
 
 interface Exam {
   id: number;
@@ -69,10 +76,10 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
         }}
       >
         <Box sx={{ width: '30%', borderRight: '1px solid #000', pl: 1.25 }}>
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام:</Box>
-          <Box sx={{ mb: 1, minHeight: '10px' }} />
-          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام خانوادگی:</Box>
-          <Box sx={{ mb: 1, minHeight: '10px' }} />
+          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام: {headerOverrides?.studentFirstName ?? ''}</Box>
+          <Box sx={{ mb: 1, minHeight: '10px' }}></Box>
+          <Box component="label" sx={{ display: 'block', mb: 1, fontSize: '10pt' }}>نام خانوادگی: {headerOverrides?.studentLastName ?? ''}</Box>
+          <Box sx={{ mb: 1, minHeight: '10px' }}></Box>
           <Box sx={{ mb: 1.5, fontSize: '10pt' }}>
             کلاس: <Box component="span" sx={{  px: 0.5 }}>{headerOverrides?.className ?? ''}</Box>
           </Box>
@@ -134,6 +141,9 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
             textAlign: 'center',
             verticalAlign: 'top',
           },
+          '& td:first-of-type, & td:last-of-type': {
+            verticalAlign: 'middle',
+          },
           '& th': {
             background: '#f0f0f0',
             fontWeight: 'bold',
@@ -155,14 +165,13 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
             const questionText = payload.question_text || 'سوال';
             const questionType = payload.type || 'multiple_choice';
             const isEssayType = isEssay(questionType);
-            const typeLabel = getQuestionTypeLabel(questionType);
             const questionNumber = index + 1;
-            const points = payload.points ?? exam.meta?.points_per_question ?? 2;
+            const points = payload.points ?? (exam as { points_per_question?: number }).points_per_question ?? (exam.meta as { points_per_question?: number })?.points_per_question ?? 2;
 
             return (
               <TableRow key={examQuestion.id}>
-                <TableCell sx={{ fontWeight: 'bold', fontSize: '12pt' }}>
-                  {questionNumber}
+                <TableCell sx={{ fontWeight: 'bold', fontSize: '12pt', verticalAlign: 'middle' }}>
+                  {toPersianDigits(questionNumber)}
                 </TableCell>
                 <TableCell sx={{ textAlign: 'right', padding: 2 }}>
                   <Box sx={{ mb: 2 }}>
@@ -218,9 +227,9 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ fontSize: '14pt', fontWeight: 'bold' }}>
+                <TableCell sx={{ fontSize: '14pt', fontWeight: 'bold', verticalAlign: 'middle' }}>
                   <Box sx={{ borderTop: '1px solid #000', paddingTop: 0.6 }}>
-                    {points}
+                    {toPersianDigits(points)}
                   </Box>
                 </TableCell>
               </TableRow>

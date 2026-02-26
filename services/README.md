@@ -129,17 +129,9 @@ API Client به صورت خودکار failed requests را retry می‌کند:
 - Automatic token injection در headers
 - Automatic redirect به login در صورت 401
 
-## Migration از api.ts قدیمی
+## Migration (lib/api.ts removed)
 
-### قبل:
-
-```typescript
-import { apiClient } from '@/lib/api';
-
-const response = await apiClient.getQuestions({ page: 1 });
-```
-
-### بعد:
+### Use services instead:
 
 ```typescript
 import { questionService } from '@/services';

@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/hooks';
 
-// Mock dependencies
+// Mock dependencies (UserSidebar is rendered in 403 state and needs usePathname)
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 vi.mock('@/hooks', () => ({
@@ -19,7 +21,7 @@ describe('ProtectedRoute', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as any).mockReturnValue({
+    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
       replace: mockReplace,
     });
@@ -33,6 +35,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Test User',
         roles: ['admin'],
+        permissions: ['manage users'],
       },
     });
 
@@ -73,6 +76,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Test User',
         roles: ['creator'],
+        permissions: ['view exams'],
       },
     });
 
@@ -138,6 +142,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Admin User',
         roles: ['admin'],
+        permissions: ['manage users'],
       },
     });
 
@@ -160,6 +165,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Content Manager',
         roles: ['content_manager'],
+        permissions: ['manage questions'],
       },
     });
 
@@ -182,6 +188,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Creator',
         roles: ['creator'],
+        permissions: ['view exams'],
       },
     });
 
@@ -204,6 +211,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Creator',
         roles: ['creator'],
+        permissions: ['view exams'],
       },
     });
 
@@ -229,6 +237,7 @@ describe('ProtectedRoute', () => {
         id: 1,
         name: 'Content Manager',
         roles: ['content_manager'],
+        permissions: ['manage questions'],
       },
     });
 

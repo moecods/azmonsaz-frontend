@@ -32,6 +32,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Admin',
         roles: ['admin'],
+        permissions: ['view exams', 'create exams', 'manage questions', 'manage users'],
       },
     });
 
@@ -50,6 +51,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Content Manager',
         roles: ['content_manager'],
+        permissions: ['manage questions'],
       },
     });
 
@@ -69,6 +71,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Creator',
         roles: ['creator'],
+        permissions: ['view exams', 'create exams', 'manage questions'],
       },
     });
 
@@ -88,6 +91,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Creator',
         roles: ['creator'],
+        permissions: ['view exams', 'create exams'],
       },
     });
 
@@ -103,6 +107,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Admin',
         roles: ['admin'],
+        permissions: ['manage users'],
       },
     });
 
@@ -117,6 +122,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
         id: 1,
         name: 'Content Manager',
         roles: ['content_manager'],
+        permissions: ['manage questions'],
       },
     });
 

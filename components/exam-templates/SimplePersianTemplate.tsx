@@ -2,28 +2,21 @@
 
 import { Box, Typography } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import type { Exam } from '@/types';
 
-interface Exam {
-  id: number;
-  title: string;
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    instructions?: string;
-    points_per_question?: number;
-  };
-  exam_questions?: Array<{
-    id: number;
-    payload?: any;
-  }>;
+interface ExamWithPayload extends Exam {
+  exam_questions?: Array<{ id: number; payload?: any }>;
 }
 
 interface SimplePersianTemplateProps {
-  exam: Exam;
+  exam: ExamWithPayload;
 }
 
 export default function SimplePersianTemplate({ exam }: SimplePersianTemplateProps) {
   const persianLabels = ['الف', 'ب', 'ج', 'د', 'ه', 'و'];
+  const instructions = getExamInstructions(exam);
+  const pointsPerQuestion = getExamPointsPerQuestion(exam);
 
   return (
     <Box
@@ -84,7 +77,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
         </Box>
       </Box>
 
-      {exam.meta?.instructions && (
+      {instructions && (
         <Box
           sx={{
             background: '#f5f5f5',
@@ -95,7 +88,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
             borderRadius: '3px',
           }}
         >
-          <strong>دستورالعمل:</strong> {exam.meta.instructions.split('\n').map((line, i) => (
+          <strong>دستورالعمل:</strong> {instructions.split('\n').map((line, i) => (
             <span key={i}>{line}<br /></span>
           ))}
         </Box>
@@ -108,7 +101,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
-        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
+        const points = payload.points ?? pointsPerQuestion ?? 2;
 
         return (
           <Box

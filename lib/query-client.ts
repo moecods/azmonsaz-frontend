@@ -50,4 +50,8 @@ export const queryKeys = {
   
   // Auth queries
   me: () => ['auth', 'me'] as const,
+
+  // Notifications
+  notifications: (params?: Record<string, unknown>) => ['notifications', params] as const,
+  examNotifications: (examId: number) => ['exams', examId, 'notifications'] as const,
 } as const;

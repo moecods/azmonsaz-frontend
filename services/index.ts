@@ -12,6 +12,7 @@ import { ExamService } from './exams/ExamService';
 import { UserService } from './users/UserService';
 import { PartnerService } from './partners/PartnerService';
 import { GroupService } from './groups/GroupService';
+import { NotificationService } from './notifications/NotificationService';
 
 // Base API URL
 const API_BASE_URL =
@@ -41,6 +42,7 @@ export const examService = new ExamService(apiClient);
 export const userService = new UserService(apiClient);
 export const partnerService = new PartnerService(apiClient);
 export const groupService = new GroupService(apiClient);
+export const notificationService = new NotificationService(apiClient);
 
 // Export service classes for custom instances if needed
 export { AuthService } from './auth/AuthService';
@@ -49,6 +51,7 @@ export { ExamService } from './exams/ExamService';
 export { UserService } from './users/UserService';
 export { PartnerService } from './partners/PartnerService';
 export { GroupService, type Group, type CreateGroupRequest, type UpdateGroupRequest } from './groups/GroupService';
+export { NotificationService, type Notification, type NotificationsResponse, type ExamNotificationLog } from './notifications/NotificationService';
 
 // Export API client and error types
 export { ApiClient, ApiError, type RequestConfig } from './api/ApiClient';

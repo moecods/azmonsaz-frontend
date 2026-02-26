@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useDebounce } from '@/hooks/useDebounce';
 
 describe('useDebounce', () => {
@@ -17,7 +17,7 @@ describe('useDebounce', () => {
     expect(result.current).toBe('test');
   });
 
-  it('should debounce value changes', async () => {
+  it('should debounce value changes', () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 300),
       {
@@ -35,10 +35,7 @@ describe('useDebounce', () => {
     act(() => {
       vi.advanceTimersByTime(300);
     });
-
-    await waitFor(() => {
-      expect(result.current).toBe('updated');
-    });
+    expect(result.current).toBe('updated');
   });
 
   it('should use default delay of 300ms', () => {
@@ -70,12 +67,20 @@ describe('useDebounce', () => {
 
     act(() => {
       rerender({ value: 'update1' });
+    });
+    act(() => {
       vi.advanceTimersByTime(100);
-
+    });
+    act(() => {
       rerender({ value: 'update2' });
+    });
+    act(() => {
       vi.advanceTimersByTime(100);
-
+    });
+    act(() => {
       rerender({ value: 'update3' });
+    });
+    act(() => {
       vi.advanceTimersByTime(300);
     });
 

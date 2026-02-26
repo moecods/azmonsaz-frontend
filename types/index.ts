@@ -132,7 +132,13 @@ export interface Exam {
   status: ExamStatus;
   is_active: boolean;
   pdf_url?: string;
+  /** @deprecated Use flat fields (duration_minutes, passing_score, etc.). Kept for backward compat. */
   meta?: ExamMeta;
+  duration_minutes?: number | null;
+  passing_score?: number | null;
+  instructions?: string | null;
+  tags?: string[] | null;
+  points_per_question?: number;
   exam_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
@@ -145,7 +151,6 @@ export type ExamStatus = 'draft' | 'published';
 export interface ExamMeta {
   duration_minutes?: number;
   passing_score?: number;
-  max_attempts?: number;
   instructions?: string;
   tags?: string[];
   // New format

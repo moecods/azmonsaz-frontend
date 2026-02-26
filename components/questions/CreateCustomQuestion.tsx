@@ -15,7 +15,7 @@ export default function CreateCustomQuestion({ examId }: CreateCustomQuestionPro
     const params = new URLSearchParams();
     if (examId) {
       params.set('exam_id', examId.toString());
-      params.set('return_url', `/exams/${examId}?tab=questions`);
+      params.set('return_url', `/exams/${examId}/questions`);
     }
     router.push(`/questions/create?${params.toString()}`);
   };

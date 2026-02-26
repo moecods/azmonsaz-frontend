@@ -2,16 +2,10 @@
 
 import { Box, Typography, Chip } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import type { Exam } from '@/types';
 
-interface Exam {
-  id: number;
-  title: string;
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    instructions?: string;
-    points_per_question?: number;
-  };
+interface ExamWithPayload extends Exam {
   exam_questions?: Array<{
     id: number;
     payload?: any;
@@ -19,10 +13,14 @@ interface Exam {
 }
 
 interface DefaultTemplateProps {
-  exam: Exam;
+  exam: ExamWithPayload;
 }
 
 export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
+  const durationMinutes = getExamDurationMinutes(exam);
+  const passingScore = getExamPassingScore(exam);
+  const instructions = getExamInstructions(exam);
+  const pointsPerQuestion = getExamPointsPerQuestion(exam);
   return (
     <Box
       sx={{
@@ -86,7 +84,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
             {exam.title}
           </Typography>
 
-          {exam.meta?.duration_minutes && (
+          {durationMinutes != null && (
             <Box
               sx={{
                 display: 'flex',
@@ -98,12 +96,12 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                 <span>⏱</span>
-                <span>زمان: {exam.meta.duration_minutes} دقیقه</span>
+                <span>زمان: {durationMinutes} دقیقه</span>
               </Box>
-              {exam.meta?.passing_score && (
+              {passingScore != null && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                   <span>✓</span>
-                  <span>نمره قبولی: {exam.meta.passing_score}%</span>
+                  <span>نمره قبولی: {passingScore}%</span>
                 </Box>
               )}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
@@ -114,7 +112,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
           )}
         </Box>
 
-        {exam.meta?.instructions && (
+        {instructions && (
           <Box
             sx={{
               background: '#E3F2FD',
@@ -128,7 +126,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
               📋 دستورالعمل آزمون:
             </Typography>
             <Typography variant="body2">
-              {exam.meta.instructions.split('\n').map((line, i) => (
+              {instructions.split('\n').map((line, i) => (
                 <span key={i}>{line}<br /></span>
               ))}
             </Typography>
@@ -142,7 +140,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
           const isEssayType = isEssay(questionType);
           const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
-          const points = payload.points ?? exam.meta?.points_per_question ?? 2;
+          const points = payload.points ?? pointsPerQuestion ?? 2;
 
           return (
             <Box
@@ -190,7 +188,7 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                       color: '#212121',
                     }}
                   >
-                    {questionText.split('\n').map((line, i) => (
+                    {questionText.split('\n').map((line: string, i: number) => (
                       <span key={i}>{line}<br /></span>
                     ))}
                   </Typography>

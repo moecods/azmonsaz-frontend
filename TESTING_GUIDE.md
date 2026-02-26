@@ -189,9 +189,9 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock کردن API calls
-vi.mock('@/lib/api', () => ({
-  apiClient: {
+// Mock API services (e.g. questionService from '@/services')
+vi.mock('@/services', () => ({
+  questionService: {
     getQuestions: vi.fn(),
   },
 }));

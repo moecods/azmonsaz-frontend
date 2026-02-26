@@ -54,6 +54,10 @@ body {
 
 /* چاپ: فقط محتوای برگه امتحان — نوبار و بقیهٔ سایت مخفی */
 @media print {
+  /* حاشیهٔ بالا روی همهٔ صفحات (بعضی مرورگرها فقط صفحهٔ اول را رعایت می‌کنند اگر فقط از JS ست شود) */
+  @page {
+    margin-top: 12mm !important;
+  }
   html,
   body {
     margin: 0 !important;
@@ -62,19 +66,21 @@ body {
   body * {
     visibility: hidden;
   }
+  .exam-print-root,
+  .exam-print-root *,
   .exam-print-content,
   .exam-print-content *,
   .exam-print-footer,
   .exam-print-footer * {
     visibility: visible;
   }
+  /* بدون position:absolute تا حاشیهٔ @page روی همهٔ صفحات (از جمله صفحهٔ ۲ به بعد) اعمال شود */
   .exam-print-content {
-    position: absolute;
-    left: 0;
-    top: 0;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   /* در چاپ محتوای قالب عرض کامل صفحه را پر کند (نه ستون باریک) */
   .exam-print-content > * {
@@ -92,10 +98,6 @@ body {
   .exam-print-content * {
     box-shadow: none !important;
     text-shadow: none !important;
-  }
-  .exam-print-content {
-    margin: 0 !important;
-    padding: 0 !important;
   }
   .exam-print-content [class*="MuiBox-root"],
   .exam-print-content [class*="MuiPaper-root"] {
@@ -128,4 +130,33 @@ body {
 
 .exam-print-footer {
   display: none;
+}
+.exam-print-footer-preview {
+  display: flex !important;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 16px;
+  color: #666;
+  border-top: 1px solid #ddd;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+.exam-print-footer-preview .footer-counters {
+  display: none;
+}
+.exam-print-footer-preview .footer-estimate {
+  display: inline;
+}
+@media print {
+  .exam-print-footer-preview .footer-estimate {
+    display: none !important;
+  }
+  .exam-print-footer-preview .footer-counters {
+    display: inline !important;
+  }
 }

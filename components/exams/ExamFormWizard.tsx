@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -16,7 +16,6 @@ import { UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
 import { BasicInfoStep, ExamSettingsStep, SchedulingStep } from './ExamFormSteps';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import SaveIcon from '@mui/icons-material/Save';
 
 interface ExamFormWizardProps {
   form: UseFormReturn<ExamFormData>;
@@ -25,30 +24,22 @@ interface ExamFormWizardProps {
   existingExam?: boolean;
 }
 
-const AUTO_SAVE_KEY = 'exam_form_autosave';
-
 export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: ExamFormWizardProps) {
   const [showPreview, setShowPreview] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const { handleSubmit, watch, setValue } = form;
-  const hasLoadedRef = useRef(false);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Watch specific fields instead of all form data to avoid infinite loops
+  const { handleSubmit, watch } = form;
+
   const title = watch('title');
   const description = watch('description');
   const subject = watch('subject');
   const type = watch('type');
   const duration_minutes = watch('duration_minutes');
   const passing_score = watch('passing_score');
-  const max_attempts = watch('max_attempts');
   const instructions = watch('instructions');
   const tags = watch('tags');
   const exam_date = watch('exam_date');
   const start_time = watch('start_time');
   const end_time = watch('end_time');
 
-  // Memoize form data for preview
   const formData = useMemo(() => ({
     title,
     description,
@@ -56,127 +47,17 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
     type,
     duration_minutes,
     passing_score,
-    max_attempts,
     instructions,
     tags,
     exam_date,
     start_time,
     end_time,
-  }), [title, description, subject, type, duration_minutes, passing_score, max_attempts, instructions, tags, exam_date, start_time, end_time]);
-
-  // Load auto-saved data on mount (only once)
-  useEffect(() => {
-    if (!existingExam && typeof window !== 'undefined' && !hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      const saved = localStorage.getItem(AUTO_SAVE_KEY);
-      if (saved) {
-        try {
-          const savedData = JSON.parse(saved);
-          // Only load if saved within last 24 hours
-          if (savedData.savedAt) {
-          const savedAt = new Date(savedData.savedAt);
-          const hoursSinceSave = (Date.now() - savedAt.getTime()) / (1000 * 60 * 60);
-          if (hoursSinceSave < 24) {
-            Object.keys(savedData).forEach((key) => {
-              if (key !== 'savedAt' && savedData[key] !== undefined) {
-                  setValue(key as keyof ExamFormData, savedData[key], { shouldDirty: false });
-              }
-            });
-            setLastSaved(savedAt);
-            } else {
-              // Clear old saved data
-              localStorage.removeItem(AUTO_SAVE_KEY);
-            }
-          }
-        } catch (e) {
-          // Invalid saved data, clear it
-          localStorage.removeItem(AUTO_SAVE_KEY);
-        }
-      }
-    }
-  }, [existingExam, setValue]);
-
-  // Auto-save to localStorage with debounce
-  useEffect(() => {
-    if (existingExam || !title) return;
-
-    // Clear previous timeout
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    // Debounce auto-save by 1 second
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      const saveData = {
-        title,
-        description,
-        subject,
-        type,
-        duration_minutes,
-        passing_score,
-        max_attempts,
-        instructions,
-        tags,
-        exam_date,
-        start_time,
-        end_time,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(saveData));
-      setLastSaved(new Date());
-    }, 1000);
-
-    // Cleanup
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [title, description, subject, type, duration_minutes, passing_score, max_attempts, instructions, tags, exam_date, start_time, end_time, existingExam]);
-
-  const handleFormSubmit = (data: ExamFormData, redirectToQuestions: boolean) => {
-    // Clear auto-save on successful submit
-    if (!existingExam) {
-      localStorage.removeItem(AUTO_SAVE_KEY);
-    }
-    onSubmit(data, redirectToQuestions);
-  };
-
-  // Format last saved time
-  const formatLastSaved = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
-    if (diffMins < 1) {
-      return 'همین الان';
-    } else if (diffMins < 60) {
-      return `${diffMins} دقیقه پیش`;
-    } else if (diffHours < 24) {
-      return `${diffHours} ساعت پیش`;
-    } else {
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays} روز پیش`;
-    }
-  };
+  }), [title, description, subject, type, duration_minutes, passing_score, instructions, tags, exam_date, start_time, end_time]);
 
   return (
     <Card>
       <CardContent>
         <Stack spacing={4}>
-          {/* Last Saved Indicator */}
-          {lastSaved && !existingExam && (
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-                <SaveIcon fontSize="small" color="success" />
-                <Typography variant="caption" color="text.secondary">
-                  آخرین ذخیره خودکار: {formatLastSaved(lastSaved)}
-                </Typography>
-              </Stack>
-            </Box>
-          )}
-
           {/* Form Sections */}
           <Stack spacing={4}>
             {/* Basic Information Section */}
@@ -274,13 +155,6 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
                           variant="outlined"
                         />
                       )}
-                      {formData.max_attempts && (
-                        <Chip 
-                          label={`حداکثر تلاش: ${formData.max_attempts}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
                       {formData.exam_date && (
                         <Chip 
                           label={`تاریخ: ${formData.exam_date}`} 
@@ -301,9 +175,19 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
                         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                           دستورالعمل
                         </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {formData.instructions}
-                        </Typography>
+                        {formData.instructions.includes('<') ? (
+                          <Box
+                            component="div"
+                            sx={{ typography: 'body2', whiteSpace: 'pre-wrap', '& ul, & ol': { pl: 2 }, '& p': { m: 0, '& + p': { mt: 1 } } }}
+                            dangerouslySetInnerHTML={{
+                              __html: formData.instructions.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ''),
+                            }}
+                          />
+                        ) : (
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                            {formData.instructions}
+                          </Typography>
+                        )}
                       </Box>
                     )}
                     {formData.tags && formData.tags.length > 0 && (
@@ -332,7 +216,7 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
               <>
                 <Button
                   variant="outlined"
-                  onClick={handleSubmit((data) => handleFormSubmit(data, false))}
+                  onClick={handleSubmit((data) => onSubmit(data, false))}
                   disabled={isSubmitting}
                   size="large"
                 >
@@ -340,7 +224,7 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={handleSubmit((data) => handleFormSubmit(data, true))}
+                  onClick={handleSubmit((data) => onSubmit(data, true))}
                   disabled={isSubmitting}
                   size="large"
                 >
@@ -351,7 +235,7 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
             {existingExam && (
               <Button
                 variant="contained"
-                onClick={handleSubmit((data) => handleFormSubmit(data, false))}
+                onClick={handleSubmit((data) => onSubmit(data, false))}
                 disabled={isSubmitting}
                 size="large"
               >

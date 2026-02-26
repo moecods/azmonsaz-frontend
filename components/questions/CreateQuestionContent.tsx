@@ -33,6 +33,9 @@ interface CreateQuestionContentProps {
   examId?: number;
   returnUrl?: string;
   questionId?: number;
+  /** When editing an exam question (not bank), pass the exam_question id and its payload */
+  examQuestionId?: number;
+  examQuestionPayload?: Record<string, unknown>;
 }
 
 function flattenErrors(errors: Record<string, unknown>, prefix = ''): string[] {
@@ -47,17 +50,24 @@ function flattenErrors(errors: Record<string, unknown>, prefix = ''): string[] {
   return messages;
 }
 
-export default function CreateQuestionContent({ examId, returnUrl, questionId }: CreateQuestionContentProps) {
+export default function CreateQuestionContent({
+  examId,
+  returnUrl,
+  questionId,
+  examQuestionId,
+  examQuestionPayload,
+}: CreateQuestionContentProps) {
   const router = useRouter();
   const [validationAlert, setValidationAlert] = useState<string[] | null>(null);
   const [previewAnswer, setPreviewAnswer] = useState<
     number | number[] | string | string[] | { left_index: number; right_index: number }[] | null
   >(null);
 
+  const isExamQuestionEdit = examQuestionId != null && examQuestionPayload != null;
   const { data: categoriesData } = useQuestionCategories();
   const categories = categoriesData || [];
-  const { data: questionData } = useQuestion(questionId ?? null);
-  const isEditMode = !!questionId;
+  const { data: questionData } = useQuestion(isExamQuestionEdit ? null : questionId ?? null);
+  const isEditMode = !!questionId || isExamQuestionEdit;
 
   const {
     form,
@@ -68,18 +78,27 @@ export default function CreateQuestionContent({ examId, returnUrl, questionId }:
     matchesFields,
     blanksFields,
   } = useQuestionForm({
-    questionId,
-    questionData: questionData ?? undefined,
+    questionId: isExamQuestionEdit ? undefined : questionId,
+    questionData: isExamQuestionEdit ? undefined : (questionData ?? undefined),
+    examQuestionPayload: isExamQuestionEdit ? examQuestionPayload : undefined,
     categories,
     isEditMode,
   });
 
   const { control, handleSubmit, formState: { errors }, watch, setValue } = form;
 
-  const { submit, createQuestionMutation, updateQuestionMutation, addQuestionToExamMutation } = useQuestionSubmit({
+  const {
+    submit,
+    createQuestionMutation,
+    updateQuestionMutation,
+    addQuestionToExamMutation,
+    updateExamQuestionMutation,
+  } = useQuestionSubmit({
     examId,
     returnUrl,
     questionId,
+    examQuestionId,
+    examQuestionPayload,
     isEditMode,
     categories,
   });
@@ -140,13 +159,27 @@ export default function CreateQuestionContent({ examId, returnUrl, questionId }:
     <UserLayout>
       <Container maxWidth="lg">
         <Stack spacing={4}>
-          <Breadcrumb items={[{ label: 'بانک سوالات', href: '/questions' }, { label: isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید' }]} />
+          <Breadcrumb
+            items={
+              isExamQuestionEdit && examId
+                ? [
+                    { label: 'مدیریت آزمون‌ها', href: '/exams' },
+                    { label: 'سوالات آزمون', href: `/exams/${examId}/questions` },
+                    { label: 'ویرایش سوال' },
+                  ]
+                : [{ label: 'بانک سوالات', href: '/questions' }, { label: isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید' }]
+            }
+          />
           <Box>
-            <Typography variant="h4" gutterBottom>{isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید'}</Typography>
-            {examId && <Typography variant="body2" color="text.secondary">این سوال پس از ایجاد به آزمون اضافه خواهد شد.</Typography>}
+            <Typography variant="h4" gutterBottom>
+              {isExamQuestionEdit ? 'ویرایش سوال آزمون' : isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید'}
+            </Typography>
+            {examId && !isExamQuestionEdit && (
+              <Typography variant="body2" color="text.secondary">این سوال پس از ایجاد به آزمون اضافه خواهد شد.</Typography>
+            )}
           </Box>
 
-          {isEditMode && !questionData && <Alert severity="info">در حال بارگذاری سوال...</Alert>}
+          {isEditMode && !isExamQuestionEdit && !questionData && <Alert severity="info">در حال بارگذاری سوال...</Alert>}
 
           {validationAlert && validationAlert.length > 0 && (
             <Alert severity="warning" onClose={() => setValidationAlert(null)}>
@@ -158,11 +191,12 @@ export default function CreateQuestionContent({ examId, returnUrl, questionId }:
               </Box>
             </Alert>
           )}
-          {(createQuestionMutation.isError || updateQuestionMutation.isError || addQuestionToExamMutation.isError) && (
+          {(createQuestionMutation.isError || updateQuestionMutation.isError || addQuestionToExamMutation.isError || updateExamQuestionMutation?.isError) && (
             <Alert severity="error">
               {createQuestionMutation.error instanceof Error && createQuestionMutation.error.message}
               {updateQuestionMutation.error instanceof Error && updateQuestionMutation.error.message}
               {addQuestionToExamMutation.error instanceof Error && addQuestionToExamMutation.error.message}
+              {updateExamQuestionMutation?.error instanceof Error && updateExamQuestionMutation.error.message}
             </Alert>
           )}
 
@@ -254,17 +288,31 @@ export default function CreateQuestionContent({ examId, returnUrl, questionId }:
                       <Button
                         variant="outlined"
                         onClick={() => router.back()}
-                        disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending || addQuestionToExamMutation.isPending}
+                        disabled={
+                          createQuestionMutation.isPending ||
+                          updateQuestionMutation.isPending ||
+                          addQuestionToExamMutation.isPending ||
+                          updateExamQuestionMutation?.isPending
+                        }
                       >
                         انصراف
                       </Button>
                       <Button
                         type="submit"
                         variant="contained"
-                        disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending || addQuestionToExamMutation.isPending || (isEditMode && !questionData)}
+                        disabled={
+                          createQuestionMutation.isPending ||
+                          updateQuestionMutation.isPending ||
+                          addQuestionToExamMutation.isPending ||
+                          updateExamQuestionMutation?.isPending ||
+                          (isEditMode && !isExamQuestionEdit && !questionData)
+                        }
                         size="large"
                       >
-                        {createQuestionMutation.isPending || updateQuestionMutation.isPending || addQuestionToExamMutation.isPending
+                        {createQuestionMutation.isPending ||
+                        updateQuestionMutation.isPending ||
+                        addQuestionToExamMutation.isPending ||
+                        updateExamQuestionMutation?.isPending
                           ? (isEditMode ? 'در حال ذخیره...' : 'در حال ایجاد...')
                           : (isEditMode ? 'به‌روزرسانی سوال' : 'تکمیل و ایجاد سوال')}
                       </Button>

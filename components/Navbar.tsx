@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import LoginIcon from "@mui/icons-material/Login";
 import SchoolIcon from "@mui/icons-material/School";
 import UserMenu from "./layout/UserMenu";
+import NotificationBell from "./notifications/NotificationBell";
 
 /**
  * Pages that use UserLayout (should hide navbar on mobile, they have bottom nav)
@@ -95,7 +96,10 @@ export default function Navbar() {
         
         <Box display="flex" alignItems="center" gap={2}>
           {isAuthenticated ? (
-            <UserMenu />
+            <>
+              <NotificationBell />
+              <UserMenu />
+            </>
           ) : (
             <Button
               variant="contained"

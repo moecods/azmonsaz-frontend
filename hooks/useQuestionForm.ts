@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
-import { questionToFormData } from '@/lib/question-mappers';
+import { questionToFormData, payloadToFormData } from '@/lib/question-mappers';
 import type { Question } from '@/types';
 import type { QuestionCategory } from '@/types';
 
@@ -33,6 +33,8 @@ const DEFAULT_VALUES: QuestionFormData = {
 export interface UseQuestionFormOptions {
   questionId?: number;
   questionData?: Question | null;
+  /** When editing an exam question (not bank), pass its payload to pre-fill the form */
+  examQuestionPayload?: Record<string, unknown> | null;
   categories: QuestionCategory[];
   isEditMode: boolean;
 }
@@ -50,11 +52,13 @@ export interface UseQuestionFormReturn {
 export function useQuestionForm({
   questionId,
   questionData,
+  examQuestionPayload,
   categories,
   isEditMode,
 }: UseQuestionFormOptions): UseQuestionFormReturn {
   const hasSetDefaultCategory = useRef(false);
   const hasPopulatedEditForm = useRef(false);
+  const hasPopulatedFromPayload = useRef(false);
 
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
@@ -76,9 +80,21 @@ export function useQuestionForm({
   const matches = watch('matches');
   const correctAnswer = watch('correct_answer');
 
-  // Populate form when editing and question data loads
+  // Populate form when editing exam question from payload (exam question edit page)
   useEffect(() => {
-    if (isEditMode && questionData && !hasPopulatedEditForm.current) {
+    if (isEditMode && examQuestionPayload && !hasPopulatedFromPayload.current) {
+      hasPopulatedFromPayload.current = true;
+      const formData = payloadToFormData(examQuestionPayload);
+      if (formData.category_id <= 0 && categories.length > 0) {
+        formData.category_id = categories[0].id;
+      }
+      reset(formData);
+    }
+  }, [isEditMode, examQuestionPayload, categories, reset]);
+
+  // Populate form when editing and question data loads (bank question edit)
+  useEffect(() => {
+    if (isEditMode && questionData && !hasPopulatedEditForm.current && !examQuestionPayload) {
       hasPopulatedEditForm.current = true;
       const formData = questionToFormData(questionData);
       if (formData.category_id <= 0 && categories.length > 0) {
@@ -86,7 +102,7 @@ export function useQuestionForm({
       }
       reset(formData);
     }
-  }, [isEditMode, questionData, categories, reset]);
+  }, [isEditMode, questionData, examQuestionPayload, categories, reset]);
 
   // Set default category when categories load (create mode only)
   useEffect(() => {

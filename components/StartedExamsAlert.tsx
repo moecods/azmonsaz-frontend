@@ -110,11 +110,11 @@ export default function StartedExamsAlert() {
                   <Typography variant="body1" fontWeight="medium">
                     {exam.title || `آزمون ${exam.id}`}
                   </Typography>
-                  {exam.meta?.duration_minutes && (
+                  {((exam as { duration_minutes?: number }).duration_minutes ?? (exam.meta as { duration_minutes?: number })?.duration_minutes) != null && (
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
                       <AccessTimeIcon fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        مدت زمان: {exam.meta.duration_minutes} دقیقه
+                        مدت زمان: {(exam as { duration_minutes?: number }).duration_minutes ?? (exam.meta as { duration_minutes?: number })?.duration_minutes} دقیقه
                       </Typography>
                     </Stack>
                   )}

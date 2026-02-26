@@ -2,51 +2,63 @@ import { ExamFormData } from './validation';
 import { Exam } from '@/types';
 import { handleError } from './error-handler';
 
-/**
- * Builds meta object from exam form data, excluding null/undefined values
- */
-export function buildExamMeta(data: ExamFormData): Record<string, unknown> | undefined {
-  const meta: Record<string, unknown> = {};
+/** Exam with flat fields (duration_minutes, passing_score, etc.) - API returns these at top level. */
+type ExamWithFlat = Exam & {
+  duration_minutes?: number | null;
+  passing_score?: number | null;
+  instructions?: string | null;
+  tags?: string[] | null;
+  points_per_question?: number;
+};
 
-  if (data.duration_minutes) {
-    meta.duration_minutes = data.duration_minutes;
-  }
-  if (data.passing_score !== null && data.passing_score !== undefined) {
-    meta.passing_score = data.passing_score;
-  }
-  if (data.max_attempts) {
-    meta.max_attempts = data.max_attempts;
-  }
-  if (data.instructions) {
-    meta.instructions = data.instructions;
-  }
-  if (data.tags && data.tags.length > 0) {
-    meta.tags = data.tags;
-  }
+/** Get duration_minutes from exam (flat or legacy meta). */
+export function getExamDurationMinutes(exam: Exam): number | null | undefined {
+  const e = exam as ExamWithFlat;
+  return e.duration_minutes ?? (exam.meta as { duration_minutes?: number })?.duration_minutes ?? null;
+}
 
-  return Object.keys(meta).length > 0 ? meta : undefined;
+/** Get passing_score from exam (flat or legacy meta). */
+export function getExamPassingScore(exam: Exam): number | null | undefined {
+  const e = exam as ExamWithFlat;
+  return e.passing_score ?? (exam.meta as { passing_score?: number })?.passing_score ?? null;
+}
+
+/** Get instructions from exam (flat or legacy meta). */
+export function getExamInstructions(exam: Exam): string | undefined {
+  const e = exam as ExamWithFlat;
+  return (e.instructions ?? (exam.meta as { instructions?: string })?.instructions) ?? undefined;
+}
+
+/** Get points_per_question from exam (flat or legacy meta). */
+export function getExamPointsPerQuestion(exam: Exam): number {
+  const e = exam as ExamWithFlat;
+  return e.points_per_question ?? (exam.meta as { points_per_question?: number })?.points_per_question ?? 10;
 }
 
 /**
- * Loads meta fields from exam into form values
+ * Loads exam fields (duration_minutes, passing_score, etc.) from exam into form values.
+ * Reads from flat fields on exam; supports legacy exam.meta for backward compatibility.
  */
 export function loadExamMetaToForm(exam: Exam): Partial<ExamFormData> {
-  const meta = exam.meta || {};
-  const examWithDates = exam as Exam & { exam_date?: string; start_time?: string; end_time?: string };
-
-  const examDate = examWithDates.exam_date ?? null;
-  const startTime = examWithDates.start_time ?? null;
-  const endTime = examWithDates.end_time ?? null;
+  const flat = exam as Exam & {
+    duration_minutes?: number | null;
+    passing_score?: number | null;
+    instructions?: string | null;
+    tags?: string[] | null;
+    exam_date?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+  };
+  const meta = exam.meta as Record<string, unknown> | undefined;
 
   return {
-    duration_minutes: meta.duration_minutes ?? null,
-    passing_score: meta.passing_score ?? null,
-    max_attempts: meta.max_attempts ?? null,
-    instructions: meta.instructions ?? '',
-    tags: meta.tags ?? [],
-    exam_date: examDate,
-    start_time: startTime,
-    end_time: endTime,
+    duration_minutes: flat.duration_minutes ?? (meta?.duration_minutes as number) ?? null,
+    passing_score: flat.passing_score ?? (meta?.passing_score as number) ?? null,
+    instructions: (flat.instructions ?? meta?.instructions ?? '') as string,
+    tags: (flat.tags ?? meta?.tags ?? []) as string[],
+    exam_date: flat.exam_date ?? null,
+    start_time: flat.start_time ?? null,
+    end_time: flat.end_time ?? null,
   };
 }
 

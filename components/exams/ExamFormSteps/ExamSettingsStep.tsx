@@ -4,7 +4,7 @@ import React from 'react';
 import { Stack, Autocomplete, Chip, TextField } from '@mui/material';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { ExamFormData } from '@/lib/validation';
-import { FormField, FormNumberField } from '@/components/forms';
+import { FormNumberField, RichTextField } from '@/components/forms';
 
 interface ExamSettingsStepProps {
   form: UseFormReturn<ExamFormData>;
@@ -17,14 +17,6 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
     <Stack spacing={3}>
       <Stack direction="row" spacing={2}>
         <FormNumberField
-          name="duration_minutes"
-          control={control}
-          label="مدت زمان آزمون (دقیقه)"
-          min={1}
-          helperText="مدت زمان مجاز برای پاسخگویی به آزمون"
-        />
-
-        <FormNumberField
           name="passing_score"
           control={control}
           label="نمره قبولی (%)"
@@ -34,22 +26,19 @@ export const ExamSettingsStep = React.memo(function ExamSettingsStep({ form }: E
         />
       </Stack>
 
-      <FormNumberField
-        name="max_attempts"
-        control={control}
-        label="حداکثر تعداد تلاش"
-        min={1}
-        helperText="تعداد دفعاتی که شرکت‌کننده می‌تواند در آزمون شرکت کند"
-      />
-
-      <FormField
+      <Controller
         name="instructions"
         control={control}
-        label="دستورالعمل آزمون"
-        multiline
-        rows={4}
-        placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
-        helperText="این دستورالعمل‌ها به شرکت‌کنندگان نمایش داده می‌شود"
+        render={({ field }) => (
+          <RichTextField
+            label="دستورالعمل آزمون"
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            placeholder="دستورالعمل‌های آزمون را اینجا وارد کنید..."
+            helperText="این دستورالعمل‌ها به شرکت‌کنندگان نمایش داده می‌شود"
+            error={!!errors.instructions}
+          />
+        )}
       />
 
       <Controller

@@ -12,4 +12,5 @@ export * from './usePartners';
 export * from './useQuestionManagement';
 export * from './useQuestionForm';
 export * from './useQuestionSubmit';
+export * from './useNotifications';
 

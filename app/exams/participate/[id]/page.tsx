@@ -125,10 +125,9 @@ export default function ExamParticipatePage() {
   const isAfterEnd = endAt && now > endAt;
   const isDuringExam = !isBeforeStart && !isAfterEnd;
 
-  // Type-safe meta checks
-  const meta = examInfo?.meta;
-  const durationMinutes = meta?.duration_minutes ?? null;
-  const passingScore = meta?.passing_score ?? null;
+  // Type-safe: flat fields or legacy meta
+  const durationMinutes = (examInfo as { duration_minutes?: number })?.duration_minutes ?? examInfo?.meta?.duration_minutes ?? null;
+  const passingScore = (examInfo as { passing_score?: number })?.passing_score ?? examInfo?.meta?.passing_score ?? null;
   const hasDurationMinutes = durationMinutes !== null && typeof durationMinutes === 'number';
   const hasPassingScore = passingScore !== null && typeof passingScore === 'number';
 
@@ -242,12 +241,12 @@ export default function ExamParticipatePage() {
                 </Box>
               )}
 
-              {examInfo.meta?.instructions && (
+              {((examInfo as { instructions?: string }).instructions ?? examInfo.meta?.instructions) && (
                 <Alert severity="info">
                   <Typography variant="body2" fontWeight="bold" gutterBottom>
                     دستورالعمل:
                   </Typography>
-                  <Typography variant="body2">{examInfo.meta.instructions as string}</Typography>
+                  <Typography variant="body2">{(examInfo as { instructions?: string }).instructions ?? (examInfo.meta?.instructions as string)}</Typography>
                 </Alert>
               )}
 

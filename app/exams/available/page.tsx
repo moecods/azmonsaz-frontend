@@ -24,6 +24,7 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import Breadcrumb from '@/components/Breadcrumb';
 import UserLayout from '@/components/layout/UserLayout';
 import { ExamMeta } from '@/types';
+import { getExamDurationMinutes } from '@/lib/exam-utils';
 
 export default function AvailableExamsPage() {
   const router = useRouter();
@@ -185,10 +186,10 @@ export default function AvailableExamsPage() {
                             size="small"
                             variant="outlined"
                           />
-                          {exam.meta && typeof exam.meta === 'object' && 'duration_minutes' in exam.meta && typeof exam.meta.duration_minutes === 'number' && (
+                          {getExamDurationMinutes(exam) != null && (
                             <Chip
                               icon={<AccessTimeIcon />}
-                              label={`${exam.meta.duration_minutes} دقیقه`}
+                              label={`${getExamDurationMinutes(exam)} دقیقه`}
                               size="small"
                               variant="outlined"
                             />

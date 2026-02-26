@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useExam } from '@/hooks/useExams';
+import { useExam, useExamWithParticipants } from '@/hooks/useExams';
 import ExamPrintView from '@/components/ExamPrintView';
 import { Container, Box, CircularProgress, Alert } from '@mui/material';
 
@@ -12,7 +12,11 @@ function PrintExamContent() {
   const examId = examIdParam ? parseInt(examIdParam, 10) : null;
   const template = searchParams.get('template') || 'default';
 
-  const { data: examData, isLoading, error } = useExam(examId);
+  const { data: examData, isLoading: examLoading, error: examError } = useExam(examId);
+  const { data: manageData, isLoading: manageLoading } = useExamWithParticipants(examId);
+
+  const isLoading = examLoading || manageLoading;
+  const error = examError;
 
   if (!examId || Number.isNaN(examId)) {
     return (
@@ -55,6 +59,15 @@ function PrintExamContent() {
     exam_questions: (examData as { exam_questions?: unknown }).exam_questions ?? (examData as { questions?: unknown }).questions ?? [],
   };
 
+  const rawParticipants =
+    (manageData as { participants?: Array<{ id: number; user?: { name?: string; email?: string; phone_number?: string | null } | null; user_id?: number }> })?.participants ?? [];
+  const participants = rawParticipants.map((p) => ({
+    id: p.id,
+    name: p.user?.name ?? `کاربر ${p.user_id ?? p.id}`,
+    phone_number: p.user?.phone_number ?? null,
+    email: p.user?.email ?? null,
+  }));
+
   const pageSizeFromUrl = searchParams.get('page_size');
   const orientationFromUrl = searchParams.get('orientation');
   const marginFromUrl = searchParams.get('margin');
@@ -72,6 +85,7 @@ function PrintExamContent() {
   return (
     <ExamPrintView
       exam={examForPrint}
+      participants={participants}
       template={template}
       pageSizeFromUrl={pageSizeFromUrl}
       orientationFromUrl={orientationFromUrl}

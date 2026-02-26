@@ -1,10 +1,65 @@
 /**
- * Mappers for converting between API Question and form data.
+ * Mappers for converting between API Question / exam question payload and form data.
  * Single Responsibility: data transformation only.
  */
 
 import type { Question } from '@/types';
 import type { QuestionFormData } from '@/lib/validation';
+
+/**
+ * Map exam question payload (from exam_questions.payload) to QuestionFormData for the edit form.
+ */
+export function payloadToFormData(payload: Record<string, unknown>): QuestionFormData {
+  const questionText = (payload.question_text as string) ?? '';
+  const qType = (payload.type as string) ?? 'multiple_choice';
+  const optionsRaw = payload.options;
+  const correctAnswer = payload.correct_answer as number | number[] | string | null | undefined;
+  const difficulty = (payload.difficulty as 'easy' | 'medium' | 'hard') ?? 'medium';
+
+  const options: QuestionFormData['options'] = Array.isArray(optionsRaw) && optionsRaw.length > 0
+    ? (optionsRaw as string[]).map((opt: string, index: number) => {
+        const text = typeof opt === 'string' ? opt : String(opt);
+        let isCorrect = false;
+        if (qType === 'multiple_select' && Array.isArray(correctAnswer)) {
+          isCorrect = correctAnswer.includes(index);
+        } else if (qType === 'true_false' || qType === 'multiple_choice') {
+          isCorrect = correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
+        }
+        return { text, is_correct: isCorrect };
+      })
+    : qType === 'true_false'
+      ? [
+          { text: 'صحیح', is_correct: correctAnswer === 0 },
+          { text: 'غلط', is_correct: correctAnswer === 1 },
+        ]
+      : [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+        ];
+
+  const items = (payload.items as QuestionFormData['items']) ?? [];
+  const correct_order = (payload.correct_order as number[]) ?? [];
+  const left_items = (payload.left_items as QuestionFormData['left_items']) ?? [];
+  const right_items = (payload.right_items as QuestionFormData['right_items']) ?? [];
+  const matches = (payload.matches as QuestionFormData['matches']) ?? [];
+  const blanks = (payload.blanks as QuestionFormData['blanks']) ?? [];
+
+  return {
+    text: questionText,
+    type: qType as QuestionFormData['type'],
+    options,
+    correct_answer: correctAnswer ?? 0,
+    category_id: 0,
+    tags: [],
+    difficulty,
+    items,
+    correct_order,
+    left_items,
+    right_items,
+    matches,
+    blanks,
+  };
+}
 
 export function questionToFormData(question: Question): QuestionFormData {
   const q = question as unknown as Record<string, unknown>;

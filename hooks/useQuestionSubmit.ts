@@ -5,7 +5,7 @@
 
 import { useRouter } from 'next/navigation';
 import { getDescriptor } from '@/lib/question-types';
-import { useCreateQuestion, useUpdateQuestion, useAddQuestionToExam } from '@/hooks';
+import { useCreateQuestion, useUpdateQuestion, useAddQuestionToExam, useUpdateExamQuestion } from '@/hooks';
 import { handleError } from '@/lib/error-handler';
 import type { QuestionFormData } from '@/lib/validation';
 import type { QuestionCategory } from '@/types';
@@ -14,6 +14,10 @@ export interface UseQuestionSubmitOptions {
   examId?: number;
   returnUrl?: string;
   questionId?: number;
+  /** When editing an exam question (not bank), pass the exam_question id */
+  examQuestionId?: number;
+  /** When editing exam question, pass the initial payload to preserve order/points when building new payload */
+  examQuestionPayload?: Record<string, unknown>;
   isEditMode: boolean;
   categories: QuestionCategory[];
 }
@@ -22,6 +26,8 @@ export function useQuestionSubmit({
   examId,
   returnUrl,
   questionId,
+  examQuestionId,
+  examQuestionPayload,
   isEditMode,
   categories,
 }: UseQuestionSubmitOptions) {
@@ -29,15 +35,32 @@ export function useQuestionSubmit({
   const createQuestionMutation = useCreateQuestion();
   const updateQuestionMutation = useUpdateQuestion();
   const addQuestionToExamMutation = useAddQuestionToExam();
+  const updateExamQuestionMutation = useUpdateExamQuestion();
 
   const submit = async (data: QuestionFormData) => {
     try {
       const descriptor = getDescriptor(data.type);
 
-      if (examId) {
+      if (examId && examQuestionId != null && isEditMode) {
+        const built = descriptor.buildExamPayload(data, categories) as Record<string, unknown>;
+        const payload = {
+          ...built,
+          order: examQuestionPayload?.order ?? built.order,
+          points: examQuestionPayload?.points ?? built.points,
+        };
+        await updateExamQuestionMutation.mutateAsync({
+          examId,
+          questionId: examQuestionId,
+          data: { payload },
+        });
+        router.push(`/exams/${examId}/questions`);
+        return;
+      }
+
+      if (examId && examQuestionId == null) {
         const payload = descriptor.buildExamPayload(data, categories);
         await addQuestionToExamMutation.mutateAsync({ examId, data: { payload } });
-        router.push(`/exams/${examId}?tab=questions`);
+        router.push(returnUrl ?? `/exams/${examId}/questions`);
         return;
       }
 
@@ -69,5 +92,6 @@ export function useQuestionSubmit({
     createQuestionMutation,
     updateQuestionMutation,
     addQuestionToExamMutation,
+    updateExamQuestionMutation,
   };
 }

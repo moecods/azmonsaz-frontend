@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect, useCallback, useRef, memo } from 'react';
+import { useState, Suspense, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -54,7 +54,7 @@ import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
-import AddQuestionFromBank from '@/components/questions/AddQuestionFromBank';
+import QuestionBankDrawer from '@/components/questions/QuestionBankDrawer';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
 import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
@@ -74,6 +74,7 @@ interface SortableQuestionItemProps {
   defaultPoints: number;
   onDelete: (questionId: number) => void;
   onUpdatePoints: (question: ExamQuestion, points: number) => void;
+  onEdit: (question: ExamQuestion) => void;
   isDeleting: boolean;
   isUpdating: boolean;
 }
@@ -84,6 +85,7 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
   defaultPoints,
   onDelete,
   onUpdatePoints,
+  onEdit,
   isDeleting,
   isUpdating,
 }: SortableQuestionItemProps) {
@@ -207,6 +209,18 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5}>
+              <Tooltip title="ویرایش سوال (سوال از بانک به‌صورت کپی در آزمون ذخیره شده و قابل ویرایش است)">
+                <span>
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => onEdit(question)}
+                    disabled={isUpdating}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
               <Tooltip title="حذف سوال">
                 <IconButton
                   size="small"
@@ -226,7 +240,7 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                 گزینه‌ها:
               </Typography>
               <Stack spacing={0.5}>
-                {options.map((option: any, optionIndex: number) => (
+                {options.map((option: { text?: string; is_correct?: boolean } | string, optionIndex: number) => (
                   <Stack
                     key={optionIndex}
                     direction="row"
@@ -240,13 +254,13 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                       variant="body2"
                       sx={{
                         flex: 1,
-                        fontWeight: option.is_correct ? 'bold' : 'normal',
-                        color: option.is_correct ? 'success.main' : 'text.primary',
+                        fontWeight: (typeof option === 'object' && option && 'is_correct' in option && option.is_correct) ? 'bold' : 'normal',
+                        color: (typeof option === 'object' && option && 'is_correct' in option && option.is_correct) ? 'success.main' : 'text.primary',
                       }}
                     >
                       {typeof option === 'string' ? option : option.text}
                     </Typography>
-                    {option.is_correct && (
+                    {(typeof option === 'object' && option && 'is_correct' in option && option.is_correct) && (
                       <Chip label="صحیح" size="small" color="success" />
                     )}
                   </Stack>
@@ -268,6 +282,7 @@ function ExamQuestionsContent() {
   const examId = params?.id ? parseInt(params.id as string) : null;
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [bankDrawerOpen, setBankDrawerOpen] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<ExamQuestion | null>(null);
@@ -425,7 +440,7 @@ function ExamQuestionsContent() {
     }
   }, [questions, examId, updateQuestionMutation]);
 
-  const defaultPoints = (examWithQuestions as { meta?: { points_per_question?: number } })?.meta?.points_per_question ?? 10;
+  const defaultPoints = (examWithQuestions as { points_per_question?: number })?.points_per_question ?? 10;
 
   const handleAddQuestion = useCallback((question: ExamQuestion) => {
     if (!examId) return;
@@ -494,6 +509,13 @@ function ExamQuestionsContent() {
       setDeleteDialogOpen(true);
     }
   }, [questions]);
+
+  const handleEditQuestion = useCallback(
+    (question: ExamQuestion) => {
+      if (examId) router.push(`/exams/${examId}/questions/${question.id}/edit`);
+    },
+    [examId, router]
+  );
 
   const handleUpdatePoints = useCallback(
     (question: ExamQuestion, points: number) => {
@@ -566,6 +588,26 @@ function ExamQuestionsContent() {
     );
   }, [examId, questionToDelete, deleteQuestionMutation]);
 
+  const totalPoints = useMemo(
+    () =>
+      questions.reduce(
+        (sum, q) => sum + ((q.payload?.points as number) ?? defaultPoints),
+        0
+      ),
+    [questions, defaultPoints]
+  );
+
+  const difficultyStats = useMemo(() => {
+    const byDifficulty = { easy: 0, medium: 0, hard: 0 };
+    questions.forEach((q) => {
+      const d = (q.payload?.difficulty as string) || (q.question as { difficulty?: string })?.difficulty || 'medium';
+      if (d === 'easy') byDifficulty.easy += 1;
+      else if (d === 'hard') byDifficulty.hard += 1;
+      else byDifficulty.medium += 1;
+    });
+    return byDifficulty;
+  }, [questions]);
+
   if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -610,12 +652,28 @@ function ExamQuestionsContent() {
             افزودن سوال
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            سوالات را از بانک سوالات انتخاب کنید یا سوال جدید ایجاد کنید
+            از بانک سوالات انتخاب کنید یا سوال جدید بسازید. با باز شدن پنل بانک، سوالات با جزئیات و آمار نمایش داده می‌شوند.
           </Typography>
         </Box>
         <Divider />
         <Stack spacing={2}>
-          <AddQuestionFromBank onAddQuestion={handleAddQuestion} />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setBankDrawerOpen(true);
+              if (isMobile) setMobileDrawerOpen(false);
+            }}
+            fullWidth
+          >
+            افزودن از بانک سوالات
+          </Button>
+          <QuestionBankDrawer
+            open={bankDrawerOpen}
+            onClose={() => setBankDrawerOpen(false)}
+            onAddQuestion={handleAddQuestion}
+            defaultPoints={defaultPoints}
+          />
           <CreateCustomQuestion examId={examId ?? undefined} />
         </Stack>
       </Stack>
@@ -702,7 +760,11 @@ function ExamQuestionsContent() {
                       سوالات آزمون
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {questions.length} سوال • برای تغییر ترتیب، سوالات را بکشید و رها کنید
+                      {questions.length} سوال • مجموع بارم: {totalPoints}
+                      {' • '}
+                      آسان: {difficultyStats.easy}، متوسط: {difficultyStats.medium}، سخت: {difficultyStats.hard}
+                      {' • '}
+                      برای تغییر ترتیب، سوالات را بکشید و رها کنید
                     </Typography>
                   </Box>
 
@@ -743,6 +805,7 @@ function ExamQuestionsContent() {
                             defaultPoints={defaultPoints}
                             onDelete={handleDeleteQuestion}
                             onUpdatePoints={handleUpdatePoints}
+                            onEdit={handleEditQuestion}
                             isDeleting={deleteQuestionMutation.isPending}
                             isUpdating={updateQuestionMutation.isPending}
                           />

@@ -111,12 +111,12 @@ export default function TakeExamPage() {
     }
     if (data.remaining_seconds != null && typeof data.remaining_seconds === 'number') {
       setTimeRemaining(data.remaining_seconds);
-    } else if (examInfo?.meta && typeof examInfo.meta === 'object' && 'duration_minutes' in examInfo.meta) {
-      const dm = (examInfo.meta as { duration_minutes?: number }).duration_minutes;
+    } else {
+      const dm = (examInfo as { duration_minutes?: number })?.duration_minutes ?? (examInfo?.meta as { duration_minutes?: number })?.duration_minutes;
       if (typeof dm === 'number') setTimeRemaining(dm * 60);
     }
     setExamStarted(true);
-  }, [mapApiQuestionsToState, examInfo?.meta]);
+  }, [mapApiQuestionsToState, examInfo]);
 
   const handleStartExam = useCallback(async () => {
     if (!examId) {

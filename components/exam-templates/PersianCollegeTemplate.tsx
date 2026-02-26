@@ -2,28 +2,23 @@
 
 import { Box, Typography, Chip } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import type { Exam } from '@/types';
 
-interface Exam {
-  id: number;
-  title: string;
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    instructions?: string;
-    points_per_question?: number;
-  };
-  exam_questions?: Array<{
-    id: number;
-    payload?: any;
-  }>;
+interface ExamWithPayload extends Exam {
+  exam_questions?: Array<{ id: number; payload?: any }>;
 }
 
 interface PersianCollegeTemplateProps {
-  exam: Exam;
+  exam: ExamWithPayload;
 }
 
 export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateProps) {
   const persianLabels = ['الف', 'ب', 'ج', 'د', 'ه', 'و'];
+  const durationMinutes = getExamDurationMinutes(exam);
+  const passingScore = getExamPassingScore(exam);
+  const instructions = getExamInstructions(exam);
+  const pointsPerQuestion = getExamPointsPerQuestion(exam);
 
   return (
     <Box
@@ -81,7 +76,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
           {exam.title}
         </Typography>
 
-        {exam.meta?.duration_minutes && (
+        {durationMinutes && (
           <Box
             sx={{
               display: 'flex',
@@ -93,12 +88,12 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
               <span>⏱</span>
-              <span>زمان: {exam.meta.duration_minutes} دقیقه</span>
+              <span>زمان: {durationMinutes} دقیقه</span>
             </Box>
-            {exam.meta?.passing_score && (
+            {passingScore && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                 <span>✓</span>
-                <span>نمره قبولی: {exam.meta.passing_score}%</span>
+                <span>نمره قبولی: {passingScore}%</span>
               </Box>
             )}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
@@ -109,7 +104,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
         )}
       </Box>
 
-      {exam.meta?.instructions && (
+      {instructions && (
         <Box
           sx={{
             border: '2px solid #000',
@@ -130,7 +125,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
             📋 دستورالعمل آزمون:
           </Typography>
           <Typography>
-            {exam.meta.instructions.split('\n').map((line, i) => (
+            {instructions.split('\n').map((line, i) => (
               <span key={i}>{line}<br /></span>
             ))}
           </Typography>
@@ -144,7 +139,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
-        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
+        const points = payload.points ?? pointsPerQuestion ?? 2;
 
         return (
           <Box

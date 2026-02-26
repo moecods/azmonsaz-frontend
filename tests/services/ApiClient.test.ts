@@ -189,7 +189,7 @@ describe('ApiClient', () => {
       global.fetch = vi.fn().mockImplementation(() => {
         callCount++;
         if (callCount < 3) {
-          return Promise.reject(new TypeError('Network error'));
+          return Promise.reject(new TypeError('Failed to fetch'));
         }
         return Promise.resolve({
           ok: true,

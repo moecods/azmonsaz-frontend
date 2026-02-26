@@ -147,8 +147,7 @@ export const examSchema = z.object({
   // Meta fields
   duration_minutes: z.number().int().positive('مدت زمان باید عدد مثبت باشد').optional().nullable(),
   passing_score: z.number().int().min(0, 'نمره قبولی باید بین 0 تا 100 باشد').max(100, 'نمره قبولی باید بین 0 تا 100 باشد').optional().nullable(),
-  max_attempts: z.number().int().positive('حداکثر تلاش باید عدد مثبت باشد').optional().nullable(),
-  instructions: z.string().max(1000, 'دستورالعمل نمی‌تواند بیشتر از 1000 کاراکتر باشد').optional().nullable(),
+  instructions: z.string().max(5000, 'دستورالعمل نمی‌تواند بیشتر از ۵۰۰۰ کاراکتر باشد').optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
   // Scheduling fields
   exam_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'فرمت تاریخ معتبر نیست (YYYY-MM-DD)').optional().nullable(),
@@ -176,7 +175,7 @@ export const examSchema = z.object({
     if (endDate > startDate) {
       const maxDurationMs = endDate.getTime() - startDate.getTime();
       const maxDurationMinutes = Math.floor(maxDurationMs / (1000 * 60));
-      return data.duration_minutes <= maxDurationMinutes;
+      return data.duration_minutes != null && data.duration_minutes <= maxDurationMinutes;
     }
   }
   return true;

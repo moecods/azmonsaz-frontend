@@ -2,27 +2,22 @@
 
 import { Box, Typography } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import type { Exam } from '@/types';
 
-interface Exam {
-  id: number;
-  title: string;
-  meta?: {
-    duration_minutes?: number;
-    passing_score?: number;
-    instructions?: string;
-    points_per_question?: number;
-  };
-  exam_questions?: Array<{
-    id: number;
-    payload?: any;
-  }>;
+interface ExamWithPayload extends Exam {
+  exam_questions?: Array<{ id: number; payload?: any }>;
 }
 
 interface CollegeTemplateProps {
-  exam: Exam;
+  exam: ExamWithPayload;
 }
 
 export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
+  const durationMinutes = getExamDurationMinutes(exam);
+  const passingScore = getExamPassingScore(exam);
+  const instructions = getExamInstructions(exam);
+  const pointsPerQuestion = getExamPointsPerQuestion(exam);
   return (
     <Box
       sx={{
@@ -80,7 +75,7 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
           {exam.title}
         </Typography>
 
-        {exam.meta?.duration_minutes && (
+        {durationMinutes && (
           <Box
             sx={{
               display: 'flex',
@@ -90,16 +85,16 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
               fontWeight: 'normal',
             }}
           >
-            <Box>Time: {exam.meta.duration_minutes} minutes</Box>
-            {exam.meta?.passing_score && (
-              <Box>Passing Score: {exam.meta.passing_score}%</Box>
+            <Box>Time: {durationMinutes} minutes</Box>
+            {passingScore && (
+              <Box>Passing Score: {passingScore}%</Box>
             )}
             <Box>Total Questions: {exam.exam_questions?.length || 0}</Box>
           </Box>
         )}
       </Box>
 
-      {exam.meta?.instructions && (
+      {instructions && (
         <Box
           sx={{
             border: '1px solid #000',
@@ -112,7 +107,7 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
             Instructions:
           </Typography>
           <Typography>
-            {exam.meta.instructions.split('\n').map((line, i) => (
+            {instructions.split('\n').map((line, i) => (
               <span key={i}>{line}<br /></span>
             ))}
           </Typography>
@@ -126,7 +121,7 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
         const isEssayType = isEssay(questionType);
         const typeLabel = getQuestionTypeLabel(questionType);
         const questionNumber = index + 1;
-        const points = payload.points ?? exam.meta?.points_per_question ?? 2;
+        const points = payload.points ?? pointsPerQuestion ?? 2;
 
         return (
           <Box

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -49,6 +49,8 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { examService } from '@/services';
 import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import ParticipantManagement from '@/components/exams/ParticipantManagement';
+import ExamNotificationsTab from '@/components/exams/ExamNotificationsTab';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -79,7 +81,9 @@ function ExamDetailContent() {
   const examId = params?.id ? parseInt(params.id as string) : null;
   const [tabValue, setTabValue] = useState(() => {
     const tab = searchParams.get('tab');
-    return tab === 'participants' ? 1 : 0;
+    if (tab === 'participants') return 1;
+    if (tab === 'notifications') return 2;
+    return 0;
   });
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState<null | HTMLElement>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -98,7 +102,7 @@ function ExamDetailContent() {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-    const tabName = newValue === 1 ? 'participants' : 'info';
+    const tabName = newValue === 1 ? 'participants' : newValue === 2 ? 'notifications' : 'info';
     router.replace(`/exams/${examId}?tab=${tabName}`, { scroll: false });
   };
 
@@ -368,6 +372,7 @@ function ExamDetailContent() {
             <Tabs value={tabValue} onChange={handleTabChange} aria-label="exam tabs">
               <Tab label="اطلاعات آزمون" icon={<SchoolIcon />} iconPosition="start" />
               <Tab label="شرکت‌کنندگان" icon={<PeopleIcon />} iconPosition="start" />
+              <Tab label="اعلان‌ها" icon={<NotificationsIcon />} iconPosition="start" />
             </Tabs>
           </Box>
 
@@ -596,6 +601,16 @@ function ExamDetailContent() {
                   // Refetch exam data
                   window.location.reload();
                 }}
+              />
+            </CardContent>
+          </TabPanel>
+
+          {/* Tab Panel: Notifications */}
+          <TabPanel value={tabValue} index={2}>
+            <CardContent>
+              <ExamNotificationsTab
+                examId={examId!}
+                participants={exam.participants}
               />
             </CardContent>
           </TabPanel>

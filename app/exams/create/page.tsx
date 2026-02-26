@@ -20,7 +20,7 @@ import { isUsingMockData } from '@/lib/data-service';
 import { deepLinkParamsSchema } from '@/lib/validation';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamFormWizard } from '@/components/exams/ExamFormWizard';
-import { buildExamMeta, loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
+import { loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from '@/lib/exam-utils';
 import { handleError } from '@/lib/error-handler';
 import { PageLoading } from '@/components/feedback';
 import UserLayout from '@/components/layout/UserLayout';
@@ -61,7 +61,6 @@ function CreateExamContent() {
       questions: [],
       duration_minutes: null,
       passing_score: null,
-      max_attempts: null,
       instructions: '',
       tags: [],
       exam_date: null,
@@ -126,35 +125,35 @@ function CreateExamContent() {
     }
   };
 
-  const onSubmit = (data: ExamFormData, redirectToQuestions: boolean = false) => {
-    const meta = buildExamMeta(data);
+  const onSubmit = async (data: ExamFormData, redirectToQuestions: boolean = false) => {
     const baseData = {
       title: data.title,
       description: data.description,
       subject: data.subject,
       type: data.type,
-      meta,
+      duration_minutes: data.duration_minutes ?? undefined,
+      passing_score: data.passing_score ?? undefined,
+      instructions: data.instructions ?? undefined,
+      tags: data.tags ?? undefined,
       exam_date: data.exam_date ?? undefined,
       start_time: data.start_time ?? undefined,
       end_time: data.end_time ?? undefined,
     };
 
     if (existingExam) {
-      updateExamMutation.mutate({
-        id: existingExam.id,
-        data: baseData,
-      }, {
-        onSuccess: (response) => {
-          if (redirectToQuestions) {
-            router.push(`/exams/${response.id}?tab=questions`);
-          } else {
-            handleRedirectAfterSave(response.id);
-          }
-        },
-        onError: (error) => {
-          handleError(error, { context: 'Update Exam' });
-        },
-      });
+      try {
+        const response = await updateExamMutation.mutateAsync({
+          id: existingExam.id,
+          data: baseData,
+        });
+        if (redirectToQuestions) {
+          router.push(`/exams/${response.id}/questions`);
+        } else {
+          handleRedirectAfterSave(response.id);
+        }
+      } catch (error) {
+        handleError(error, { context: 'Update Exam' });
+      }
     } else {
       const examData = {
         ...baseData,
@@ -166,18 +165,16 @@ function CreateExamContent() {
         }),
       };
 
-      createExamMutation.mutate(examData, {
-        onSuccess: (response) => {
-          if (redirectToQuestions) {
-            router.push(`/exams/${response.id}?tab=questions`);
-          } else {
-            handleRedirectAfterSave(response.id);
-          }
-        },
-        onError: (error) => {
-          handleError(error, { context: 'Create Exam' });
-        },
-      });
+      try {
+        const response = await createExamMutation.mutateAsync(examData);
+        if (redirectToQuestions) {
+          router.push(`/exams/${response.id}/questions`);
+        } else {
+          handleRedirectAfterSave(response.id);
+        }
+      } catch (error) {
+        handleError(error, { context: 'Create Exam' });
+      }
     }
   };
 

@@ -19,6 +19,9 @@ import {
   Pagination,
   Divider,
   Collapse,
+  IconButton,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useExams } from '@/hooks/useExams';
 import { useRouter } from 'next/navigation';
@@ -120,6 +123,8 @@ function getExamTimeStatus(exam: ExamListItem): {
 
 export default function ExamsPage() {
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,55 +178,87 @@ export default function ExamsPage() {
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-                مدیریت آزمون‌ها
-          </Typography>
-              <Typography color="text.secondary">
-                مشاهده و مدیریت آزمون‌های ایجاد شده
-          </Typography>
-            </Box>
-            <Stack direction="row" spacing={2} flexWrap="wrap">
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h4" gutterBottom>
+              مدیریت آزمون‌ها
+            </Typography>
+            <Typography color="text.secondary">
+              مشاهده و مدیریت آزمون‌های ایجاد شده
+            </Typography>
+          </Box>
+
+          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }} alignItems="center">
+            <Stack direction="row" spacing={0.5}>
               <Button
                 variant={viewMode === 'list' ? 'contained' : 'outlined'}
                 size="small"
-                startIcon={<ViewListIcon />}
+                startIcon={isMobile ? undefined : <ViewListIcon />}
                 onClick={() => setViewMode('list')}
               >
-                لیست
+                {isMobile ? <ViewListIcon /> : 'لیست'}
               </Button>
               <Button
                 variant={viewMode === 'calendar' ? 'contained' : 'outlined'}
                 size="small"
-                startIcon={<CalendarMonthIcon />}
+                startIcon={isMobile ? undefined : <CalendarMonthIcon />}
                 onClick={() => setViewMode('calendar')}
               >
-                تقویم
+                {isMobile ? <CalendarMonthIcon /> : 'تقویم'}
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
-              </Button>
-              {viewMode === 'list' && (
+            </Stack>
+            {isMobile ? (
+              <>
+                <IconButton
+                  color={showFilters ? 'primary' : 'default'}
+                  onClick={() => setShowFilters(!showFilters)}
+                  title={showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
+                >
+                  {showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
+                </IconButton>
+                {viewMode === 'list' && (
+                  <IconButton
+                    color={showExtraFields ? 'primary' : 'default'}
+                    onClick={() => setShowExtraFields(!showExtraFields)}
+                    title={showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                )}
+                <IconButton
+                  color="primary"
+                  onClick={() => router.push('/exams/create')}
+                  title="ایجاد آزمون جدید"
+                >
+                  <AddIcon />
+                </IconButton>
+              </>
+            ) : (
+              <>
                 <Button
                   variant="outlined"
-                  onClick={() => setShowExtraFields(!showExtraFields)}
+                  startIcon={showFilters ? <FilterListOffIcon /> : <FilterListIcon />}
+                  onClick={() => setShowFilters(!showFilters)}
                 >
-                  {showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
+                  {showFilters ? 'مخفی کردن فیلتر' : 'نمایش فیلتر'}
                 </Button>
-              )}
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => router.push('/exams/create')}
-            >
-                ایجاد آزمون جدید
-            </Button>
-            </Stack>
+                {viewMode === 'list' && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => setShowExtraFields(!showExtraFields)}
+                  >
+                    {showExtraFields ? 'مخفی کردن جزئیات' : 'نمایش جزئیات'}
+                  </Button>
+                )}
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => router.push('/exams/create')}
+                >
+                  ایجاد آزمون جدید
+                </Button>
+              </>
+            )}
           </Stack>
         </Box>
 
@@ -424,16 +461,17 @@ export default function ExamsPage() {
                         <Divider />
                         <Stack spacing={1}>
                           {(() => {
-                            const meta = exam.meta as { duration_minutes?: number; passing_score?: number } | undefined;
-                            const hasDuration = meta?.duration_minutes && typeof meta.duration_minutes === 'number';
-                            const hasPassingScore = meta?.passing_score && typeof meta.passing_score === 'number';
+                            const duration = (exam as { duration_minutes?: number }).duration_minutes ?? (exam.meta as { duration_minutes?: number })?.duration_minutes;
+                            const passing = (exam as { passing_score?: number }).passing_score ?? (exam.meta as { passing_score?: number })?.passing_score;
+                            const hasDuration = duration != null && typeof duration === 'number';
+                            const hasPassingScore = passing != null && typeof passing === 'number';
                             return (
                               <>
                                 {hasDuration && (
                                   <Stack direction="row" spacing={1} alignItems="center">
                                     <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                     <Typography variant="body2" color="text.secondary">
-                                      مدت زمان: {meta.duration_minutes} دقیقه
+                                      مدت زمان: {duration} دقیقه
                                     </Typography>
                                   </Stack>
                                 )}
@@ -441,7 +479,7 @@ export default function ExamsPage() {
                                   <Stack direction="row" spacing={1} alignItems="center">
                                     <GradeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                     <Typography variant="body2" color="text.secondary">
-                                      نمره قبولی: {meta.passing_score}%
+                                      نمره قبولی: {passing}%
                                     </Typography>
                                   </Stack>
                                 )}
