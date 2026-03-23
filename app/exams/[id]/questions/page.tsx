@@ -67,6 +67,7 @@ import {
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
 import { handleError, getErrorMessage } from '@/lib/error-handler';
+import {ArrowRightIcon} from "@mui/x-date-pickers";
 
 interface SortableQuestionItemProps {
   question: ExamQuestion;
@@ -156,50 +157,58 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                 <DragHandleIcon />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    sx={{
+                      mb: 1,
+                      gap: 1, // Adds spacing in both directions (row and column)
+                      flexWrap: 'wrap' // Ensures items wrap to next line on mobile
+                    }}
+                >
                   <Chip
-                    label={`سوال ${question.payload?.order ?? index + 1}`}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
+                      label={`سوال ${question.payload?.order ?? index + 1}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
                   />
                   {question.question_id ? (
-                    <Chip label="از بانک" size="small" color="primary" />
+                      <Chip label="از بانک" size="small" color="primary" />
                   ) : (
-                    <Chip label="سفارشی" size="small" color="secondary" />
+                      <Chip label="سفارشی" size="small" color="secondary" />
                   )}
                   <Chip
-                    label={getQuestionTypeLabel(questionType)}
-                    size="small"
-                    variant="outlined"
+                      label={getQuestionTypeLabel(questionType)}
+                      size="small"
+                      variant="outlined"
                   />
                   <Tooltip title="بارم سوال">
                     <TextField
-                      size="small"
-                      type="number"
-                      value={pointsValue}
-                      onChange={(e) => setPointsValue(e.target.value)}
-                      onBlur={handlePointsBlur}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                      disabled={isUpdating}
-                      inputProps={{ min: 1, max: 100 }}
-                      sx={{
-                        width: 48,
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 1,
-                          height: 40,
-                          backgroundColor: 'action.hover',
-                          '& fieldset': { borderColor: 'divider' },
-                          '&:hover fieldset': { borderColor: 'primary.main' },
-                          '&.Mui-focused fieldset': { borderWidth: 2 },
-                        },
-                        '& .MuiInputBase-input': {
-                          textAlign: 'center',
-                          py: 0.5,
-                          px: 0.5,
-                          fontSize: '0.875rem',
-                        },
-                      }}
+                        size="small"
+                        type="number"
+                        value={pointsValue}
+                        onChange={(e) => setPointsValue(e.target.value)}
+                        onBlur={handlePointsBlur}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                        disabled={isUpdating}
+                        inputProps={{ min: 1, max: 100 }}
+                        sx={{
+                          width: 48,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1,
+                            height: 40,
+                            backgroundColor: 'action.hover',
+                            '& fieldset': { borderColor: 'divider' },
+                            '&:hover fieldset': { borderColor: 'primary.main' },
+                            '&.Mui-focused fieldset': { borderWidth: 2 },
+                          },
+                          '& .MuiInputBase-input': {
+                            textAlign: 'center',
+                            py: 0.5,
+                            px: 0.5,
+                            fontSize: '0.875rem',
+                          },
+                        }}
                     />
                   </Tooltip>
                 </Stack>
@@ -444,7 +453,7 @@ function ExamQuestionsContent() {
 
   const handleAddQuestion = useCallback((question: ExamQuestion) => {
     if (!examId) return;
-    
+
     const nextOrder = questions.length + 1;
     const points = defaultPoints;
     
@@ -662,7 +671,7 @@ function ExamQuestionsContent() {
             startIcon={<AddIcon />}
             onClick={() => {
               setBankDrawerOpen(true);
-              if (isMobile) setMobileDrawerOpen(false);
+              if (isMobile) setMobileDrawerOpen(true);
             }}
             fullWidth
           >
@@ -693,7 +702,7 @@ function ExamQuestionsContent() {
         <Box>
           <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
             <Button
-              startIcon={<ArrowBackIcon />}
+              startIcon={<ArrowRightIcon />}
               onClick={() => router.push(`/exams/${examId}`)}
               variant="outlined"
             >
@@ -707,17 +716,20 @@ function ExamQuestionsContent() {
                 {examWithQuestions.title}
               </Typography>
             </Box>
-            {isMobile && (
+          </Stack>
+        </Box>
+
+        {isMobile && (
+            <Box>
               <Button
-                variant="outlined"
-                startIcon={<MenuIcon />}
-                onClick={() => setMobileDrawerOpen(true)}
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setMobileDrawerOpen(true)}
               >
                 افزودن سوال
               </Button>
-            )}
-          </Stack>
-        </Box>
+            </Box>
+        )}
 
         {/* Mobile Drawer */}
         {isMobile && (
@@ -824,6 +836,20 @@ function ExamQuestionsContent() {
                           {!addQuestionMutation.error && !updateQuestionMutation.error && !deleteQuestionMutation.error && 'خطایی رخ داد. لطفا دوباره تلاش کنید.'}
                         </Alert>
                       )}
+
+                      {isMobile && (
+                          <Box>
+                            <Button
+                                variant="outlined"
+                                sx={{ width: "100%" }}
+                                startIcon={<AddIcon />}
+                                onClick={() => setMobileDrawerOpen(true)}
+                            >
+                              افزودن سوال
+                            </Button>
+                          </Box>
+                      )}
+
                       <Alert severity="info" icon={<DragHandleIcon />}>
                         برای تغییر ترتیب سوالات، روی آیکون دستگیره کلیک کرده و سوال را به موقعیت مورد نظر بکشید
                       </Alert>

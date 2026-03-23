@@ -40,6 +40,7 @@ interface ExamNotificationsTabProps {
     id: number;
     user?: { id: number; name: string; phone_number?: string | null; email?: string | null } | null;
   }>;
+  isPublished?: boolean;
 }
 
 const NOTIFICATION_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -59,7 +60,7 @@ function formatDateTime(dateStr: string): string {
   });
 }
 
-export default function ExamNotificationsTab({ examId, participants }: ExamNotificationsTabProps) {
+export default function ExamNotificationsTab({ examId, participants, isPublished = false }: ExamNotificationsTabProps) {
   const [message, setMessage] = useState('');
   const [recipientSelection, setRecipientSelection] = useState<number[] | 'all'>('all');
 
@@ -104,6 +105,11 @@ export default function ExamNotificationsTab({ examId, participants }: ExamNotif
             <SendIcon color="primary" />
             <Typography variant="h6">ارسال اعلان</Typography>
           </Stack>
+          {!isPublished && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              ارسال اعلان فقط برای آزمون‌های منتشر شده امکان‌پذیر است. ابتدا آزمون را منتشر کنید.
+            </Alert>
+          )}
           <Stack spacing={2}>
             <TextField
               label="متن پیام"
@@ -130,7 +136,7 @@ export default function ExamNotificationsTab({ examId, participants }: ExamNotif
               variant="contained"
               startIcon={sendMutation.isPending ? <CircularProgress size={16} /> : <SendIcon />}
               onClick={handleSend}
-              disabled={!message.trim() || sendMutation.isPending || participantOptions.length === 0}
+              disabled={!isPublished || !message.trim() || sendMutation.isPending || participantOptions.length === 0}
             >
               {sendMutation.isPending ? 'در حال ارسال...' : 'ارسال اعلان'}
             </Button>

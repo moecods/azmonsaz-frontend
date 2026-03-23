@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Box, CssBaseline } from "@mui/material";
+import { CssBaseline } from "@mui/material";
 import ThemeRegistry from "../theme/ThemeRegistry";
 import { QueryProvider } from "./providers/QueryProvider";
-import { DataSourceIndicator } from '@/components/DataSourceIndicator';
-import Navbar from '@/components/Navbar';
 import LayoutContent from './LayoutContent';
 
 export const metadata: Metadata = {
-  title: "Azmoon-Saz - Exam Builder",
+  title: (process.env.APP_NAME_EN || "APP_NAME") + " - Exam Builder",
   description: "Create and manage exams with our powerful exam builder platform",
 };
 
@@ -24,7 +22,6 @@ export default function RootLayout({
           <ThemeRegistry>
             <CssBaseline />
             <LayoutContent>{children}</LayoutContent>
-            {/* <DataSourceIndicator /> */}
           </ThemeRegistry>
         </QueryProvider>
       </body>

@@ -175,19 +175,13 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
                         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                           دستورالعمل
                         </Typography>
-                        {formData.instructions.includes('<') ? (
-                          <Box
-                            component="div"
-                            sx={{ typography: 'body2', whiteSpace: 'pre-wrap', '& ul, & ol': { pl: 2 }, '& p': { m: 0, '& + p': { mt: 1 } } }}
-                            dangerouslySetInnerHTML={{
-                              __html: formData.instructions.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ''),
-                            }}
-                          />
-                        ) : (
-                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                            {formData.instructions}
-                          </Typography>
-                        )}
+                        <Box
+                          dangerouslySetInnerHTML={{
+                            __html: formData.instructions
+                              .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                              .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ''),
+                          }}
+                        />
                       </Box>
                     )}
                     {formData.tags && formData.tags.length > 0 && (

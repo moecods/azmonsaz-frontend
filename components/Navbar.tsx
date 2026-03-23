@@ -66,6 +66,7 @@ export default function Navbar() {
       sx={{ 
         borderBottom: 1, 
         borderColor: "divider",
+        borderRadius: '0px',
         bgcolor: 'background.paper',
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}

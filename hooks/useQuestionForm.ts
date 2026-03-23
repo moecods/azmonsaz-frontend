@@ -11,6 +11,9 @@ import { questionToFormData, payloadToFormData } from '@/lib/question-mappers';
 import type { Question } from '@/types';
 import type { QuestionCategory } from '@/types';
 
+// Whitelist of question types that require options
+const TYPES_WITH_OPTIONS = ['multiple_choice', 'true_false', 'multiple_select'];
+
 const DEFAULT_VALUES: QuestionFormData = {
   text: '',
   type: 'multiple_choice',
@@ -79,6 +82,26 @@ export function useQuestionForm({
   const left_items = watch('left_items');
   const matches = watch('matches');
   const correctAnswer = watch('correct_answer');
+
+  // Manage options array based on question type
+  useEffect(() => {
+    const currentOptions = getValues('options');
+
+    if (TYPES_WITH_OPTIONS.includes(questionType)) {
+      // Ensure default options exist for types that require them
+      if (!currentOptions || currentOptions.length === 0) {
+        setValue('options', [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+        ]);
+      }
+    } else {
+      // Clear options for types that do not require them
+      if (currentOptions && currentOptions.length > 0) {
+        setValue('options', []);
+      }
+    }
+  }, [questionType, setValue, getValues]);
 
   // Populate form when editing exam question from payload (exam question edit page)
   useEffect(() => {

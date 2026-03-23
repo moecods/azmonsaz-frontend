@@ -21,11 +21,13 @@ const USER_LAYOUT_PAGES = [
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [paddingTop, setPaddingTop] = useState('64px'); // Default to showing navbar padding
-  const [shouldShowNavbar, setShouldShowNavbar] = useState(true); // Default to showing navbar
+  const [paddingTop, setPaddingTop] = useState('0'); // Default to showing navbar padding
+  const [shouldShowNavbar, setShouldShowNavbar] = useState(false); // Default to showing navbar
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   const pathname = usePathname();
-  
+  const isLandingPage = pathname === '/';
+
+
   /**
    * Check if current page is a public page (login, register, etc.)
    */
@@ -37,7 +39,14 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
   
   // Only check authentication if not on a public page to prevent unnecessary /me calls
   // useIsAuthenticated only checks token, doesn't call API
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const isAuthenticated = isPublicPage ? false : useIsAuthenticated();
+
+  const isNoNavbarPage = useMemo(() => {
+    if (!pathname) return false;
+    const publicPages =['/login', '/register', '/'];
+    return publicPages.some(page => pathname === page || pathname.startsWith(page + '/'));
+  }, [pathname]);
 
   /**
    * Check if current page uses UserLayout
@@ -45,7 +54,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
    */
   const isUserLayoutPage = useMemo(() => {
     if (!pathname) return false;
-    return USER_LAYOUT_PAGES.some(page => 
+    return USER_LAYOUT_PAGES.some(page =>
       pathname === page || pathname.startsWith(page + '/')
     );
   }, [pathname]);
@@ -62,12 +71,16 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
     if (!mounted) {
       return { show: true, padding: '64px' };
     }
-    const show = !(isMobile && isAuthenticated && isUserLayoutPage);
+
+    const isUserLayoutMobile = isMobile && isAuthenticated && isUserLayoutPage;
+
+    const show = !isLandingPage && !isUserLayoutMobile && !isNoNavbarPage;
+
     return {
       show,
       padding: show ? '64px' : '0',
     };
-  }, [mounted, isMobile, isAuthenticated, isUserLayoutPage]);
+  }, [mounted, isMobile, isAuthenticated, isUserLayoutPage, isLandingPage, isNoNavbarPage]);
 
   // Update state when config changes
   useEffect(() => {

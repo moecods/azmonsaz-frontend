@@ -30,7 +30,6 @@ import {
   ListItemButton,
   Checkbox,
   Divider,
-  InputAdornment,
 } from '@mui/material';
 import {
   useGroups,
@@ -54,6 +53,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DescriptionIcon from '@mui/icons-material/Description';
 import Breadcrumb from '@/components/Breadcrumb';
+import {Toast} from '@/components/feedback/Alert/Alert';
 
 export default function GroupsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -744,15 +744,13 @@ export default function GroupsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Alert Snackbar */}
       {alert.open && (
-        <Alert
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
-          sx={{ position: 'fixed', bottom: 16, left: 16, right: 16, zIndex: 9999 }}
-        >
-          {alert.message}
-        </Alert>
+          <Toast
+              open={alert.open}
+              onClose={() => setAlert({ ...alert, open: false })}
+              message={alert.message}
+              severity={alert.severity}
+          />
       )}
     </Stack>
   );

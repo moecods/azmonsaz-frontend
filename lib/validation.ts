@@ -34,7 +34,14 @@ export const questionSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
   type: z.enum(QUESTION_TYPE_IDS as unknown as [string, ...string[]]),
   options: z.array(questionOptionSchema).optional(),
-  correct_answer: z.union([z.number(), z.array(z.number()), z.string(), z.null()]),
+  correct_answer: z.union([
+    z.number(),
+    z.array(z.number()),
+    z.string(),
+    z.array(z.string()),
+    z.null(),
+    z.array(matchSchema),
+  ]),
   category_id: z.number().positive('Category is required'),
   tags: z.array(z.string()),
   difficulty: z.enum(['easy', 'medium', 'hard']),
@@ -192,21 +199,17 @@ export const partnerSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
-// Phone number regex pattern (reusable)
-const phoneNumberRegex = /^(\+98|0)?9\d{9}$/;
-const phoneNumberError = 'شماره تلفن معتبر نیست. فرمت صحیح: 09123456789 یا +989123456789';
 
 // Login validation schema
 export const loginSchema = z.object({
-  phone_number: z.string().min(1, 'شماره تلفن الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
   password: z.string().min(1, 'رمز عبور الزامی است'),
 });
 
 // Register validation schema
 export const registerSchema = z.object({
-  first_name: z.string().min(1, 'نام الزامی است').max(100, 'نام نمی‌تواند بیشتر از 100 کاراکتر باشد'),
-  last_name: z.string().min(1, 'نام خانوادگی الزامی است').max(100, 'نام خانوادگی نمی‌تواند بیشتر از 100 کاراکتر باشد'),
-  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  name: z.string().min(1, 'نام و نام‌خانوادگی الزامی است').max(100, 'نام و نام‌خانوادگی نمی‌تواند بیشتر از 100 کاراکتر باشد'),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
   password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد'),
   password_confirmation: z.string().min(1, 'تایید رمز عبور الزامی است'),
 }).refine((data) => data.password === data.password_confirmation, {
@@ -216,23 +219,23 @@ export const registerSchema = z.object({
 
 // OTP Login Request schema
 export const otpLoginRequestSchema = z.object({
-  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
 });
 
 // OTP Login Verify schema
 export const otpLoginVerifySchema = z.object({
-  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
   code: z.string().min(1, 'کد یکبار مصرف الزامی است').max(10, 'کد یکبار مصرف معتبر نیست'),
 });
 
 // Forgot Password Request schema
 export const forgotPasswordSchema = z.object({
-  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
 });
 
 // Reset Password schema
 export const resetPasswordSchema = z.object({
-  phone_number: z.string().min(1, 'شماره موبایل الزامی است').regex(phoneNumberRegex, phoneNumberError),
+  phone_number: z.string().min(1, 'شماره موبایل الزامی است'),
   code: z.string().min(1, 'کد یکبار مصرف الزامی است').max(10, 'کد یکبار مصرف معتبر نیست'),
   password: z.string().min(8, 'رمز عبور باید حداقل 8 کاراکتر باشد'),
   password_confirmation: z.string().min(1, 'تایید رمز عبور الزامی است'),

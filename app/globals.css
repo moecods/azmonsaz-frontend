@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* RTL Support for Persian */
 html[dir="rtl"] {
   direction: rtl;
 }
@@ -10,7 +9,6 @@ html[dir="rtl"] body {
   text-align: right;
 }
 
-/* Ensure RTL layout for all elements */
 html[dir="rtl"] * {
   direction: rtl;
 }
@@ -52,9 +50,11 @@ body {
   direction: ltr !important;
 }
 
-/* چاپ: فقط محتوای برگه امتحان — نوبار و بقیهٔ سایت مخفی */
+.tsqd-open-btn-container {
+  margin-bottom: 40px;
+}
+
 @media print {
-  /* حاشیهٔ بالا روی همهٔ صفحات (بعضی مرورگرها فقط صفحهٔ اول را رعایت می‌کنند اگر فقط از JS ست شود) */
   @page {
     margin-top: 12mm !important;
   }

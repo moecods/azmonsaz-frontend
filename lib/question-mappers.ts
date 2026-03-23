@@ -20,6 +20,7 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
     ? (optionsRaw as string[]).map((opt: string, index: number) => {
         const text = typeof opt === 'string' ? opt : String(opt);
         let isCorrect = false;
+
         if (qType === 'multiple_select' && Array.isArray(correctAnswer)) {
           isCorrect = correctAnswer.includes(index);
         } else if (qType === 'true_false' || qType === 'multiple_choice') {
@@ -66,12 +67,13 @@ export function questionToFormData(question: Question): QuestionFormData {
   const questionOptions = question.options || [];
   const correctAnswer = question.correct_answer;
   const qType = question.type;
-  const isStringArray = questionOptions.length > 0 && typeof questionOptions[0] === 'string';
-
   const convertedOptions = convertOptions(questionOptions, correctAnswer, qType);
 
   const categoryId = resolveCategoryId(question, q);
   const blanks = resolveBlanks(question, q, qType);
+  const leftItems = resolveLeftItems(question, q, qType);
+  const rightItems = resolveRightItems(question, q, qType);
+  const matches = resolveMatches(question, q, qType);
 
   return {
     text: question.text,
@@ -83,10 +85,10 @@ export function questionToFormData(question: Question): QuestionFormData {
     difficulty: question.difficulty,
     items: (q.items || []) as QuestionFormData['items'],
     correct_order: (q.correct_order || []) as number[],
-    left_items: (q.left_items || []) as QuestionFormData['left_items'],
-    right_items: (q.right_items || []) as QuestionFormData['right_items'],
-    matches: (q.matches || []) as QuestionFormData['matches'],
+    left_items: leftItems,
+    right_items: rightItems,
     blanks,
+    matches: matches,
   };
 }
 
@@ -162,4 +164,64 @@ function resolveBlanks(
   }
 
   return blanks;
+}
+
+function resolveLeftItems(
+  question: Question,
+  q: Record<string, unknown>,
+  qType: string
+): QuestionFormData['left_items'] {
+  let items = (q.left_items || []) as QuestionFormData['left_items'];
+
+  if (qType !== 'matching' || items.length > 0 || !q.options) {
+    return items;
+  }
+
+  const opts = q.options as Record<string, unknown> | unknown[];
+
+  if (typeof opts === 'object' && opts !== null && !Array.isArray(opts) && 'left_items' in opts) {
+    return (opts as { left_items: QuestionFormData['left_items'] }).left_items;
+  }
+
+  return items;
+}
+
+function resolveRightItems(
+  question: Question,
+  q: Record<string, unknown>,
+  qType: string
+): QuestionFormData['right_items'] {
+  let items = (q.right_items || []) as QuestionFormData['right_items'];
+
+  if (qType !== 'matching' || items.length > 0 || !q.options) {
+    return items;
+  }
+
+  const opts = q.options as Record<string, unknown> | unknown[];
+
+  if (typeof opts === 'object' && opts !== null && !Array.isArray(opts) && 'right_items' in opts) {
+    return (opts as { right_items: QuestionFormData['right_items'] }).right_items;
+  }
+
+  return items;
+}
+
+function resolveMatches(
+  question: Question,
+  q: Record<string, unknown>,
+  qType: string
+): QuestionFormData['matches'] {
+  let matches = (q.matches || []) as QuestionFormData['matches'];
+
+  if (qType !== 'matching' || matches.length > 0 || !q.correct_answer) {
+    return matches;
+  }
+
+  const correctAnswer = q.correct_answer;
+
+  if (Array.isArray(correctAnswer)) {
+    return correctAnswer as QuestionFormData['matches'];
+  }
+
+  return matches;
 }

@@ -23,8 +23,6 @@ export interface User {
   updated_at: string;
 }
 
-export type UserRole = 'admin' | 'content_manager' | 'creator';
-
 export interface AuthUser {
   id: number;
   name: string;
@@ -42,8 +40,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterCredentials {
-  first_name: string;
-  last_name: string;
+  name: string;
   phone_number: string;
   password: string;
   password_confirmation: string;

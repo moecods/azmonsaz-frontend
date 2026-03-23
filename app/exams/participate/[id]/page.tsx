@@ -241,12 +241,18 @@ export default function ExamParticipatePage() {
                 </Box>
               )}
 
-              {((examInfo as { instructions?: string }).instructions ?? examInfo.meta?.instructions) && (
+              {examInfo.instructions  && (
                 <Alert severity="info">
                   <Typography variant="body2" fontWeight="bold" gutterBottom>
                     دستورالعمل:
                   </Typography>
-                  <Typography variant="body2">{(examInfo as { instructions?: string }).instructions ?? (examInfo.meta?.instructions as string)}</Typography>
+                  <Typography
+                    variant="body2"
+                    component="div"
+                    dangerouslySetInnerHTML={{
+                      __html: examInfo.instructions ?? ""
+                    }}
+                  />
                 </Alert>
               )}
 

@@ -90,7 +90,7 @@ export function RichTextField({
               content: 'attr(data-placeholder)',
               color: 'text.disabled',
             },
-            '& ul, & ol': { pl: 3, my: 0.5 },
+            '& ul, & ol': { pl: 3, my: 0.5, listStyle: 'initial' },
           }}
         />
       </Stack>

@@ -466,6 +466,7 @@ export interface ExamInfo {
   start_at?: string | null;
   end_at?: string | null;
   questions_count: number;
+  instructions: string | null,
   creator?: {
     id: number;
     name: string;

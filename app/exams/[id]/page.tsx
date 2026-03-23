@@ -283,6 +283,7 @@ function ExamDetailContent() {
                 aria-label="عملیات بیشتر"
                 onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
                 sx={{ border: 1, borderColor: 'divider' }}
+                data-cy="exam-actions-menu"
               >
                 <MoreVertIcon />
               </IconButton>
@@ -333,6 +334,7 @@ function ExamDetailContent() {
                     }}
                     disabled={publishExamMutation.isPending || (exam.questions_count || 0) === 0}
                     title={(exam.questions_count || 0) === 0 ? 'ابتدا حداقل یک سوال اضافه کنید' : ''}
+                    data-cy="exam-publish-action"
                   >
                     <ListItemIcon><PublishIcon fontSize="small" /></ListItemIcon>
                     <ListItemText>{publishExamMutation.isPending ? 'در حال انجام...' : 'انتشار آزمون'}</ListItemText>
@@ -371,7 +373,7 @@ function ExamDetailContent() {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={handleTabChange} aria-label="exam tabs">
               <Tab label="اطلاعات آزمون" icon={<SchoolIcon />} iconPosition="start" />
-              <Tab label="شرکت‌کنندگان" icon={<PeopleIcon />} iconPosition="start" />
+              <Tab label="شرکت‌کنندگان" icon={<PeopleIcon />} iconPosition="start" data-cy="exam-tab-participants" />
               <Tab label="اعلان‌ها" icon={<NotificationsIcon />} iconPosition="start" />
             </Tabs>
           </Box>
@@ -611,6 +613,7 @@ function ExamDetailContent() {
               <ExamNotificationsTab
                 examId={examId!}
                 participants={exam.participants}
+                isPublished={exam.status === 'published'}
               />
             </CardContent>
           </TabPanel>

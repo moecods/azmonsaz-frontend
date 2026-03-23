@@ -13,7 +13,6 @@ import {
   OtpLoginVerify,
   ForgotPasswordRequest,
   ResetPasswordRequest,
-  AuthUser,
 } from '@/types';
 import { queryKeys } from '@/lib/query-client';
 

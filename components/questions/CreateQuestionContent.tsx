@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -68,6 +68,7 @@ export default function CreateQuestionContent({
   const categories = categoriesData || [];
   const { data: questionData } = useQuestion(isExamQuestionEdit ? null : questionId ?? null);
   const isEditMode = !!questionId || isExamQuestionEdit;
+
 
   const {
     form,

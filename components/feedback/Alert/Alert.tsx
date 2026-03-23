@@ -97,7 +97,7 @@ export const Toast: React.FC<ToastProps> = ({
   open,
   onClose,
   autoHideDuration = 6000,
-  anchorOrigin = { vertical: 'top', horizontal: 'center' },
+  anchorOrigin = { vertical: 'bottom', horizontal: 'right' },
 }) => {
   return (
     <Snackbar

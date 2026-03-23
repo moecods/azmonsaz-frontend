@@ -66,7 +66,6 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { user } = useAuth();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
@@ -220,13 +219,13 @@ export default function ProfilePage() {
                   <Typography variant="h5" fontWeight="bold">
                     {user.name}
                   </Typography>
-                  <IconButton 
-                    size="small" 
-                    onClick={() => setEditMode(!editMode)}
-                    color={editMode ? 'primary' : 'default'}
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  {/*<IconButton */}
+                  {/*  size="small" */}
+                  {/*  onClick={() => setEditMode(!editMode)}*/}
+                  {/*  color={editMode ? 'primary' : 'default'}*/}
+                  {/*>*/}
+                  {/*  <EditIcon />*/}
+                  {/*</IconButton>*/}
                 </Stack>
                 {user.roles && user.roles.length > 0 && (
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">

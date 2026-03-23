@@ -1,11 +1,13 @@
 import type { Control, FieldErrors } from 'react-hook-form';
 import type { UseFieldArrayReturn } from 'react-hook-form';
 import type { QuestionFormData } from '@/lib/validation';
+import { UseFormSetValue } from 'react-hook-form';
+
 
 export interface TypeFormProps {
   control: Control<QuestionFormData>;
   errors: FieldErrors<QuestionFormData>;
-  setValue: (name: string, value: unknown) => void;
+  setValue?: UseFormSetValue<QuestionFormData>;
   optionsFields: UseFieldArrayReturn<QuestionFormData, 'options'>;
   itemsFields: UseFieldArrayReturn<QuestionFormData, 'items'>;
   leftItemsFields: UseFieldArrayReturn<QuestionFormData, 'left_items'>;

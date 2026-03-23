@@ -8,13 +8,11 @@ import {
   CardContent, 
   Grid, 
   Paper, 
-  Chip, 
-  Button,
+  Chip,
   CircularProgress,
   LinearProgress,
   Alert,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
 import { useAuth, useExams, useAvailableExams, useQuestions } from "@/hooks";
 import { useMemo } from "react";
 import SchoolIcon from '@mui/icons-material/School';
@@ -24,11 +22,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Breadcrumb from '@/components/Breadcrumb';
 
 export default function DashboardPage() {
-  const router = useRouter();
   const { user } = useAuth();
   
   // Fetch data for statistics
@@ -46,6 +42,7 @@ export default function DashboardPage() {
       : availableExamsDataValue && typeof availableExamsDataValue === 'object' 
       ? Object.values(availableExamsDataValue) 
       : [];
+
     const totalQuestions = questionsData?.meta?.total || 0;
 
     const isCreator = user?.roles?.includes('admin') || 
@@ -90,7 +87,7 @@ export default function DashboardPage() {
   return (
     <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'داشبورد' }]} />
-        
+
         <Box>
           <Typography variant="h4" gutterBottom fontWeight="bold">
             پنل کاربری
@@ -227,8 +224,8 @@ export default function DashboardPage() {
                             {stats.totalExamsCreated}
                           </Typography>
                         </Stack>
-                        <LinearProgress 
-                          variant="determinate" 
+                        <LinearProgress
+                          variant="determinate"
                           value={stats.totalExamsCreated > 0 ? 100 : 0}
                           sx={{ height: 8, borderRadius: 4 }}
                         />
@@ -365,8 +362,8 @@ export default function DashboardPage() {
                               {exam.title || `آزمون ${index + 1}`}
                             </Typography>
                             {exam.score !== undefined && (
-                              <Chip 
-                                label={`نمره: ${exam.score}`} 
+                              <Chip
+                                label={`نمره: ${exam.score}`}
                                 color={exam.passed ? 'success' : 'default'}
                                 size="small"
                               />
@@ -381,55 +378,6 @@ export default function DashboardPage() {
             )}
           </Grid>
         )}
-
-        {/* Common Widgets */}
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <NotificationsIcon color="primary" />
-                  <Typography variant="h6">اعلان‌ها</Typography>
-                </Stack>
-                <Alert severity="info">
-                  اعلان جدیدی وجود ندارد.
-                </Alert>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                  <Typography variant="h6">دسترسی سریع</Typography>
-                </Stack>
-                <Stack spacing={2}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    startIcon={<QuizIcon />}
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() => router.push('/exams/available')}
-                  >
-                    مشاهده آزمون‌های موجود
-                  </Button>
-                  {isCreator && (
-                    <Button
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<SchoolIcon />}
-                      endIcon={<ArrowForwardIcon />}
-                      onClick={() => router.push('/exams')}
-                    >
-                      مدیریت آزمون‌ها
-                    </Button>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
       </Stack>
   );
 }

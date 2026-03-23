@@ -19,7 +19,7 @@ function itemText(item: string | { text: string }): string {
 export interface QuestionPayload {
   question_text: string;
   type: string;
-  options?: string[];
+  options?: string[] | Record<string, unknown>;
   correct_answer?: number | number[] | null;
   order?: number;
   points?: number;
@@ -29,6 +29,31 @@ export interface QuestionPayload {
   right_items?: (string | { text: string })[];
   matches?: { left_index: number; right_index: number }[];
   blanks?: { position: number; correct_answer: string }[];
+}
+
+/**
+ * Normalize payload for display. Bank questions store blanks, items, left_items, right_items
+ * inside options object. Custom questions have them at top level. This ensures both work.
+ */
+function normalizePayloadForDisplay(payload: QuestionPayload): QuestionPayload {
+  const opts = payload.options as Record<string, unknown> | undefined;
+  if (!opts || typeof opts !== 'object' || Array.isArray(opts)) {
+    return payload;
+  }
+  const normalized = { ...payload };
+  if ((!normalized.blanks || normalized.blanks.length === 0) && Array.isArray(opts.blanks)) {
+    normalized.blanks = opts.blanks as { position: number; correct_answer: string }[];
+  }
+  if ((!normalized.items || normalized.items.length === 0) && Array.isArray(opts.items)) {
+    normalized.items = opts.items as (string | { text: string; order?: number })[];
+  }
+  if ((!normalized.left_items || normalized.left_items.length === 0) && Array.isArray(opts.left_items)) {
+    normalized.left_items = opts.left_items as (string | { text: string })[];
+  }
+  if ((!normalized.right_items || normalized.right_items.length === 0) && Array.isArray(opts.right_items)) {
+    normalized.right_items = opts.right_items as (string | { text: string })[];
+  }
+  return normalized;
 }
 
 interface QuestionAnswerInputProps {
@@ -44,11 +69,12 @@ export function QuestionAnswerInput({
   onChange,
   disabled = false,
 }: QuestionAnswerInputProps) {
-  const kind = getQuestionTypeKind(payload.type);
-  const type = payload.type;
+  const p = normalizePayloadForDisplay(payload);
+  const kind = getQuestionTypeKind(p.type);
+  const type = p.type;
 
   if (kind === 'options_single' || type === 'true_false') {
-    const options = payload.options ?? (type === 'true_false' ? ['درست', 'نادرست'] : []);
+    const options = (Array.isArray(p.options) ? p.options : (type === 'true_false' ? ['درست', 'نادرست'] : [])) as string[];
     return (
       <FormControl>
         <RadioGroup
@@ -69,7 +95,7 @@ export function QuestionAnswerInput({
   }
 
   if (kind === 'options_multiple') {
-    const options = payload.options ?? [];
+    const options = (Array.isArray(p.options) ? p.options : []) as string[];
     const current = Array.isArray(value) ? value : value != null ? [value] : [];
     return (
       <FormControl>
@@ -113,7 +139,7 @@ export function QuestionAnswerInput({
   }
 
   if (kind === 'ordering') {
-    const items = payload.items ?? [];
+    const items = p.items ?? [];
     const order = (value as number[] | undefined) ?? [];
     return (
       <Stack spacing={1}>
@@ -149,8 +175,8 @@ export function QuestionAnswerInput({
   }
 
   if (kind === 'matching') {
-    const left = payload.left_items ?? [];
-    const right = payload.right_items ?? [];
+    const left = p.left_items ?? [];
+    const right = p.right_items ?? [];
     const matches = (value as { left_index: number; right_index: number }[] | undefined) ?? left.map((_, i) => ({ left_index: i, right_index: 0 }));
     return (
       <Stack spacing={2}>
@@ -185,7 +211,7 @@ export function QuestionAnswerInput({
   }
 
   if (kind === 'blanks') {
-    const blanks = payload.blanks ?? [];
+    const blanks = p.blanks ?? [];
     const answers = (Array.isArray(value) ? value : value != null ? [value] : []) as string[];
     return (
       <Stack spacing={2}>
