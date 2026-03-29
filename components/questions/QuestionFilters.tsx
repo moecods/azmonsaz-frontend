@@ -2,8 +2,6 @@
 
 import React from 'react';
 import {
-  Card,
-  CardContent,
   Stack,
   TextField,
   FormControl,
@@ -22,8 +20,10 @@ import { QuestionType, Difficulty } from '@/types';
 import { useQuestionCategories } from '@/hooks';
 import { useDebounce } from '@/hooks';
 import { useState, useMemo } from 'react';
+import {FilterContainer} from "@/components/ui/Layout/FilterContainer";
 
 interface QuestionFiltersProps {
+  showFilters: boolean;
   filters: Filters;
   categories: Array<{ id: number; name: string }>;
   allTags: string[];
@@ -31,6 +31,7 @@ interface QuestionFiltersProps {
 }
 
 export const QuestionFilters = React.memo(function QuestionFilters({
+  showFilters,
   filters,
   categories,
   allTags,
@@ -59,9 +60,8 @@ export const QuestionFilters = React.memo(function QuestionFilters({
   const selectedCategory = displayCategories.find((c) => c.id === filters.category) || null;
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={2}>
+    <FilterContainer open={showFilters}>
+      <Stack spacing={2}>
           <TextField
             fullWidth
             label="جستجوی سوالات"
@@ -71,7 +71,11 @@ export const QuestionFilters = React.memo(function QuestionFilters({
               startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
             }}
           />
-          <Stack direction="row" spacing={2}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={{ xs: 2, md: 2 }}
+            alignItems="center"
+          >
             <Autocomplete
               fullWidth
               options={displayCategories}
@@ -184,8 +188,6 @@ export const QuestionFilters = React.memo(function QuestionFilters({
             sx={{ width: '100%' }}
           />
         </Stack>
-      </CardContent>
-    </Card>
+    </FilterContainer>
   );
 });
-

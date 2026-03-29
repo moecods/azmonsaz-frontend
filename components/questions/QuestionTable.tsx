@@ -34,6 +34,7 @@ export function QuestionTable({
     {
       id: 'text',
       label: 'سوال',
+      width: "100px",
       render: (value) => (
         <Typography variant="body2" sx={{ maxWidth: 300 }}>
           {value.length > 100 ? `${value.substring(0, 100)}...` : value}

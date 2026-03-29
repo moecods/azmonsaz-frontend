@@ -18,7 +18,6 @@ import {
   InputLabel,
   Pagination,
   Divider,
-  Collapse,
   IconButton,
   useMediaQuery,
   useTheme,
@@ -47,6 +46,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import ExamsCalendarView from '@/components/exams/ExamsCalendarView';
 import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { FilterContainer } from '@/components/ui/Layout/FilterContainer';
 
 // Helper function to check exam time status
 function getExamTimeStatus(exam: ExamListItem): {
@@ -263,56 +263,53 @@ export default function ExamsPage() {
         </Box>
 
         {/* Filters */}
-        <Collapse in={showFilters}>
-          <Card sx={{ mb: showFilters ? 0 : 0 }}>
-            <CardContent>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-                <TextField
-                  fullWidth
-                  placeholder="جستجو در عنوان آزمون..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setPage(1);
-                  }}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                  }}
-                />
-                <FormControl fullWidth>
-                  <InputLabel>وضعیت</InputLabel>
-                  <Select
-                    value={statusFilter}
-                    label="وضعیت"
-                    onChange={(e) => {
-                      setStatusFilter(e.target.value as 'all' | 'draft' | 'published');
-                      setPage(1);
-                    }}
-                  >
-                    <MenuItem value="all">همه</MenuItem>
-                    <MenuItem value="draft">پیش‌نویس</MenuItem>
-                    <MenuItem value="published">منتشر شده</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth>
-                  <InputLabel>نوع</InputLabel>
-                  <Select
-                    value={typeFilter}
-                    label="نوع"
-                    onChange={(e) => {
-                      setTypeFilter(e.target.value as 'all' | 'online' | 'offline');
-                      setPage(1);
-                    }}
-                  >
-                    <MenuItem value="all">همه</MenuItem>
-                    <MenuItem value="offline">آفلاین</MenuItem>
-                    <MenuItem value="online">آنلاین</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-            </CardContent>
-          </Card>
-        </Collapse>
+        <FilterContainer open={showFilters}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+            <TextField
+              fullWidth
+              placeholder="جستجو در عنوان آزمون..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+            <FormControl fullWidth>
+              <InputLabel>وضعیت</InputLabel>
+              <Select
+                value={statusFilter}
+                label="وضعیت"
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'all' | 'draft' | 'published');
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="all">همه</MenuItem>
+                <MenuItem value="draft">پیش‌نویس</MenuItem>
+                <MenuItem value="published">منتشر شده</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>نوع</InputLabel>
+              <Select
+                value={typeFilter}
+                label="نوع"
+                onChange={(e) => {
+                  setTypeFilter(e.target.value as 'all' | 'online' | 'offline');
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="all">همه</MenuItem>
+                <MenuItem value="offline">آفلاین</MenuItem>
+                <MenuItem value="online">آنلاین</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </FilterContainer>
+
 
         {/* Exams List or Calendar */}
         {exams.length === 0 ? (

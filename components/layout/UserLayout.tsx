@@ -29,14 +29,13 @@ export default function UserLayout({ children, requiredPermission, requiredRole 
 
   return (
     <ProtectedRoute requiredPermission={requiredPermission} requiredRole={requiredRole}>
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', minWidth: '100vw' }}>
       {/* Sidebar */}
       <UserSidebar
         open={mobileOpen}
         onClose={handleDrawerToggle}
         variant={isMobile ? 'temporary' : 'permanent'}
       />
-
       {/* Main content */}
       <Box
         component="main"
@@ -47,6 +46,7 @@ export default function UserLayout({ children, requiredPermission, requiredRole 
           bgcolor: 'background.default',
           pt: { md: `${TOOLBAR_HEIGHT}px` }, // Padding top for navbar on desktop
           pb: { xs: `${BOTTOM_NAV_HEIGHT}px`, md: 0 }, // Padding bottom for mobile bottom nav
+          overflowX: 'hidden',
         }}
       >
         <Box sx={{ p: { xs: 2, md: 3 } }}>

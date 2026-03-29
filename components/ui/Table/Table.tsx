@@ -100,10 +100,10 @@ export interface TableProps<T = any> extends Omit<MuiTableProps, 'children'> {
 }
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  width: '100%',
+  overflowX: 'auto',
   borderRadius: 8,
-  '& .MuiTable-root': {
-    minWidth: 650,
-  },
+  border: `1px solid ${theme.palette.divider}`,
   '& .MuiTableHead-root': {
     backgroundColor: theme.palette.grey[50],
     '& .MuiTableCell-root': {
@@ -117,6 +117,7 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
       '&:hover': {
         backgroundColor: theme.palette.action.hover,
       },
+
       '&:last-child .MuiTableCell-root': {
         borderBottom: 'none',
       },
@@ -178,8 +179,13 @@ export function Table<T = any>({
 
   return (
     <Box>
-      <StyledTableContainer component={Paper} variant="outlined">
-        <MuiTable size={size} stickyHeader={stickyHeader} {...props}>
+      <StyledTableContainer>
+        <MuiTable
+          size={size}
+          stickyHeader={stickyHeader}
+          {...props}
+          sx={{ width: '100%' }}
+        >
           <TableHead>
             <TableRow>
               {columns.map((column) => (
