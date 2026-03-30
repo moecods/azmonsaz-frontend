@@ -1,6 +1,7 @@
 import { ExamFormData } from './validation';
 import { Exam } from '@/types';
 import { handleError } from './error-handler';
+import {AvailableExam} from "@/services/exams";
 
 /** Exam with flat fields (duration_minutes, passing_score, etc.) - API returns these at top level. */
 type ExamWithFlat = Exam & {
@@ -12,7 +13,7 @@ type ExamWithFlat = Exam & {
 };
 
 /** Get duration_minutes from exam (flat or legacy meta). */
-export function getExamDurationMinutes(exam: Exam): number | null | undefined {
+export function getExamDurationMinutes(exam: Exam|AvailableExam): number | null | undefined {
   const e = exam as ExamWithFlat;
   return e.duration_minutes ?? (exam.meta as { duration_minutes?: number })?.duration_minutes ?? null;
 }

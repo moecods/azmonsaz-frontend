@@ -2,16 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
-  Stack,
-  Typography,
-  Alert,
-  CircularProgress,
+  Box, Button, Card, CardContent, Chip, Stack, Typography, Alert, CircularProgress,
 } from '@mui/material';
 import { useAvailableExams } from '@/hooks/useExams';
 import type { AvailableExam } from '@/services/exams/ExamService';
@@ -23,82 +14,110 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import Breadcrumb from '@/components/Breadcrumb';
 import UserLayout from '@/components/layout/UserLayout';
-import { ExamMeta } from '@/types';
 import { getExamDurationMinutes } from '@/lib/exam-utils';
+import { useMemo } from 'react';
 
 export default function AvailableExamsPage() {
   const router = useRouter();
   const { data, isLoading, error } = useAvailableExams();
 
-  // Backend already filters to only show published and active exams
-  // Convert object to array if needed (in case backend returns object with numeric keys)
   const examsData = data?.data;
-  const exams: AvailableExam[] = Array.isArray(examsData) 
-    ? examsData 
-    : examsData && typeof examsData === 'object' 
-    ? (Object.values(examsData) as AvailableExam[])
-    : [];
-
-  const getExamEndAt = (exam: AvailableExam): Date | null => {
-    if (exam.exam_end_at) {
-      try { return new Date(exam.exam_end_at); } catch { /* invalid */ }
-    }
-    return null;
-  };
-
+  const exams: AvailableExam[] = useMemo(() => {
+    if (!examsData) return [];
+    if (Array.isArray(examsData)) return examsData;
+    return Object.values(examsData) as AvailableExam[];
+  }, [examsData]);
   const getDisplayStatus = (exam: AvailableExam): string => {
     if (exam.status === 'completed') return 'completed';
     if (exam.status === 'absent') return 'absent';
-    if (exam.status === 'started') {
-      const endAt = getExamEndAt(exam);
-      if (endAt && new Date() > endAt) return 'time_ended';
+    if (exam.status === 'started' || exam.status === 'registered') {
+      if (exam.exam_end_at) {
+        try {
+          const endAt = new Date(exam.exam_end_at);
+          if (new Date() > endAt) return 'time_ended';
+        } catch (e) {
+          console.error("Invalid date format", e);
+        }
+      }
     }
     return exam.status;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'time_ended':
-        return 'error';
-      case 'absent':
-        return 'error';
-      case 'started':
-        return 'warning';
-      case 'registered':
-        return 'info';
-      default:
-        return 'default';
+      case 'completed': return 'success';
+      case 'time_ended': return 'error';
+      case 'absent': return 'error';
+      case 'started': return 'warning';
+      case 'registered': return 'info';
+      default: return 'default';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'تکمیل شده';
-      case 'time_ended':
-        return 'زمان به پایان رسیده';
-      case 'absent':
-        return 'غیبت در امتحان';
-      case 'started':
-        return 'در حال انجام';
-      case 'registered':
-        return 'ثبت‌نام شده';
-      default:
-        return status;
+      case 'completed': return 'تکمیل شده';
+      case 'time_ended': return 'زمان به پایان رسیده';
+      case 'absent': return 'غیبت در امتحان';
+      case 'started': return 'در حال انجام';
+      case 'registered': return 'ثبت‌نام شده';
+      default: return status;
     }
   };
 
-  const handleStartExam = (examId: number, status: string) => {
-    if (status === 'completed') {
-      // Show user's own result page
+  const renderExamDateTime = (exam: AvailableExam) => {
+    let dateStr = '';
+    let startStr = '';
+    let endStr = '';
+
+    try {
+      if (exam.exam_start_at) {
+        const startAt = new Date(exam.exam_start_at);
+        dateStr = startAt.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
+        startStr = startAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+      }
+      if (exam.exam_end_at) {
+        const endAt = new Date(exam.exam_end_at);
+        endStr = endAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (e) {
+      return null;
+    }
+
+    if (!dateStr && !startStr && !endStr) return null;
+
+    return (
+      <Stack spacing={0.5}>
+        {dateStr && (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Typography variant="body2" color="text.secondary">روز آزمون: {dateStr}</Typography>
+          </Stack>
+        )}
+        <Stack direction="row" spacing={2}>
+          {startStr && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">شروع: {startStr}</Typography>
+            </Stack>
+          )}
+          {endStr && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">پایان: {endStr}</Typography>
+            </Stack>
+          )}
+        </Stack>
+      </Stack>
+    );
+  };
+
+  const handleStartExam = (examId: number, displayStatus: string) => {
+    if (displayStatus === 'completed') {
       router.push(`/exams/${examId}/result`);
-    } else if (status === 'absent' || status === 'time_ended') {
-      // Cannot start - exam ended or user was absent
-      router.push(`/exams/take/${examId}`);
+    } else if (displayStatus === 'absent' || displayStatus === 'time_ended') {
+      router.push(`/exams/${examId}/result`);
     } else {
-      // Start or continue exam
       router.push(`/exams/take/${examId}`);
     }
   };
@@ -108,175 +127,79 @@ export default function AvailableExamsPage() {
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
         <Box>
-          <Typography variant="h4" gutterBottom>
-            آزمون‌های من
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید
-          </Typography>
+          <Typography variant="h4" gutterBottom>آزمون‌های من</Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید</Typography>
         </Box>
 
         {isLoading ? (
-          <Box display="flex" justifyContent="center" p={4}>
-            <CircularProgress />
-          </Box>
+          <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
         ) : error ? (
-          <Alert severity="error">
-            {error instanceof Error ? error.message : 'Failed to load available exams.'}
-          </Alert>
+          <Alert severity="error">{error instanceof Error ? error.message : 'خطا در بارگذاری آزمون‌ها'}</Alert>
         ) : exams.length === 0 ? (
-            <Card>
-              <CardContent>
-                <Box textAlign="center" py={4}>
-                  <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    هیچ آزمونی یافت نشد
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mb: 3 }}>
-                    شما هنوز در هیچ آزمونی ثبت‌نام نکرده‌اید.
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 3,
-              }}
-            >
-              {exams.map((exam, index) => (
+          <Card>
+            <CardContent>
+              <Box textAlign="center" py={4}>
+                <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">هیچ آزمونی یافت نشد</Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 3 }}>
+            {exams.map((exam) => {
+              const displayStatus = getDisplayStatus(exam);
+              const isDisabled = displayStatus === 'absent' || displayStatus === 'time_ended';
+
+              return (
                 <Card
-                  key={`exam-${exam.id}-${index}`}
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
-                    },
-                  }}
+                  key={exam.id} // اصلاح شده: استفاده از ID به جای index
+                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}
                 >
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     <Stack spacing={2} sx={{ flexGrow: 1 }}>
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <SchoolIcon color="primary" />
-                        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                          {exam.title}
-                        </Typography>
-                        <Chip
-                          label={getStatusLabel(getDisplayStatus(exam))}
-                          color={getStatusColor(getDisplayStatus(exam))}
-                          size="small"
-                        />
+                        <Typography variant="h6" sx={{ flexGrow: 1 }}>{exam.title}</Typography>
+                        <Chip label={getStatusLabel(displayStatus)} color={getStatusColor(displayStatus)} size="small" />
                       </Stack>
 
                       {exam.creator && (
-                        <Typography variant="body2" color="text.secondary">
-                          ایجادکننده: {exam.creator.name}
-                        </Typography>
+                        <Typography variant="body2" color="text.secondary">ایجادکننده: {exam.creator.name}</Typography>
                       )}
 
-                        <Stack direction="row" spacing={1}>
-                          <Chip
-                            label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'}
-                            size="small"
-                            variant="outlined"
-                          />
-                          {getExamDurationMinutes(exam) != null && (
-                            <Chip
-                              icon={<AccessTimeIcon />}
-                              label={`${getExamDurationMinutes(exam)} دقیقه`}
-                              size="small"
-                              variant="outlined"
-                            />
-                          )}
-                        </Stack>
+                      <Stack direction="row" spacing={1}>
+                        <Chip label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} size="small" variant="outlined" />
+                        {getExamDurationMinutes(exam) != null && (
+                          <Chip icon={<AccessTimeIcon />} label={`${getExamDurationMinutes(exam)} دقیقه`} size="small" variant="outlined" />
+                        )}
+                      </Stack>
 
-                      {(() => {
-                        let finalDate: string | null = null;
-                        let finalStartTime: string | null = null;
-                        let finalEndTime: string | null = null;
-                        if (exam.exam_start_at) {
-                          try {
-                            const startAt = new Date(exam.exam_start_at);
-                            finalDate = startAt.toISOString().split('T')[0];
-                            finalStartTime = startAt.toTimeString().slice(0, 5);
-                          } catch { /* ignore */ }
-                        }
-                        if (exam.exam_end_at) {
-                          try {
-                            const endAt = new Date(exam.exam_end_at);
-                            if (!finalDate) finalDate = endAt.toISOString().split('T')[0];
-                            finalEndTime = endAt.toTimeString().slice(0, 5);
-                          } catch { /* ignore */ }
-                        }
-                        if (!finalDate && !finalStartTime && !finalEndTime) return null;
-
-                        return (
-                          <Stack spacing={0.5}>
-                            {finalDate && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
-                                  روز آزمون: {new Date(finalDate).toLocaleDateString('fa-IR', {
-                              year: 'numeric',
-                                    month: 'long',
-                              day: 'numeric'
-                            })}
-                          </Typography>
-                              </Stack>
-                            )}
-                            {finalStartTime && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  شروع: {finalStartTime}
-                                </Typography>
-                              </Stack>
-                            )}
-                            {finalEndTime && (
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="text.secondary">
-                                  پایان: {finalEndTime}
-                          </Typography>
-                              </Stack>
-                            )}
-                          </Stack>
-                        );
-                      })()}
+                      {renderExamDateTime(exam)}
                     </Stack>
 
                     <Button
-                      variant={exam.status === 'completed' ? 'outlined' : 'contained'}
+                      variant={displayStatus === 'completed' ? 'outlined' : 'contained'}
                       fullWidth
-                      startIcon={
-                        exam.status === 'completed' ? (
-                          <CheckCircleIcon />
-                        ) : (
-                          <PlayArrowIcon />
-                        )
-                      }
-                      onClick={() => handleStartExam(exam.id, exam.status)}
+                      disabled={isDisabled} // اصلاح شده: غیرفعال کردن دکمه برای آزمون‌های تمام شده
+                      startIcon={displayStatus === 'completed' ? <CheckCircleIcon /> : <PlayArrowIcon />}
+                      onClick={() => handleStartExam(exam.id, displayStatus)}
                       sx={{ mt: 2 }}
                     >
-                      {exam.status === 'completed'
+                      {displayStatus === 'completed'
                         ? 'مشاهده نتایج'
-                        : exam.status === 'started'
-                        ? 'ادامه آزمون'
-                        : 'شروع آزمون'}
+                        : displayStatus === 'started'
+                          ? 'ادامه آزمون'
+                          : isDisabled
+                            ? 'غیرقابل دسترسی'
+                            : 'شروع آزمون'}
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </Box>
-          )}
+              );
+            })}
+          </Box>
+        )}
       </Stack>
     </UserLayout>
   );
 }
-
