@@ -148,7 +148,6 @@ export class ApiClient {
   ): Promise<ApiResponse<T>> {
     const {
       retries = this.defaultRetries,
-      retryDelay = this.defaultRetryDelay,
       timeout = this.defaultTimeout,
       ...fetchConfig
     } = config;
@@ -158,9 +157,13 @@ export class ApiClient {
       ? endpoint
       : `${this.baseURL}${endpoint}`;
 
-    // Build headers
+    // Build headers. When the body is FormData / Blob / etc., let the browser
+    // set the correct multipart boundary itself — explicit `Content-Type:
+    // application/json` would corrupt the request.
+    const isFormData =
+      typeof FormData !== 'undefined' && fetchConfig.body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Accept': 'application/json',
       ...(fetchConfig.headers as Record<string, string> || {}),
     };
@@ -320,6 +323,104 @@ export class ApiClient {
     return this.request<T>(endpoint, {
       ...config,
       method: 'DELETE',
+    });
+  }
+
+  /**
+   * Multipart upload via XHR so callers can observe upload progress.
+   *
+   * Native `fetch` doesn't expose progress events, and image uploads are the
+   * one place we genuinely need them (large blobs over slow connections).
+   * The response shape is the same `ApiResponse<T>` the JSON path returns.
+   */
+  upload<T>(
+    endpoint: string,
+    formData: FormData,
+    options: {
+      method?: 'POST' | 'PUT' | 'PATCH';
+      onProgress?: (loaded: number, total: number) => void;
+      signal?: AbortSignal;
+      timeout?: number;
+    } = {},
+  ): Promise<ApiResponse<T>> {
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${this.baseURL}${endpoint}`;
+    const method = options.method ?? 'POST';
+    const timeout = options.timeout ?? this.defaultTimeout;
+
+    return new Promise<ApiResponse<T>>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      xhr.responseType = 'json';
+      xhr.timeout = timeout;
+      xhr.setRequestHeader('Accept', 'application/json');
+      if (this.token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`);
+      }
+
+      if (xhr.upload && options.onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) options.onProgress!(e.loaded, e.total);
+        };
+      }
+
+      xhr.onload = () => {
+        const status = xhr.status;
+        const body = (xhr.response ?? null) as
+          | (ApiResponse<T> & { errors?: Record<string, string[]>; message?: string })
+          | null;
+
+        if (status === 401) {
+          this.setToken(null);
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+          reject(new ApiError('Unauthorized', 401));
+          return;
+        }
+
+        if (status >= 200 && status < 300 && body) {
+          resolve(body as ApiResponse<T>);
+          return;
+        }
+
+        if (status === 422 && body?.errors) {
+          reject(new ApiError(body.message || 'Validation failed', 422, body.errors));
+          return;
+        }
+
+        reject(
+          new ApiError(
+            body?.message || `HTTP error! status: ${status}`,
+            status || undefined,
+          ),
+        );
+      };
+
+      xhr.onerror = () => {
+        reject(
+          new ApiError(
+            'خطا در اتصال به سرور. لطفاً اتصال اینترنت را بررسی کنید.',
+            0,
+          ),
+        );
+      };
+
+      xhr.ontimeout = () => reject(new ApiError('Request timeout', 408));
+      xhr.onabort = () => reject(new ApiError('Request aborted', 0));
+
+      if (options.signal) {
+        if (options.signal.aborted) {
+          xhr.abort();
+          return;
+        }
+        options.signal.addEventListener('abort', () => xhr.abort(), {
+          once: true,
+        });
+      }
+
+      xhr.send(formData);
     });
   }
 }

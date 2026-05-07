@@ -1,0 +1,422 @@
+/*
+ * Shared styles for the question editor and the read-only renderer.
+ * Typography MUST match between the two so the preview is identical to what
+ * the user types.
+ */
+
+@import 'katex/dist/katex.min.css';
+@import 'highlight.js/styles/github.css';
+
+/* ============ Editor chrome / placeholder ============ */
+/* No clipping wrapper — list bullets must overflow into the start padding. */
+.rich-text-editor .ProseMirror {
+  outline: none;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  color: var(--mui-palette-text-disabled, #9ca3af);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Disable the noisy default ProseMirror selection ring */
+.ProseMirror-focused {
+  outline: 0 !important;
+}
+
+/* ============ Shared content typography ============ */
+.rich-text-content {
+  color: inherit;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-content p {
+  margin: 0 0 0.75em;
+}
+.rich-text-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3 {
+  margin: 1.2em 0 0.5em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.rich-text-content h1 { font-size: 1.6em; }
+.rich-text-content h2 { font-size: 1.35em; }
+.rich-text-content h3 { font-size: 1.15em; }
+
+.rich-text-content ul,
+.rich-text-content ol {
+  /* Use logical padding so bullets/numbers sit on the start side regardless of dir */
+  padding-inline-start: 1.75em;
+  padding-inline-end: 0;
+  margin: 0 0 0.75em;
+  list-style-position: outside;
+}
+.rich-text-content ul { list-style-type: disc; }
+.rich-text-content ol { list-style-type: decimal; }
+.rich-text-content ul ul { list-style-type: circle; }
+.rich-text-content ul ul ul { list-style-type: square; }
+.rich-text-content li {
+  margin: 0.15em 0;
+  padding-inline-start: 0.25em;
+}
+.rich-text-content li::marker {
+  color: inherit;
+}
+.rich-text-content li > p {
+  margin: 0;
+}
+/* Nested lists shouldn't get the bottom margin of a top-level list. */
+.rich-text-content li > ul,
+.rich-text-content li > ol {
+  margin: 0.25em 0;
+}
+
+.rich-text-content blockquote {
+  margin: 0 0 0.75em;
+  padding: 0.4em 1em;
+  border-inline-start: 4px solid #d1d5db;
+  background: rgba(0, 0, 0, 0.025);
+  color: #4b5563;
+  border-start-end-radius: 6px;
+  border-end-end-radius: 6px;
+}
+
+.rich-text-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.25em 0;
+}
+
+.rich-text-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rich-text-content a:hover {
+  color: #1d4ed8;
+}
+
+.rich-text-content code:not(pre code) {
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.rich-text-content pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1em 1.1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0 0 0.75em;
+  font-size: 0.9em;
+  line-height: 1.55;
+  direction: ltr;
+  text-align: start;
+}
+.rich-text-content pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Highlight.js theme override inside the dark code block */
+.rich-text-content pre .hljs-keyword { color: #c084fc; }
+.rich-text-content pre .hljs-string { color: #fde68a; }
+.rich-text-content pre .hljs-number { color: #93c5fd; }
+.rich-text-content pre .hljs-comment { color: #94a3b8; font-style: italic; }
+.rich-text-content pre .hljs-title,
+.rich-text-content pre .hljs-name { color: #7dd3fc; }
+.rich-text-content pre .hljs-attr { color: #f9a8d4; }
+.rich-text-content pre .hljs-built_in,
+.rich-text-content pre .hljs-type { color: #fdba74; }
+
+/* Tables */
+.rich-text-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1em;
+  table-layout: fixed;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+.rich-text-content th,
+.rich-text-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.65em;
+  vertical-align: top;
+  position: relative;
+  min-width: 60px;
+}
+.rich-text-content th {
+  background: rgba(0, 0, 0, 0.04);
+  font-weight: 700;
+}
+
+/* Editor table interactivity */
+.rich-text-editor .selectedCell:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+}
+.rich-text-editor .column-resize-handle {
+  position: absolute;
+  inset-inline-end: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+/* ============ Images ============ */
+/*
+ * Both the editor (NodeView wrapper) and the preview (RichTextRenderer
+ * post-processes the HTML to add the same wrapper) end up with the structure:
+ *
+ *     <span data-image-node [data-align]><img class="tiptap-image" /></span>
+ *
+ * That means a single set of rules below governs how images flow in BOTH
+ * contexts. The only thing scoped to `.rich-text-editor` is the editing
+ * chrome (selection outline + resize handles).
+ */
+[data-image-node] {
+  display: inline-block;
+  vertical-align: middle;
+  max-inline-size: 100%;
+  /* Avoid line-box quirks: the inner <img> is display:block. */
+  line-height: 0;
+  border-radius: 6px;
+}
+[data-image-node] > img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* `data-align` on the WRAPPER drives layout (float / center / inline). */
+[data-image-node][data-align='left'] {
+  float: left;
+  margin: 0.25em 1em 0.25em 0;
+}
+[data-image-node][data-align='right'] {
+  float: right;
+  margin: 0.25em 0 0.25em 1em;
+}
+[data-image-node][data-align='center'] {
+  display: block;
+  margin: 0.5em auto;
+  clear: both;
+  float: none;
+}
+
+/*
+ * Stand-alone <img> fallback. Applied during the brief moment after SSR
+ * before `wrapImagesIn` runs, plus to any unwrapped <img> in the rendered
+ * HTML. Wrapped images get their layout from the wrapper rules above; this
+ * rule's `display` is intentionally not set so the wrapper's `block` wins.
+ */
+.rich-text-content img.tiptap-image,
+.rich-text-content img {
+  max-width: min(100%, 720px);
+  height: auto;
+  vertical-align: middle;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* ----- Editor-only chrome (selection outline + resize handles). ----- */
+.rich-text-editor [data-image-node] {
+  outline: 1px dashed transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.12s ease;
+}
+.rich-text-editor [data-image-node].is-selected {
+  outline-color: rgba(37, 99, 235, 0.9);
+}
+.rich-text-editor [data-image-node].is-selected [data-resize-handle] {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/*
+ * Compact contexts (option editor `preset="minimal"` AND option preview
+ * `compact` renderer): paragraphs are narrow, so cap inline-axis size to
+ * keep mixed text+image layouts possible.
+ */
+.rich-text-editor.preset-minimal [data-image-node]:not([data-align='center']),
+.rich-text-content.compact [data-image-node]:not([data-align='center']) {
+  max-inline-size: min(100%, 220px, 55%);
+}
+.rich-text-editor.preset-minimal [data-image-node][data-align='center'],
+.rich-text-content.compact [data-image-node][data-align='center'] {
+  max-inline-size: min(100%, 720px);
+}
+
+/* ============ Math nodes ============ */
+/* Force LTR + bidi-isolation so KaTeX renders correctly inside RTL paragraphs. */
+.math-inline,
+.math-block {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  user-select: all;
+}
+.math-inline:hover,
+.math-block:hover {
+  background-color: rgba(37, 99, 235, 0.08);
+  border-radius: 4px;
+}
+.math-inline {
+  display: inline-block;
+  padding: 0 2px;
+  vertical-align: middle;
+}
+.math-block {
+  display: block;
+  margin: 0.5em 0 0.75em;
+  padding: 0.25em 0.5em;
+  text-align: center;
+  overflow-x: auto;
+}
+.math-empty {
+  display: inline-block;
+  padding: 0 6px;
+  font-family: ui-monospace, monospace;
+  color: #9ca3af;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.02);
+}
+.math-error {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+}
+
+/* KaTeX is always LTR. Apply globally so it works in the editor, in the
+ * read-only preview, AND inside the math edit dialog (which lives in an
+ * MUI portal that may inherit the RTL theme direction). */
+.katex,
+.katex *,
+.katex-display,
+.katex-display * {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  text-align: initial;
+}
+.katex-display {
+  margin: 0 !important;
+}
+
+/* When math is selected inside the editor */
+.rich-text-editor .ProseMirror-selectednode .math-inline,
+.rich-text-editor .ProseMirror-selectednode.math-block {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============ Multi-column layout ============ */
+/* Shared (editor + preview) layout structure */
+.rich-text-content .layout-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  margin: 0 0 0.75em;
+  align-items: stretch;
+}
+.rich-text-content .layout-cell {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.rich-text-content .layout-cell > *:last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  .rich-text-content .layout-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Editor-only chrome: dashed cell borders + drag handles between columns */
+.rich-text-editor .layout-row {
+  position: relative;
+  padding: 0.25rem;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.025);
+  outline: 1px dashed rgba(37, 99, 235, 0.25);
+}
+.rich-text-editor .layout-row .layout-cell {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  outline: 1px dashed rgba(37, 99, 235, 0.25);
+  background: var(--mui-palette-background-paper, #fff);
+}
+.rich-text-editor .layout-resizer {
+  flex: 0 0 6px;
+  width: 6px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: transparent;
+  border-radius: 3px;
+  position: relative;
+  user-select: none;
+  margin: 0 -3px; /* overlap the gap so it sits between cells */
+  z-index: 1;
+}
+.rich-text-editor .layout-resizer::before {
+  content: '';
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  border-radius: 1px;
+  background: rgba(37, 99, 235, 0.35);
+  transition: background-color 0.12s ease;
+}
+.rich-text-editor .layout-resizer:hover::before,
+.rich-text-editor .layout-resizer:active::before {
+  background: rgba(37, 99, 235, 0.85);
+}
+
+/* ============ Compact variant for option rows ============ */
+.rich-text-content.compact {
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+.rich-text-content.compact p {
+  margin: 0;
+}
+.rich-text-content.compact p + p {
+  margin-top: 0.35em;
+}
+
+/* ============ Empty state ============ */
+.rich-text-editor .ProseMirror p:only-child:empty {
+  min-height: 1.2em;
+}
