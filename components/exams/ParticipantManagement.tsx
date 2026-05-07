@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -48,7 +48,6 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import SearchIcon from '@mui/icons-material/Search';
 import GroupIcon from '@mui/icons-material/Group';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PeopleIcon from '@mui/icons-material/People';
@@ -63,12 +62,12 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { getErrorMessage } from '@/lib/error-handler';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+import {
+  TabPanelProps,
+  ParticipantManagementProps
+} from './ParticipantManagement.types';
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -77,54 +76,6 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
     </div>
   );
-}
-
-interface ParticipantManagementProps {
-  examId: number;
-  participants: Array<{
-    id: number;
-    user?: {
-      id: number;
-      name: string;
-      phone_number: string | null;
-      email?: string;
-      national_id?: string | null;
-    } | null;
-    group?: {
-      id: number;
-      name: string;
-    } | null;
-    score: number | null;
-    total_points: number | null;
-    passed: boolean;
-    status?: string;
-    started_at: string | null;
-    completed_at: string | null;
-  }>;
-  groups?: Array<{
-    id: number;
-    name: string;
-    description?: string;
-    users_count?: number;
-    users?: Array<{
-      id: number;
-      name: string;
-      phone_number: string | null;
-      email?: string | null;
-      participant?: {
-        id: number;
-        score: number | null;
-        total_points: number | null;
-        passed: boolean;
-        status: string;
-        started_at: string | null;
-        completed_at: string | null;
-      } | null;
-    }>;
-  }>;
-  registrationLink?: string | null;
-  examLink?: string | null;
-  onSuccess?: () => void;
 }
 
 export default function ParticipantManagement({
@@ -205,10 +156,10 @@ export default function ParticipantManagement({
       });
       setPhoneNumbers('');
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در افزودن شرکت‌کنندگان',
+        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
         severity: 'error',
       });
     }
@@ -241,10 +192,10 @@ export default function ParticipantManagement({
       });
       setNationalIds('');
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در افزودن شرکت‌کنندگان',
+        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
         severity: 'error',
       });
     }
@@ -279,10 +230,10 @@ export default function ParticipantManagement({
       setSelectedUsers([]);
       setSearchQuery('');
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در افزودن شرکت‌کنندگان',
+        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
         severity: 'error',
       });
     }
@@ -316,10 +267,10 @@ export default function ParticipantManagement({
       });
       setSelectedGroups([]);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در افزودن گروه‌ها',
+        message: getErrorMessage(error, 'خطا در افزودن گروه‌ها'),
         severity: 'error',
       });
     }
@@ -336,10 +287,10 @@ export default function ParticipantManagement({
         severity: 'success',
       });
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در حذف گروه',
+        message: getErrorMessage(error, 'خطا در حذف گروه'),
         severity: 'error',
       });
     }
@@ -373,10 +324,10 @@ export default function ParticipantManagement({
       setNewGroupDescription('');
       setNewGroupUserIds([]);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       setAlert({
         open: true,
-        message: error.message || 'خطا در ایجاد گروه',
+        message: getErrorMessage(error, 'خطا در ایجاد گروه'),
         severity: 'error',
       });
     }

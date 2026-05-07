@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef } from 'react';
-import { Stack, Button, TextField } from '@mui/material';
+import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import AddIcon from '@mui/icons-material/Add';
 import type { Control, FieldErrors } from 'react-hook-form';
 import type { QuestionFormData } from '@/lib/validation';
+import RichTextEditor from '@/components/editor/RichTextEditor';
 
 export const BLANK_PLACEHOLDER = '_____';
 
@@ -16,69 +16,95 @@ export interface QuestionTextInputProps {
 }
 
 export function QuestionTextInput({ control, errors, questionType }: QuestionTextInputProps) {
-  const textInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const isBlankType = questionType === 'fill_in_the_blank';
+  const errorMessage = errors.text?.message;
 
   return (
     <Controller
       name="text"
       control={control}
-      render={({ field }) => (
-        <Stack spacing={1}>
-          {questionType === 'fill_in_the_blank' && (
-            <Stack direction="row" justifyContent="flex-end">
-              <Button
-                size="small"
-                variant="outlined"
-                type="button"
-                startIcon={<AddIcon />}
-                onClick={() => {
-                  const input = textInputRef.current;
-                  const val = String(field.value ?? '');
-                  if (input && 'selectionStart' in input) {
-                    const start = input.selectionStart ?? val.length;
-                    const end = input.selectionEnd ?? start;
-                    const newVal = val.slice(0, start) + BLANK_PLACEHOLDER + val.slice(end);
-                    field.onChange(newVal);
-                    requestAnimationFrame(() => {
-                      input.focus();
-                      const pos = start + BLANK_PLACEHOLDER.length;
-                      input.setSelectionRange(pos, pos);
-                    });
-                  } else {
-                    field.onChange(val + BLANK_PLACEHOLDER);
-                  }
-                }}
-              >
-                درج جای خالی ({BLANK_PLACEHOLDER})
-              </Button>
+      render={({ field }) => {
+        const blanks = countBlanks(String(field.value ?? ''));
+        return (
+          <Stack spacing={1}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  متن سوال
+                </Typography>
+                <Typography variant="caption" color="error.main">*</Typography>
+              </Stack>
+              {isBlankType && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Chip
+                    size="small"
+                    color={blanks > 0 ? 'primary' : 'default'}
+                    variant={blanks > 0 ? 'filled' : 'outlined'}
+                    label={`${blanks} جای خالی`}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    type="button"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      const html = String(field.value ?? '');
+                      const next = appendBlankToHtml(html);
+                      field.onChange(next);
+                    }}
+                  >
+                    درج جای خالی
+                  </Button>
+                </Stack>
+              )}
             </Stack>
-          )}
-          <TextField
-            {...field}
-            inputRef={(el) => {
-              (field as { ref?: (el: HTMLInputElement | HTMLTextAreaElement | null) => void }).ref?.(el);
-              (textInputRef as React.MutableRefObject<HTMLInputElement | HTMLTextAreaElement | null>).current = el;
-            }}
-            label="متن سوال"
-            fullWidth
-            required
-            multiline
-            rows={3}
-            error={!!errors.text}
-            helperText={
-              errors.text?.message ||
-              (questionType === 'fill_in_the_blank'
-                ? `برای جای خالی از ${BLANK_PLACEHOLDER} (۵ خط زیر) استفاده کنید یا دکمه بالا را بزنید. فاصله‌ها در پیش‌نمایش حفظ می‌شوند.`
-                : undefined)
-            }
-            placeholder={
-              questionType === 'fill_in_the_blank'
-                ? `مثال: پایتخت ایران ${BLANK_PLACEHOLDER} است.`
-                : 'متن سوال را اینجا وارد کنید...'
-            }
-          />
-        </Stack>
-      )}
+
+            <Box>
+              <RichTextEditor
+                value={field.value || ''}
+                onChange={field.onChange}
+                preset="full"
+                placeholder={
+                  isBlankType
+                    ? `مثال: پایتخت ایران ${BLANK_PLACEHOLDER} است.`
+                    : 'متن سوال را اینجا بنویسید… برای فرمول از دکمه ∑ استفاده کنید'
+                }
+                ariaLabel="متن سوال"
+              />
+            </Box>
+
+            {errorMessage && (
+              <Typography variant="caption" color="error">
+                {errorMessage}
+              </Typography>
+            )}
+
+            {isBlankType && !errorMessage && (
+              <Typography variant="caption" color="text.secondary">
+                هر <code>{BLANK_PLACEHOLDER}</code> در متن یک جای خالی است. می‌توانید از دکمه «درج جای خالی» نیز استفاده کنید.
+              </Typography>
+            )}
+          </Stack>
+        );
+      }}
     />
   );
+}
+
+function countBlanks(html: string): number {
+  if (!html) return 0;
+  // Count occurrences of the placeholder in plain text content of HTML.
+  const text = html.replace(/<[^>]+>/g, '');
+  const m = text.match(new RegExp(BLANK_PLACEHOLDER, 'g'));
+  return m?.length ?? 0;
+}
+
+function appendBlankToHtml(html: string): string {
+  if (!html) return `<p>${BLANK_PLACEHOLDER}</p>`;
+  // Insert before the closing </p> of the last paragraph if present, otherwise append.
+  const lastClose = html.lastIndexOf('</p>');
+  if (lastClose === -1) return `${html} ${BLANK_PLACEHOLDER}`;
+  const before = html.slice(0, lastClose);
+  const after = html.slice(lastClose);
+  return `${before} ${BLANK_PLACEHOLDER}${after}`;
 }

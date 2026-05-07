@@ -21,4 +21,6 @@ export interface TypeFormProps {
   right_items?: QuestionFormData['right_items'];
   matches?: QuestionFormData['matches'];
   blanks?: QuestionFormData['blanks'];
+  /** The current question type (forwarded by the registry). */
+  questionType?: string;
 }

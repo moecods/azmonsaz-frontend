@@ -1,22 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Container,
-  Stack,
-  Typography,
-  Alert,
   Divider,
   FormControl,
+  Grid,
   InputLabel,
-  Select,
   MenuItem,
+  Select,
+  Stack,
+  Typography,
 } from '@mui/material';
+import { Controller } from 'react-hook-form';
+import LiveHelpOutlinedIcon from '@mui/icons-material/LiveHelpOutlined';
+import TuneIcon from '@mui/icons-material/Tune';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import RuleFolderIcon from '@mui/icons-material/RuleFolder';
+
 import { useQuestionCategories, useQuestion } from '@/hooks';
 import { getDescriptor } from '@/lib/question-types';
 import type { QuestionFormData } from '@/lib/validation';
@@ -25,9 +34,9 @@ import UserLayout from '@/components/layout/UserLayout';
 import { useQuestionForm } from '@/hooks/useQuestionForm';
 import { useQuestionSubmit } from '@/hooks/useQuestionSubmit';
 import { TypeFormRenderer } from './create-question/type-forms';
-import { QuestionPreview } from './create-question/QuestionPreview';
+import { QuestionPreview, type PreviewAnswer } from './create-question/QuestionPreview';
 import { QuestionTextInput, BLANK_PLACEHOLDER } from './create-question/QuestionTextInput';
-import { Controller } from 'react-hook-form';
+import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
 
 interface CreateQuestionContentProps {
   examId?: number;
@@ -38,15 +47,23 @@ interface CreateQuestionContentProps {
   examQuestionPayload?: Record<string, unknown>;
 }
 
-function flattenErrors(errors: Record<string, unknown>, prefix = ''): string[] {
+function flattenErrors(errors: Record<string, unknown>): string[] {
   const messages: string[] = [];
-  for (const [key, value] of Object.entries(errors)) {
-    if (value && typeof value === 'object' && 'message' in value && typeof (value as { message: unknown }).message === 'string') {
-      messages.push((value as { message: string }).message);
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      messages.push(...flattenErrors(value as Record<string, unknown>, key));
+  const visit = (obj: Record<string, unknown>) => {
+    for (const value of Object.values(obj)) {
+      if (
+        value &&
+        typeof value === 'object' &&
+        'message' in value &&
+        typeof (value as { message: unknown }).message === 'string'
+      ) {
+        messages.push((value as { message: string }).message);
+      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        visit(value as Record<string, unknown>);
+      }
     }
-  }
+  };
+  visit(errors);
   return messages;
 }
 
@@ -59,16 +76,13 @@ export default function CreateQuestionContent({
 }: CreateQuestionContentProps) {
   const router = useRouter();
   const [validationAlert, setValidationAlert] = useState<string[] | null>(null);
-  const [previewAnswer, setPreviewAnswer] = useState<
-    number | number[] | string | string[] | { left_index: number; right_index: number }[] | null
-  >(null);
+  const [previewAnswer, setPreviewAnswer] = useState<PreviewAnswer>(null);
 
   const isExamQuestionEdit = examQuestionId != null && examQuestionPayload != null;
   const { data: categoriesData } = useQuestionCategories();
   const categories = categoriesData || [];
   const { data: questionData } = useQuestion(isExamQuestionEdit ? null : questionId ?? null);
   const isEditMode = !!questionId || isExamQuestionEdit;
-
 
   const {
     form,
@@ -106,6 +120,8 @@ export default function CreateQuestionContent({
 
   const questionType = watch('type');
   const questionText = watch('text');
+  const difficulty = watch('difficulty');
+  const categoryId = watch('category_id');
   const formValues = watch();
   const questionOptions = watch('options');
   const items = watch('items');
@@ -116,14 +132,24 @@ export default function CreateQuestionContent({
   const blanks = watch('blanks');
 
   const previewPayload = formValues?.text
-    ? (getDescriptor(formValues.type).buildExamPayload(formValues as QuestionFormData, categories) as unknown as import('@/components/questions/QuestionAnswerInput').QuestionPayload)
+    ? (getDescriptor(questionType).buildExamPayload(
+        formValues as QuestionFormData,
+        categories,
+      ) as unknown as import('@/components/questions/QuestionAnswerInput').QuestionPayload)
     : null;
+
+  const categoryName = useMemo(
+    () => categories.find((c) => c.id === categoryId)?.name ?? null,
+    [categories, categoryId],
+  );
 
   useEffect(() => setPreviewAnswer(null), [questionType]);
 
+  // Auto-create blank fields based on placeholders in the rich text.
   useEffect(() => {
     if (questionType !== 'fill_in_the_blank' || !questionText) return;
-    const count = Math.max(0, questionText.split(BLANK_PLACEHOLDER).length - 1);
+    const text = questionText.replace(/<[^>]+>/g, '');
+    const count = Math.max(0, text.split(BLANK_PLACEHOLDER).length - 1);
     const currentBlanks = blanks ?? [];
     if (count > currentBlanks.length) {
       for (let i = currentBlanks.length; i < count; i++) {
@@ -156,10 +182,32 @@ export default function CreateQuestionContent({
     blanks,
   };
 
+  const isSubmitting = useMemo(
+    () =>
+      createQuestionMutation.isPending ||
+      updateQuestionMutation.isPending ||
+      addQuestionToExamMutation.isPending ||
+      (updateExamQuestionMutation?.isPending ?? false),
+    [
+      createQuestionMutation.isPending,
+      updateQuestionMutation.isPending,
+      addQuestionToExamMutation.isPending,
+      updateExamQuestionMutation?.isPending,
+    ],
+  );
+
+  const mutationError =
+    createQuestionMutation.error ||
+    updateQuestionMutation.error ||
+    addQuestionToExamMutation.error ||
+    updateExamQuestionMutation?.error;
+
+  const isLoadingExisting = isEditMode && !isExamQuestionEdit && !questionData;
+
   return (
     <UserLayout>
-      <Container maxWidth="lg">
-        <Stack spacing={4}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
+        <Stack spacing={3}>
           <Breadcrumb
             items={
               isExamQuestionEdit && examId
@@ -168,23 +216,37 @@ export default function CreateQuestionContent({
                     { label: 'سوالات آزمون', href: `/exams/${examId}/questions` },
                     { label: 'ویرایش سوال' },
                   ]
-                : [{ label: 'بانک سوالات', href: '/questions' }, { label: isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید' }]
+                : [
+                    { label: 'بانک سوالات', href: '/questions' },
+                    { label: isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید' },
+                  ]
             }
           />
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              {isExamQuestionEdit ? 'ویرایش سوال آزمون' : isEditMode ? 'ویرایش سوال' : 'ایجاد سوال جدید'}
-            </Typography>
-            {examId && !isExamQuestionEdit && (
-              <Typography variant="body2" color="text.secondary">این سوال پس از ایجاد به آزمون اضافه خواهد شد.</Typography>
-            )}
-          </Box>
 
-          {isEditMode && !isExamQuestionEdit && !questionData && <Alert severity="info">در حال بارگذاری سوال...</Alert>}
+          <Stack spacing={0.5}>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              {isExamQuestionEdit
+                ? 'ویرایش سوال آزمون'
+                : isEditMode
+                ? 'ویرایش سوال'
+                : 'ایجاد سوال جدید'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {examId && !isExamQuestionEdit
+                ? 'این سوال پس از ایجاد به آزمون اضافه خواهد شد.'
+                : 'سوال خود را با متن غنی، فرمول ریاضی، تصویر و جدول طراحی کنید.'}
+            </Typography>
+          </Stack>
+
+          {isLoadingExisting && (
+            <Alert severity="info" icon={<CircularProgress size={18} />}>
+              در حال بارگذاری اطلاعات سوال...
+            </Alert>
+          )}
 
           {validationAlert && validationAlert.length > 0 && (
             <Alert severity="warning" onClose={() => setValidationAlert(null)}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>لطفا خطاهای زیر را برطرف کنید:</Typography>
+              <AlertTitle>لطفاً خطاهای زیر را برطرف کنید</AlertTitle>
               <Box component="ul" sx={{ m: 0, pl: 2 }}>
                 {validationAlert.map((msg, i) => (
                   <li key={i}>{msg}</li>
@@ -192,13 +254,9 @@ export default function CreateQuestionContent({
               </Box>
             </Alert>
           )}
-          {(createQuestionMutation.isError || updateQuestionMutation.isError || addQuestionToExamMutation.isError || updateExamQuestionMutation?.isError) && (
-            <Alert severity="error">
-              {createQuestionMutation.error instanceof Error && createQuestionMutation.error.message}
-              {updateQuestionMutation.error instanceof Error && updateQuestionMutation.error.message}
-              {addQuestionToExamMutation.error instanceof Error && addQuestionToExamMutation.error.message}
-              {updateExamQuestionMutation?.error instanceof Error && updateExamQuestionMutation.error.message}
-            </Alert>
+
+          {mutationError instanceof Error && (
+            <Alert severity="error">{mutationError.message}</Alert>
           )}
 
           <form
@@ -207,132 +265,222 @@ export default function CreateQuestionContent({
                 setValidationAlert(null);
                 submit(data);
               },
-              (errs) => setValidationAlert(flattenErrors(errs as Record<string, unknown>))
+              (errs) => setValidationAlert(flattenErrors(errs as Record<string, unknown>)),
             )}
           >
-            <Stack spacing={4}>
-              <Card>
-                <CardContent>
-                  <Stack spacing={3}>
-                    <QuestionTextInput control={control} errors={errors} questionType={questionType} />
+            <Stack spacing={3}>
+                  {/* Section: Basic info */}
+                  <SectionCard
+                    icon={<TuneIcon color="primary" />}
+                    title="اطلاعات پایه"
+                    subtitle="نوع سوال، سطح دشواری و دسته‌بندی"
+                  >
+                    <Stack spacing={2.5}>
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Controller
+                            name="type"
+                            control={control}
+                            render={({ field }) => (
+                              <FormControl fullWidth>
+                                <InputLabel>نوع سوال</InputLabel>
+                                <Select {...field} label="نوع سوال">
+                                  {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => (
+                                    <MenuItem key={value} value={value}>
+                                      {label}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            )}
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Controller
+                            name="difficulty"
+                            control={control}
+                            render={({ field }) => (
+                              <FormControl fullWidth>
+                                <InputLabel>سطح دشواری</InputLabel>
+                                <Select {...field} label="سطح دشواری">
+                                  {Object.entries(DIFFICULTY_CONFIG).map(([value, { label }]) => (
+                                    <MenuItem key={value} value={value}>
+                                      {label}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            )}
+                          />
+                        </Grid>
+                      </Grid>
 
-                    <Stack direction="row" spacing={2}>
                       <Controller
-                        name="type"
+                        name="category_id"
                         control={control}
                         render={({ field }) => (
-                          <FormControl fullWidth>
-                            <InputLabel>نوع سوال</InputLabel>
-                            <Select {...field} label="نوع سوال">
-                              <MenuItem value="multiple_choice">چند گزینه‌ای</MenuItem>
-                              <MenuItem value="true_false">صحیح/غلط</MenuItem>
-                              <MenuItem value="multiple_select">چند گزینه‌ای (چند پاسخ)</MenuItem>
-                              <MenuItem value="essay">تشریحی</MenuItem>
-                              <MenuItem value="short_answer">پاسخ کوتاه</MenuItem>
-                              <MenuItem value="fill_in_the_blank">جای خالی</MenuItem>
-                              <MenuItem value="matching">تطبیقی</MenuItem>
-                              <MenuItem value="ordering">ترتیب‌دهی</MenuItem>
+                          <FormControl fullWidth error={!!errors.category_id}>
+                            <InputLabel>دسته‌بندی</InputLabel>
+                            <Select
+                              {...field}
+                              label="دسته‌بندی"
+                              displayEmpty
+                              value={field.value ?? 0}
+                              onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                            >
+                              <MenuItem value={0} disabled>
+                                {categories.length === 0
+                                  ? 'در حال بارگذاری...'
+                                  : 'دسته‌بندی را انتخاب کنید'}
+                              </MenuItem>
+                              {categories.map((category) => (
+                                <MenuItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </MenuItem>
+                              ))}
                             </Select>
-                          </FormControl>
-                        )}
-                      />
-                      <Controller
-                        name="difficulty"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl fullWidth>
-                            <InputLabel>سطح دشواری</InputLabel>
-                            <Select {...field} label="سطح دشواری">
-                              <MenuItem value="easy">آسان</MenuItem>
-                              <MenuItem value="medium">متوسط</MenuItem>
-                              <MenuItem value="hard">سخت</MenuItem>
-                            </Select>
+                            {errors.category_id && (
+                              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                                {errors.category_id.message}
+                              </Typography>
+                            )}
                           </FormControl>
                         )}
                       />
                     </Stack>
+                  </SectionCard>
 
-                    <Controller
-                      name="category_id"
+                  {/* Section: Question content */}
+                  <SectionCard
+                    icon={<EditNoteIcon color="primary" />}
+                    title="متن سوال"
+                    subtitle="می‌توانید از فرمول ریاضی، تصویر، جدول و قالب‌بندی متن استفاده کنید"
+                  >
+                    <QuestionTextInput
                       control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth error={!!errors.category_id}>
-                          <InputLabel>دسته‌بندی</InputLabel>
-                          <Select
-                            {...field}
-                            label="دسته‌بندی"
-                            displayEmpty
-                            value={field.value ?? 0}
-                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          >
-                            <MenuItem value={0} disabled>
-                              {categories.length === 0 ? 'در حال بارگذاری...' : 'دسته‌بندی را انتخاب کنید'}
-                            </MenuItem>
-                            {categories.map((category) => (
-                              <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
-                            ))}
-                          </Select>
-                          {errors.category_id && <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>{errors.category_id.message}</Typography>}
-                        </FormControl>
-                      )}
+                      errors={errors}
+                      questionType={questionType}
                     />
+                  </SectionCard>
 
+                  {/* Section: Type-specific answer config */}
+                  <SectionCard
+                    icon={<RuleFolderIcon color="primary" />}
+                    title="پاسخ‌ها"
+                    subtitle="پاسخ صحیح و گزینه‌های مرتبط با نوع سوال را مشخص کنید"
+                  >
                     <TypeFormRenderer
                       {...typeFormProps}
                       questionType={questionType}
                       onAddOption={handleAddOption}
                       onRemoveOption={handleRemoveOption}
                     />
+                  </SectionCard>
 
-                    <Divider />
-                    <Stack direction="row" spacing={2} justifyContent="flex-end">
-                      <Button
-                        variant="outlined"
-                        onClick={() => router.back()}
-                        disabled={
-                          createQuestionMutation.isPending ||
-                          updateQuestionMutation.isPending ||
-                          addQuestionToExamMutation.isPending ||
-                          updateExamQuestionMutation?.isPending
-                        }
-                      >
-                        انصراف
-                      </Button>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        disabled={
-                          createQuestionMutation.isPending ||
-                          updateQuestionMutation.isPending ||
-                          addQuestionToExamMutation.isPending ||
-                          updateExamQuestionMutation?.isPending ||
-                          (isEditMode && !isExamQuestionEdit && !questionData)
-                        }
-                        size="large"
-                      >
-                        {createQuestionMutation.isPending ||
-                        updateQuestionMutation.isPending ||
-                        addQuestionToExamMutation.isPending ||
-                        updateExamQuestionMutation?.isPending
-                          ? (isEditMode ? 'در حال ذخیره...' : 'در حال ایجاد...')
-                          : (isEditMode ? 'به‌روزرسانی سوال' : 'تکمیل و ایجاد سوال')}
-                      </Button>
+                  <Divider />
+
+                  <Box sx={{ width: '100%' }}>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                      <LiveHelpOutlinedIcon fontSize="small" color="action" />
+                      <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+                        پیش‌نمایش زنده
+                      </Typography>
                     </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
+                    <QuestionPreview
+                      questionText={questionText}
+                      questionType={questionType}
+                      difficulty={difficulty}
+                      previewPayload={previewPayload}
+                      previewAnswer={previewAnswer}
+                      onPreviewAnswerChange={setPreviewAnswer}
+                      categoryName={categoryName}
+                    />
+                  </Box>
 
-              <QuestionPreview
-                questionText={questionText}
-                questionType={questionType}
-                previewPayload={previewPayload}
-                previewAnswer={previewAnswer}
-                onPreviewAnswerChange={setPreviewAnswer}
-              />
+                  <Divider />
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1.5}
+                    justifyContent="flex-end"
+                  >
+                    <Button
+                      variant="outlined"
+                      onClick={() => router.back()}
+                      disabled={isSubmitting}
+                      fullWidth={false}
+                    >
+                      انصراف
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={isSubmitting || isLoadingExisting}
+                      size="large"
+                      startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : null}
+                    >
+                      {isSubmitting
+                        ? isEditMode
+                          ? 'در حال ذخیره...'
+                          : 'در حال ایجاد...'
+                        : isEditMode
+                        ? 'به‌روزرسانی سوال'
+                        : 'تکمیل و ایجاد سوال'}
+                    </Button>
+                  </Stack>
             </Stack>
           </form>
         </Stack>
       </Container>
     </UserLayout>
+  );
+}
+
+function SectionCard({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card variant="outlined">
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+            {icon && (
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 1.5,
+                  bgcolor: 'action.hover',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {icon}
+              </Box>
+            )}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                {title}
+              </Typography>
+              {subtitle && (
+                <Typography variant="caption" color="text.secondary">
+                  {subtitle}
+                </Typography>
+              )}
+            </Box>
+          </Stack>
+          <Box>{children}</Box>
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,18 +1,5 @@
 @import "tailwindcss";
 
-html[dir="rtl"] {
-  direction: rtl;
-}
-
-html[dir="rtl"] body {
-  direction: rtl;
-  text-align: right;
-}
-
-html[dir="rtl"] * {
-  direction: rtl;
-}
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -39,9 +26,9 @@ body {
 }
 
 /* MUI RTL helper: allow direction class on html/body */
-.dir-rtl {
-  direction: rtl;
-}
+/*.dir-rtl {*/
+/*  direction: rtl;*/
+/*}*/
 .dir-ltr {
   direction: ltr;
 }
@@ -159,4 +146,48 @@ body {
   .exam-print-footer-preview .footer-counters {
     display: inline !important;
   }
+}
+
+
+/*.ProseMirror {*/
+/*    min-height: 300px;*/
+/*}*/
+
+/*.ProseMirror img {*/
+/*    max-width: 100%;*/
+/*    cursor: pointer;*/
+/*    transition: opacity 0.2s;*/
+/*}*/
+
+/*.ProseMirror img:hover {*/
+/*    opacity: 0.8;*/
+/*}*/
+
+/*.ProseMirror img.ProseMirror-selectednode {*/
+/*    outline: 3px solid #228be6;*/
+/*}*/
+
+.ProseMirror-focused {
+    outline: 0 !important;
+}
+
+.tiptap-editor-renderer .columns .column {
+    border: 0;
+}
+
+.math-popover input {
+    direction: ltr !important;
+    text-align: center !important;
+}
+
+.katex,
+.katex * {
+    direction: ltr !important;
+    text-align: center !important;
+}
+.math-formula,
+.math-formula * {
+    direction: ltr !important;
+    text-align: center !important;
+    display: inline-block;
 }

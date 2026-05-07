@@ -7,7 +7,7 @@ import { getQuestionTypeKind } from '@/lib/question-types/registry';
 // Question validation schemas
 export const questionOptionSchema = z.object({
   id: z.number().optional(),
-  text: z.string().min(1, 'Option text is required'),
+  text: z.string().min(1, 'متن گزینه الزامی است'),
   is_correct: z.boolean(),
 });
 

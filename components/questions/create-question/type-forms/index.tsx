@@ -27,7 +27,12 @@ export function TypeFormRenderer(props: TypeFormRegistryProps) {
     case 'multiple_choice':
     case 'multiple_select':
       return onAddOption && onRemoveOption ? (
-        <OptionsForm {...formProps} onAddOption={onAddOption} onRemoveOption={onRemoveOption} />
+        <OptionsForm
+          {...formProps}
+          questionType={questionType}
+          onAddOption={onAddOption}
+          onRemoveOption={onRemoveOption}
+        />
       ) : null;
     case 'essay':
       return <Alert severity="info">سوالات تشریحی نیازی به گزینه ندارند و به صورت دستی تصحیح می‌شوند.</Alert>;

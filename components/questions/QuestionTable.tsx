@@ -3,6 +3,7 @@
 import React, { useMemo, useCallback } from 'react';
 
 import { Card, CardContent, Stack, Chip, IconButton, Typography } from '@mui/material';
+import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Table, TableColumn } from '@/components/ui';
@@ -12,22 +13,6 @@ const TEXT_TRUNCATE_LIMIT = 100;
 const MAX_VISIBLE_TAGS = 2;
 const DEFAULT_PAGE_SIZE = 10;
 
-const QUESTION_TYPE_LABELS: Record<string, string> = {
-  multiple_choice: 'چند گزینه‌ای',
-  true_false: 'صحیح/غلط',
-  multiple_select: 'چند گزینه‌ای (چند پاسخ)',
-  essay: 'تشریحی',
-  ordering: 'ترتیبی',
-  matching: 'تطبیقی',
-  fill_in_the_blank: 'جای خالی',
-  short_answer: 'پاسخ کوتاه',
-};
-
-const DIFFICULTY_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error' }> = {
-  easy: { label: 'آسان', color: 'success' },
-  medium: { label: 'متوسط', color: 'warning' },
-  hard: { label: 'سخت', color: 'error' },
-};
 
 const TagsRenderer: React.FC<{ tags: string[] }> = React.memo(({ tags }) => (
   <Stack direction="row" spacing={0.5} flexWrap="wrap">
@@ -97,11 +82,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = React.memo(({
     {
       id: 'text',
       label: 'سوال',
-      width: '100px',
       render: (value: string) => (
         <Typography
           variant="body2"
-          sx={{ maxWidth: 300 }}
+          sx={{ minWidth: 300 }}
           title={value}
         >
           {value.length > TEXT_TRUNCATE_LIMIT

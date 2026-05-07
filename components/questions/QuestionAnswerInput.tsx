@@ -1,6 +1,8 @@
 "use client";
 
+import { type ReactNode } from 'react';
 import {
+  Box,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -11,9 +13,133 @@ import {
   TextField,
 } from '@mui/material';
 import { getQuestionTypeKind } from '@/lib/question-types';
+import { RichTextRenderer } from '@/components/editor/RichTextRenderer';
 
 function itemText(item: string | { text: string }): string {
   return typeof item === 'string' ? item : item?.text ?? '';
+}
+
+const looksLikeHtml = (s: string) => /<[a-z][^>]*>/i.test(s);
+
+/** Body font size used for the option label and for the control's
+ * single-line vertical alignment box. Line-height is intentionally NOT
+ * fixed on the renderer so images and tall content can grow the row
+ * without being clipped or visually capped. */
+const LABEL_FONT_SIZE = '0.95rem';
+const LABEL_FIRST_LINE = 1.5; // line-height for the FIRST line only (control alignment)
+
+function RichLabel({ html }: { html: string }) {
+  if (!html) return null;
+  if (!looksLikeHtml(html)) {
+    return (
+      <Box
+        component="span"
+        sx={{
+          fontSize: LABEL_FONT_SIZE,
+          minWidth: 0,
+          flex: 1,
+        }}
+      >
+        {html}
+      </Box>
+    );
+  }
+  return (
+    <RichTextRenderer
+      html={html}
+      compact
+      sx={{
+        display: 'block',
+        minWidth: 0,
+        flex: 1,
+        maxWidth: '100%',
+        height: 'auto',
+        maxHeight: 'none',
+        fontSize: LABEL_FONT_SIZE,
+        '& > :first-child': { marginTop: 0 },
+        '& > :last-child': { marginBottom: 0 },
+        '& p': { my: 0 },
+        '& p + p': { mt: 0.35 },
+        '& ul, & ol': { my: 0.25 },
+      }}
+    />
+  );
+}
+
+interface OptionRowProps {
+  /** The Radio / Checkbox control. */
+  control: ReactNode;
+  /** The rich label content. */
+  children: ReactNode;
+  /** Selected state — paints a subtle highlight band. */
+  selected?: boolean;
+  onClick?: () => void;
+  htmlFor?: string;
+}
+
+/**
+ * Vertically aligns the control with the FIRST line of the label content.
+ *
+ * The control sits inside a wrapper whose height equals one full line of the
+ * label (`LABEL_LINE_HEIGHT * LABEL_FONT_SIZE`). With `align-items: center`
+ * inside that wrapper, the control center always lines up with the first
+ * line's vertical center — even if the label wraps onto multiple lines, has
+ * inline images, or contains formulas.
+ */
+function OptionRow({
+  control,
+  children,
+  selected = false,
+  onClick,
+  htmlFor,
+}: OptionRowProps) {
+  return (
+    <Box
+      component={htmlFor ? 'label' : 'div'}
+      htmlFor={htmlFor}
+      onClick={onClick}
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1,
+        mx: 0,
+        my: 0.25,
+        p: 1,
+        borderRadius: 1.5,
+        border: '1px solid transparent',
+        cursor: 'pointer',
+        transition: 'background-color 0.12s ease, border-color 0.12s ease',
+        bgcolor: selected ? 'action.selected' : 'transparent',
+        '&:hover': { bgcolor: selected ? 'action.selected' : 'action.hover' },
+      }}
+    >
+      <Box
+        sx={{
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          /* Control vertically centers with the FIRST line of the label. The
+           * label itself is unconstrained — multi-line text or tall images
+           * grow the row freely below this band. */
+          minHeight: `calc(${LABEL_FONT_SIZE} * ${LABEL_FIRST_LINE})`,
+          '& .MuiRadio-root, & .MuiCheckbox-root': { p: 0 },
+        }}
+      >
+        {control}
+      </Box>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          height: 'auto',
+          maxHeight: 'none',
+          overflow: 'visible',
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
 }
 
 export interface QuestionPayload {
@@ -56,10 +182,18 @@ function normalizePayloadForDisplay(payload: QuestionPayload): QuestionPayload {
   return normalized;
 }
 
+export type PreviewAnswerValue =
+  | number
+  | number[]
+  | string
+  | string[]
+  | { left_index: number; right_index: number }[]
+  | null;
+
 interface QuestionAnswerInputProps {
   payload: QuestionPayload;
   value: number | number[] | string | null | undefined;
-  onChange: (value: number | number[] | string | null) => void;
+  onChange: (value: PreviewAnswerValue) => void;
   disabled?: boolean;
 }
 
@@ -75,19 +209,28 @@ export function QuestionAnswerInput({
 
   if (kind === 'options_single' || type === 'true_false') {
     const options = (Array.isArray(p.options) ? p.options : (type === 'true_false' ? ['درست', 'نادرست'] : [])) as string[];
+    const selectedIndex = value != null ? Number(value) : null;
     return (
-      <FormControl>
-        <RadioGroup
-          value={value != null ? String(value) : ''}
-          onChange={(e) => onChange(parseInt(e.target.value, 10))}
-        >
+      <FormControl component="fieldset" sx={{ width: '100%' }}>
+        <RadioGroup value={selectedIndex != null ? String(selectedIndex) : ''}>
           {options.map((option, index) => (
-            <FormControlLabel
+            <OptionRow
               key={index}
-              value={index.toString()}
-              control={<Radio disabled={disabled} />}
-              label={option}
-            />
+              selected={selectedIndex === index}
+              onClick={() => !disabled && onChange(index)}
+              control={
+                <Radio
+                  size="small"
+                  disabled={disabled}
+                  checked={selectedIndex === index}
+                  value={index.toString()}
+                  onChange={() => onChange(index)}
+                  inputProps={{ 'aria-label': `گزینه ${index + 1}` }}
+                />
+              }
+            >
+              <RichLabel html={option} />
+            </OptionRow>
           ))}
         </RadioGroup>
       </FormControl>
@@ -96,28 +239,39 @@ export function QuestionAnswerInput({
 
   if (kind === 'options_multiple') {
     const options = (Array.isArray(p.options) ? p.options : []) as string[];
-    const current = Array.isArray(value) ? value : value != null ? [value] : [];
+    const current: number[] = Array.isArray(value)
+      ? (value as number[])
+      : value != null
+        ? [Number(value)]
+        : [];
+    const toggle = (index: number) => {
+      if (disabled) return;
+      const next = current.includes(index)
+        ? current.filter((i) => i !== index)
+        : [...current, index];
+      onChange(next);
+    };
     return (
-      <FormControl>
-        <FormLabel>انتخاب چند گزینه</FormLabel>
+      <FormControl component="fieldset" sx={{ width: '100%' }}>
+        <FormLabel sx={{ mb: 1, fontSize: '0.875rem' }}>انتخاب چند گزینه</FormLabel>
         <Stack>
           {options.map((option, index) => (
-            <FormControlLabel
+            <OptionRow
               key={index}
+              selected={current.includes(index)}
+              onClick={() => toggle(index)}
               control={
                 <Checkbox
+                  size="small"
                   disabled={disabled}
                   checked={current.includes(index)}
-                  onChange={(e) => {
-                    const next = e.target.checked
-                      ? [...current, index]
-                      : current.filter((i) => i !== index);
-                    onChange(next);
-                  }}
+                  onChange={() => toggle(index)}
+                  inputProps={{ 'aria-label': `گزینه ${index + 1}` }}
                 />
               }
-              label={option}
-            />
+            >
+              <RichLabel html={option} />
+            </OptionRow>
           ))}
         </Stack>
       </FormControl>
@@ -167,7 +321,7 @@ export function QuestionAnswerInput({
                 ))}
               </RadioGroup>
             </FormControl>
-            <span>{itemText(item)}</span>
+            <RichLabel html={itemText(item)} />
           </Stack>
         ))}
       </Stack>
@@ -183,7 +337,7 @@ export function QuestionAnswerInput({
         <FormLabel>هر مورد چپ را به مورد راست تطبیق دهید</FormLabel>
         {left.map((leftItem, leftIdx) => (
           <Stack key={leftIdx} direction="row" alignItems="center" spacing={2}>
-            <FormLabel sx={{ minWidth: 120 }}>{itemText(leftItem)}</FormLabel>
+            <FormLabel sx={{ minWidth: 120 }}><RichLabel html={itemText(leftItem)} /></FormLabel>
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <RadioGroup
                 value={String(matches[leftIdx]?.right_index ?? 0)}
@@ -199,7 +353,7 @@ export function QuestionAnswerInput({
                     key={rightIdx}
                     value={String(rightIdx)}
                     control={<Radio size="small" disabled={disabled} />}
-                    label={itemText(r)}
+                    label={<RichLabel html={itemText(r)} />}
                   />
                 ))}
               </RadioGroup>
