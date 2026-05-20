@@ -13,7 +13,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/hooks';
 
@@ -58,7 +57,7 @@ export default function SubscriptionPage() {
   };
 
   return (
-    <UserLayout>
+    <>
       <Stack spacing={3}>
         <Breadcrumb items={[{ label: 'اشتراک Pro' }]} />
         <Typography variant="h4">اشتراک Pro</Typography>
@@ -125,6 +124,6 @@ export default function SubscriptionPage() {
           ))}
         </Stack>
       </Stack>
-    </UserLayout>
+    </>
   );
 }

@@ -25,7 +25,7 @@ export class ApiError extends Error {
 export class ApiClient {
   private baseURL: string;
   private token: string | null = null;
-  private defaultRetries = 3;
+  private defaultRetries = 1;
   private defaultRetryDelay = 1000; // 1 second
   private defaultTimeout = 30000; // 30 seconds
 
@@ -48,6 +48,7 @@ export class ApiClient {
       } else {
         localStorage.removeItem('auth_token');
       }
+      window.dispatchEvent(new Event('auth-token-changed'));
     }
   }
 

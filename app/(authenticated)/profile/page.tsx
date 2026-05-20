@@ -33,7 +33,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import HistoryIcon from '@mui/icons-material/History';
 import { useAuth, useAvailableExams, useExams, useUpdateUser } from '@/hooks';
-import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useMemo } from 'react';
 import { handleError } from '@/lib/error-handler';
@@ -186,7 +185,7 @@ export default function ProfilePage() {
     : 0;
 
   return (
-    <UserLayout>
+    <>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'پروفایل' }]} />
         
@@ -435,7 +434,7 @@ export default function ProfilePage() {
           </TabPanel>
         </Card>
       </Stack>
-    </UserLayout>
+    </>
   );
 }
 

@@ -25,13 +25,13 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { useAuth } from "@/hooks";
+import { useHasAuthTokenHydrated } from "@/hooks";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {useEffect, useMemo, useRef, useState} from "react";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const showLoggedIn = useHasAuthTokenHydrated();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState(0);
 
@@ -143,7 +143,7 @@ export default function Home() {
                       zIndex: 10,
                   }}
               >
-                  {!isAuthenticated ? (
+                  {!showLoggedIn ? (
                       <Button
                           variant="outlined"
                           onClick={() => router.push("/login")}
@@ -247,7 +247,7 @@ export default function Home() {
                           <Button
                               variant="contained"
                               size="large"
-                              onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")}
+                              onClick={() => router.push(showLoggedIn ? "/dashboard" : "/login")}
                               sx={{
                                   bgcolor: "white",
                                   color: "primary.main",
@@ -434,7 +434,7 @@ export default function Home() {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")}
+                onClick={() => router.push(showLoggedIn ? "/dashboard" : "/login")}
                 sx={{
                   bgcolor: "white",
                   color: "primary.main",

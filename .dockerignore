@@ -1,8 +1,10 @@
 .git
 .gitignore
 .dockerignore
-**/node_modules
+node_modules
 .next
+.turbo
+**/node_modules
 out
 .env
 .env.*

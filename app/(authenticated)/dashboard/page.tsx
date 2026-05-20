@@ -23,14 +23,25 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import Breadcrumb from '@/components/Breadcrumb';
+import ShellContentLoader from '@/components/layout/ShellContentLoader';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   
   // Fetch data for statistics
-  const { data: examsData, isLoading: examsLoading } = useExams({ per_page: 100 });
-  const { data: availableExamsData, isLoading: availableExamsLoading } = useAvailableExams();
-  const { data: questionsData, isLoading: questionsLoading } = useQuestions({ per_page: 1 });
+  const { data: examsData, isLoading: examsLoading, isFetching: examsFetching } = useExams({
+    per_page: 20,
+  });
+  const {
+    data: availableExamsData,
+    isLoading: availableExamsLoading,
+    isFetching: availableExamsFetching,
+  } = useAvailableExams();
+  const {
+    data: questionsData,
+    isLoading: questionsLoading,
+    isFetching: questionsFetching,
+  } = useQuestions({ per_page: 1 });
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -76,15 +87,12 @@ export default function DashboardPage() {
     ? Math.round((stats.completedExams / stats.totalExamsParticipated) * 100) 
     : 0;
 
-  if (stats.isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" p={3}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const pageLoading = stats.isLoading;
+  const pageFetching =
+    examsFetching || availableExamsFetching || questionsFetching;
 
   return (
+    <ShellContentLoader loading={pageLoading} fetching={!pageLoading && pageFetching}>
     <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'داشبورد' }]} />
 
@@ -379,6 +387,7 @@ export default function DashboardPage() {
           </Grid>
         )}
       </Stack>
+    </ShellContentLoader>
   );
 }
 

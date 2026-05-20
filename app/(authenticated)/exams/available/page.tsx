@@ -5,6 +5,7 @@ import {
   Box, Button, Card, CardContent, Chip, Stack, Typography, Alert, CircularProgress,
 } from '@mui/material';
 import { useAvailableExams } from '@/hooks/useExams';
+import ShellContentLoader from '@/components/layout/ShellContentLoader';
 import type { AvailableExam } from '@/services/exams/ExamService';
 import SchoolIcon from '@mui/icons-material/School';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -13,13 +14,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import Breadcrumb from '@/components/Breadcrumb';
-import UserLayout from '@/components/layout/UserLayout';
 import { getExamDurationMinutes } from '@/lib/exam-utils';
 import { useMemo } from 'react';
 
 export default function AvailableExamsPage() {
   const router = useRouter();
-  const { data, isLoading, error } = useAvailableExams();
+  const { data, isLoading, isFetching, error } = useAvailableExams();
 
   const examsData = data?.data;
   const exams: AvailableExam[] = useMemo(() => {
@@ -123,7 +123,7 @@ export default function AvailableExamsPage() {
   };
 
   return (
-    <UserLayout>
+    <ShellContentLoader loading={isLoading} fetching={!isLoading && isFetching}>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
         <Box>
@@ -131,9 +131,7 @@ export default function AvailableExamsPage() {
           <Typography color="text.secondary" sx={{ mb: 3 }}>لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید</Typography>
         </Box>
 
-        {isLoading ? (
-          <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
-        ) : error ? (
+        {error ? (
           <Alert severity="error">{error instanceof Error ? error.message : 'خطا در بارگذاری آزمون‌ها'}</Alert>
         ) : exams.length === 0 ? (
           <Card>
@@ -200,6 +198,6 @@ export default function AvailableExamsPage() {
           </Box>
         )}
       </Stack>
-    </UserLayout>
+    </ShellContentLoader>
   );
 }

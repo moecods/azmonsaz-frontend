@@ -1,3 +1,5 @@
+import 'react-multi-date-picker/styles/layouts/mobile.css';
+import 'react-multi-date-picker/styles/colors/purple.css';
 import { Box, Typography } from '@mui/material';
 import DatePicker from 'react-multi-date-picker';
 import persian from 'react-date-object/locales/persian_fa';

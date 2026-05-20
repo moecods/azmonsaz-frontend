@@ -5,10 +5,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '@/services';
 import { queryKeys } from '@/lib/query-client';
-import { useAuth } from './useAuth';
+import { useIsAuthenticated } from './useAuth';
 
-export function useNotifications(params?: { per_page?: number; page?: number }) {
-  const { isAuthenticated } = useAuth();
+export function useNotifications(
+  params?: { per_page?: number; page?: number },
+  options?: { enabled?: boolean }
+) {
+  const hasToken = useIsAuthenticated();
+
   return useQuery({
     queryKey: queryKeys.notifications(params),
     queryFn: async () => {
@@ -18,9 +22,10 @@ export function useNotifications(params?: { per_page?: number; page?: number }) 
       }
       return response.data;
     },
-    enabled: isAuthenticated,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchOnWindowFocus: true,
+    enabled: hasToken && (options?.enabled ?? true),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 

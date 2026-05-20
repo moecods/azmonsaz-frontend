@@ -1,22 +1,33 @@
-# Frontend-only local development (Next.js). Run the API from the azmonsaz repo separately.
+# Next.js dev in Docker (macOS)
 #
-# From this directory:
-#   docker compose -f docker-compose.dev.yml up
+# Critical: /app/.next and /app/.turbo use Docker volumes (not the Mac bind mount).
+# Without them, each compile writes through osxfs and takes 60–90+ seconds.
 #
-# NEXT_PUBLIC_API_URL must be reachable from your browser (not from inside the container).
-# Default assumes Laravel is on the host or published as localhost:8000 (e.g. azmonsaz docker-compose.dev.yml).
+#   docker compose -f docker-compose.dev.yml up --build -d
+#   docker compose -f docker-compose.dev.yml logs -f next
 
 name: azmonsaz-frontend-dev
 
 services:
   next:
-    image: node:22-bookworm
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     working_dir: /app
+    restart: unless-stopped
     volumes:
-      - .:/app
+      - .:/app:cached
+      - /app/node_modules
+      - /app/.next
+      - /app/.turbo
     ports:
       - "${NEXT_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8000/api}
+      # File watching on Docker Desktop for Mac
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
       WATCHPACK_POLLING: "true"
-    command: ["sh", "-c", "npm ci && npm run dev:network"]
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      NEXT_TELEMETRY_DISABLED: "1"
+    shm_size: "512mb"

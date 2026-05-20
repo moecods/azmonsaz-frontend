@@ -44,8 +44,8 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import { ExamListItem } from '@/services/exams/ExamService';
 import Breadcrumb from '@/components/Breadcrumb';
 import ExamsCalendarView from '@/components/exams/ExamsCalendarView';
-import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import PageContentLoader from '@/components/layout/PageContentLoader';
 import { FilterContainer } from '@/components/ui/Layout/FilterContainer';
 
 // Helper function to check exam time status
@@ -122,6 +122,14 @@ function getExamTimeStatus(exam: ExamListItem): {
 }
 
 export default function ExamsPage() {
+  return (
+    <ProtectedRoute requiredPermission="view exams">
+      <ExamsPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function ExamsPageContent() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -133,7 +141,7 @@ export default function ExamsPage() {
   const [showExtraFields, setShowExtraFields] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
-  const { data, isLoading, error } = useExams({
+  const { data, isLoading, isFetching, error } = useExams({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     search: searchQuery || undefined,
@@ -148,33 +156,16 @@ export default function ExamsPage() {
     router.push(`/exams/${examId}`);
   };
 
-  if (isLoading) {
-    return (
-      <ProtectedRoute requiredPermission="view exams">
-        <UserLayout>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        </UserLayout>
-      </ProtectedRoute>
-    );
-  }
-
   if (error) {
     return (
-      <ProtectedRoute requiredPermission="view exams">
-        <UserLayout>
-          <Alert severity="error">
-            {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
-          </Alert>
-        </UserLayout>
-      </ProtectedRoute>
+      <Alert severity="error">
+        {error instanceof Error ? error.message : 'Failed to load exams. Please try again later.'}
+      </Alert>
     );
   }
 
   return (
-    <ProtectedRoute requiredPermission="view exams">
-      <UserLayout>
+    <PageContentLoader isLoading={isLoading && !data} isFetching={isFetching}>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'مدیریت آزمون‌ها' }]} />
         <Box>
@@ -611,7 +602,6 @@ export default function ExamsPage() {
           </>
         )}
       </Stack>
-    </UserLayout>
-    </ProtectedRoute>
+    </PageContentLoader>
   );
 }

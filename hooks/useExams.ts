@@ -194,6 +194,8 @@ export function useExams(params?: {
       }
       return response.data;
     },
+    staleTime: 60 * 1000,
+    refetchOnMount: false,
   });
 }
 
@@ -212,7 +214,7 @@ export function useExamWithParticipants(id: number | null) {
   });
 }
 
-export function useAvailableExams() {
+export function useAvailableExams(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['exams', 'available'],
     queryFn: async () => {
@@ -222,6 +224,7 @@ export function useAvailableExams() {
       }
       return response.data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

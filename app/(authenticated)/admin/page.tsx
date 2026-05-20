@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import UserLayout from '@/components/layout/UserLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Box, Card, Tabs, Tab, Stack, Typography } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
@@ -41,7 +41,7 @@ export default function AdminPage() {
   };
 
   return (
-    <UserLayout requiredPermission="manage users">
+    <ProtectedRoute requiredPermission="manage users">
       <Stack spacing={3}>
         <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
         <Box>
@@ -70,6 +70,6 @@ export default function AdminPage() {
           </TabPanel>
         </Card>
       </Stack>
-    </UserLayout>
+    </ProtectedRoute>
   );
 }

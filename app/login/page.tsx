@@ -30,6 +30,7 @@ import {
   ForgotPasswordFormData,
 } from '@/lib/validation';
 import { useAuth, useOtpLogin, useForgotPassword } from '@/hooks';
+import GuestRoute from '@/components/GuestRoute';
 import { getErrorMessage } from '@/lib/error-handler';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Visibility from '@mui/icons-material/Visibility';
@@ -137,6 +138,7 @@ export default function LoginPage() {
   };
 
   return (
+    <GuestRoute>
     <Box
       sx={{
         minHeight: '100vh',
@@ -510,5 +512,6 @@ export default function LoginPage() {
         </Paper>
       </Container>
     </Box>
+    </GuestRoute>
   );
 }

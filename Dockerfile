@@ -15,7 +15,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build
+RUN npm run build:docker
 
 FROM node:22-bookworm-slim AS runner
 

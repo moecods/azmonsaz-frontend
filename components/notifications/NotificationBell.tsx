@@ -8,11 +8,14 @@ import NotificationList from './NotificationList';
 
 export default function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { data, isLoading } = useNotifications({ per_page: 15 });
+  const open = Boolean(anchorEl);
+  const { data, isLoading } = useNotifications(
+    { per_page: 15 },
+    { enabled: open }
+  );
   const markAsRead = useMarkNotificationAsRead();
 
   const unreadCount = data?.data?.filter((n) => !n.read_at).length ?? 0;
-  const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

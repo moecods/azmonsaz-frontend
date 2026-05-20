@@ -23,7 +23,8 @@ const REFRESH_INTERVAL = 30000; // 30 seconds
 
 export default function StartedExamsAlert() {
   const router = useRouter();
-  const { data: availableExamsData } = useAvailableExams();
+  const [fetchEnabled, setFetchEnabled] = useState(false);
+  const { data: availableExamsData } = useAvailableExams({ enabled: fetchEnabled });
   const [dismissed, setDismissed] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
 
@@ -35,6 +36,9 @@ export default function StartedExamsAlert() {
         setDismissed(true);
       }
     }
+    // Defer so primary page API calls run first
+    const timer = window.setTimeout(() => setFetchEnabled(true), 2000);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // Auto-refresh every 30 seconds

@@ -5,18 +5,7 @@ import { useIsAuthenticated } from "@/hooks";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import Navbar from '@/components/Navbar';
-
-/**
- * Pages that use UserLayout (should hide navbar on mobile, they have bottom nav)
- */
-const USER_LAYOUT_PAGES = [
-  '/dashboard',
-  '/profile',
-  '/exams',
-  '/exams/available',
-  '/questions',
-  '/admin',
-] as const;
+import { isAuthenticatedShellPath } from '@/lib/authenticated-layout';
 
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
@@ -52,12 +41,10 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
    * Check if current page uses UserLayout
    * Uses useMemo for performance optimization
    */
-  const isUserLayoutPage = useMemo(() => {
-    if (!pathname) return false;
-    return USER_LAYOUT_PAGES.some(page =>
-      pathname === page || pathname.startsWith(page + '/')
-    );
-  }, [pathname]);
+  const isUserLayoutPage = useMemo(
+    () => isAuthenticatedShellPath(pathname),
+    [pathname]
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -91,8 +78,8 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
   return (
     <>
       {shouldShowNavbar && <Navbar />}
-      <Box 
-        component="main" 
+      <Box
+        component="main"
         sx={{ pt: paddingTop }}
         suppressHydrationWarning
       >

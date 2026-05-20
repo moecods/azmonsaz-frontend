@@ -3,7 +3,7 @@
  * Uses React Query for caching and state management
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService, getApiClient, ApiError } from '@/services';
 import {
@@ -17,19 +17,15 @@ import {
 import { queryKeys } from '@/lib/query-client';
 
 
+function getClientAuthGate() {
+  if (typeof window === 'undefined') {
+    return { mounted: false, hasToken: false };
+  }
+  return { mounted: true, hasToken: authService.isAuthenticated() };
+}
+
 export function useMe() {
-  // Check if token exists before making request
-  // This prevents unnecessary API calls when user is not authenticated
-  // Use useState to ensure we check token on client side only (prevents /me calls for guests)
-  const [hasToken, setHasToken] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    // Only check token on client side after mount
-    // This ensures guests on landing page don't trigger /me requests
-    setMounted(true);
-    setHasToken(authService.isAuthenticated());
-  }, []);
+  const [{ mounted, hasToken }] = useState(getClientAuthGate);
   
   // Check if we're on a public page
   const isPublicPage = typeof window !== 'undefined' && (
@@ -218,6 +214,29 @@ export function useIsAuthenticated() {
 }
 
 /**
+ * Auth token for UI that must match server HTML on hydration.
+ * Server + first client paint: false. After hydrate: reads localStorage.
+ */
+export function useHasAuthTokenHydrated(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === 'undefined') {
+        return () => {};
+      }
+      const notify = () => onStoreChange();
+      window.addEventListener('storage', notify);
+      window.addEventListener('auth-token-changed', notify);
+      return () => {
+        window.removeEventListener('storage', notify);
+        window.removeEventListener('auth-token-changed', notify);
+      };
+    },
+    () => authService.isAuthenticated(),
+    () => false
+  );
+}
+
+/**
  * Main authentication hook that combines all auth functionality
  * @returns Object with authentication state and methods
  */
@@ -233,11 +252,14 @@ export function useAuth() {
     queryClient.invalidateQueries({ queryKey: queryKeys.me() });
   };
 
+  const hasToken = authService.isAuthenticated();
+
   return {
     user,
     isLoading,
     error,
-    isAuthenticated: !!user && !error,
+    // Token means logged in; user profile may load from cache while navigating
+    isAuthenticated: hasToken && (!!user || isLoading) && !error,
     setToken,
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,

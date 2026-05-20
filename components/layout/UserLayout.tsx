@@ -4,21 +4,17 @@ import { useState, ReactNode } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import UserSidebar from './UserSidebar';
 import MobileBottomNav from './MobileBottomNav';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import StartedExamsAlert from '@/components/StartedExamsAlert';
-import { type Permission } from '@/lib/permissions';
-
+import { NavigationProvider } from '@/components/layout/NavigationProvider';
 interface UserLayoutProps {
   children: ReactNode;
-  requiredPermission?: Permission;
-  requiredRole?: 'admin' | 'content_manager' | 'creator'; // Deprecated: use requiredPermission instead
 }
 
 const DRAWER_WIDTH = 280;
 const BOTTOM_NAV_HEIGHT = 64; // Height of bottom navigation
 const TOOLBAR_HEIGHT = 0; // Navbar height
 
-export default function UserLayout({ children, requiredPermission, requiredRole }: UserLayoutProps) {
+export default function UserLayout({ children }: UserLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -28,7 +24,6 @@ export default function UserLayout({ children, requiredPermission, requiredRole 
   };
 
   return (
-    <ProtectedRoute requiredPermission={requiredPermission} requiredRole={requiredRole}>
       <Box sx={{ display: 'flex', minHeight: '100vh', minWidth: '100vw' }}>
       {/* Sidebar */}
       <UserSidebar
@@ -51,14 +46,13 @@ export default function UserLayout({ children, requiredPermission, requiredRole 
       >
         <Box sx={{ p: { xs: 2, md: 3 } }}>
           <StartedExamsAlert />
-          {children}
+          <NavigationProvider>{children}</NavigationProvider>
         </Box>
       </Box>
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav onMenuClick={handleDrawerToggle} />
     </Box>
-    </ProtectedRoute>
   );
 }
 

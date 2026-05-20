@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Box,
   Drawer,
@@ -29,6 +29,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { useAuth } from '@/hooks';
+import { useStartNavigation } from '@/components/layout/NavigationProvider';
 import { hasPermission, type Permission } from '@/lib/permissions';
 
 const DRAWER_WIDTH = 280;
@@ -106,11 +107,22 @@ const menuItems: MenuItem[] = [
 ];
 
 function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
+  const startNavigation = useStartNavigation();
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  useEffect(() => {
+    menuItems.forEach((item) => {
+      try {
+        router.prefetch(item.path);
+      } catch {
+        /* ignore */
+      }
+    });
+  }, [router]);
 
   const getInitials = (name: string) => {
     return name
@@ -165,12 +177,11 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
    */
   const activeStates = useMemo(() => {
     if (!pathname) return new Map<string, boolean>();
-    
+
     const states = new Map<string, boolean>();
-    const allPaths = filteredMenuItems.map(mi => mi.path);
-    
+
     // Find exact matches first
-    const exactMatch = filteredMenuItems.find(item => pathname === item.path);
+    const exactMatch = filteredMenuItems.find((item) => pathname === item.path);
     
     if (exactMatch) {
       // Only the exact match is active
@@ -180,7 +191,7 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
     } else {
       // Find the most specific matching path
       const matchingPaths = filteredMenuItems
-        .filter(item => {
+        .filter((item) => {
           if (pathname === item.path) return true;
           return pathname.startsWith(item.path + '/');
         })
@@ -195,13 +206,6 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
     
     return states;
   }, [pathname, filteredMenuItems]);
-
-  const handleNavigation = (path: string) => {
-    router.push(path);
-    if (isMobile) {
-      onClose();
-    }
-  };
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -265,7 +269,15 @@ function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps)
           return (
             <ListItem key={`${item.path}-${index}`} disablePadding>
               <ListItemButton
-                onClick={() => handleNavigation(item.path)}
+                component={Link}
+                href={item.path}
+                prefetch
+                onClick={() => {
+                  startNavigation();
+                  if (isMobile) {
+                    onClose();
+                  }
+                }}
                 selected={isActive}
                 data-cy={`nav-${item.path.slice(1).replace(/\//g, '-')}`}
                 sx={{

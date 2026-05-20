@@ -5,8 +5,6 @@ import ThemeRegistry from "../theme/ThemeRegistry";
 import { QueryProvider } from "./providers/QueryProvider";
 import LayoutContent from "./LayoutContent";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: (process.env.APP_NAME_EN || "APP_NAME") + " - Exam Builder",
   description: "Create and manage exams with our powerful exam builder platform",

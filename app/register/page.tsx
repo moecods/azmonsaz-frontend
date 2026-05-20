@@ -22,6 +22,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '@/lib/validation';
 import { useRegister } from '@/hooks';
+import GuestRoute from '@/components/GuestRoute';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -61,6 +62,7 @@ export default function RegisterPage() {
   };
 
   return (
+    <GuestRoute>
     <Box
       sx={{
         minHeight: '100vh',
@@ -297,5 +299,6 @@ export default function RegisterPage() {
         </Paper>
       </Container>
     </Box>
+    </GuestRoute>
   );
 }

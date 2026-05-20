@@ -16,7 +16,6 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
 import ImageIcon from '@mui/icons-material/Image';
-import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 
 interface GuideStep {
@@ -269,7 +268,7 @@ export default function SupportPage() {
   const [tabValue, setTabValue] = useState(0);
 
   return (
-    <UserLayout>
+    <>
       <Stack spacing={3}>
         <Breadcrumb items={[{ label: 'پشتیبانی و آموزش' }]} />
         <Typography variant="h4">پشتیبانی و آموزش</Typography>
@@ -305,6 +304,6 @@ export default function SupportPage() {
           </CardContent>
         </Card>
       </Stack>
-    </UserLayout>
+    </>
   );
 }
