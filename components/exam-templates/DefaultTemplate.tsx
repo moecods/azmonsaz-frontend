@@ -3,6 +3,7 @@
 import { Box, Typography, Chip } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import { RichLabel } from '@/components/editor';
 import type { Exam } from '@/types';
 
 interface ExamWithPayload extends Exam {
@@ -181,17 +182,11 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                   {questionNumber}
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '16px',
-                      fontWeight: 500,
-                      color: '#212121',
-                    }}
-                  >
-                    {questionText.split('\n').map((line: string, i: number) => (
-                      <span key={i}>{line}<br /></span>
-                    ))}
-                  </Typography>
+                  <RichLabel
+                    html={questionText}
+                    fontSize="16px"
+                    sx={{ fontWeight: 500, color: '#212121' }}
+                  />
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.6, flexWrap: 'wrap' }}>
                     <Chip
                       label={typeLabel}
@@ -266,9 +261,11 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
                           >
                             {String.fromCharCode(65 + optionIndex)}
                           </Box>
-                          <Typography sx={{ flex: 1, fontSize: '14px' }}>
-                            {optionText}
-                          </Typography>
+                          <RichLabel
+                            html={optionText}
+                            fontSize="14px"
+                            sx={{ flex: 1 }}
+                          />
                         </Box>
                       );
                     })}

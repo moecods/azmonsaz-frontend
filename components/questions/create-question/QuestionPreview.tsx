@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -11,7 +11,6 @@ import {
   Divider,
   IconButton,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -181,48 +180,93 @@ function FillInTheBlankPreview({
   answers: string[];
   onChange: (next: string[]) => void;
 }) {
-  const parts = questionText.split(BLANK_PLACEHOLDER);
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: 0.5,
-        fontSize: { xs: '1rem', md: '1.05rem' },
-        lineHeight: 2,
-      }}
-    >
-      {parts.map((part, i) => (
-        <Box key={i} component="span" sx={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <RichTextRenderer
-            html={part}
-            compact
-            sx={{ display: 'inline', '& p': { display: 'inline' } }}
-          />
-          {i < parts.length - 1 && (
-            <TextField
-              size="small"
-              variant="outlined"
-              sx={{
-                mx: 0.5,
-                minWidth: 110,
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'background.default',
-                  '& fieldset': { borderStyle: 'dashed' },
-                },
-              }}
-              placeholder={`جای خالی ${i + 1}`}
-              value={answers[i] ?? ''}
-              onChange={(e) => {
-                const next = [...answers];
-                next[i] = e.target.value;
-                onChange(next);
-              }}
-            />
-          )}
-        </Box>
-      ))}
-    </Box>
-  );
+  const rootRef = useRef<HTMLDivElement>(null);
+  const answersRef = useRef(answers);
+  const onChangeRef = useRef(onChange);
+  answersRef.current = answers;
+  onChangeRef.current = onChange;
+
+  const textSx = {
+    fontSize: { xs: '1.05rem', sm: '1.1rem', md: '1.15rem' },
+    lineHeight: 1.85,
+    color: 'text.primary',
+    maxWidth: '100%',
+  } as const;
+
+  /*
+   * Splitting HTML on "_____" breaks <p> tags. Replace the placeholder only
+   * inside text nodes so paragraphs and line breaks match the editor.
+   */
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const el = node.parentElement;
+        if (!el) return NodeFilter.FILTER_REJECT;
+        if (el.closest('pre, code, .katex, .math-inline, .math-block')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    const hits: Text[] = [];
+    let n: Node | null;
+    while ((n = treeWalker.nextNode())) {
+      const tn = n as Text;
+      if (tn.textContent?.includes(BLANK_PLACEHOLDER)) hits.push(tn);
+    }
+
+    let blankIdx = 0;
+    for (const textNode of hits) {
+      const t = textNode.textContent!;
+      if (!t.includes(BLANK_PLACEHOLDER)) continue;
+      const parent = textNode.parentNode!;
+      const pieces = t.split(BLANK_PLACEHOLDER);
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < pieces.length; i++) {
+        if (pieces[i]) frag.appendChild(document.createTextNode(pieces[i]));
+        if (i < pieces.length - 1) {
+          const wrap = document.createElement('span');
+          wrap.className = 'fill-blank-preview-slot';
+
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.dataset.blankIndex = String(blankIdx);
+          inp.setAttribute('aria-label', `جای خالی ${blankIdx + 1}`);
+          inp.autocomplete = 'off';
+
+          const idx = blankIdx;
+          inp.value = answersRef.current[idx] ?? '';
+          inp.addEventListener('input', () => {
+            const next = [...answersRef.current];
+            next[idx] = inp.value;
+            onChangeRef.current(next);
+          });
+          blankIdx++;
+
+          wrap.appendChild(inp);
+          frag.appendChild(wrap);
+        }
+      }
+      parent.replaceChild(frag, textNode);
+    }
+  }, [questionText]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLInputElement>('input[data-blank-index]').forEach((inp) => {
+      const i = parseInt(inp.dataset.blankIndex!, 10);
+      if (Number.isNaN(i)) return;
+      const v = answers[i] ?? '';
+      if (inp.value !== v) inp.value = v;
+    });
+  }, [answers]);
+
+  if (!questionText) return null;
+
+  return <RichTextRenderer ref={rootRef} html={questionText} compact={false} sx={textSx} />;
 }

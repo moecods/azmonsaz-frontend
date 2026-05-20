@@ -29,6 +29,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { handleError } from '@/lib/error-handler';
+import { RichLabel } from '@/components/editor';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
 const getAuthHeader = () => ({
@@ -372,9 +373,7 @@ export default function ExamGradingPage() {
                             <TableRow key={question.exam_question_id}>
                               <TableCell>{index + 1}</TableCell>
                               <TableCell>
-                                <Typography variant="body2">
-                                  {question.question_text}
-                                </Typography>
+                                <RichLabel html={question.question_text} fontSize="0.875rem" />
                               </TableCell>
                               <TableCell>
                                 <Box
@@ -386,9 +385,14 @@ export default function ExamGradingPage() {
                                     overflow: 'auto',
                                   }}
                                 >
-                                  <Typography variant="body2" whiteSpace="pre-wrap">
-                                    {question.answer || 'پاسخی ثبت نشده است'}
-                                  </Typography>
+                                  <RichLabel
+                                    html={
+                                      question.answer != null && question.answer !== ''
+                                        ? String(question.answer)
+                                        : 'پاسخی ثبت نشده است'
+                                    }
+                                    fontSize="0.875rem"
+                                  />
                                 </Box>
                               </TableCell>
                               <TableCell>

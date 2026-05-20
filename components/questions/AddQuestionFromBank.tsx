@@ -23,6 +23,7 @@ import {
 import { getQuestionTypeLabel } from '@/lib/question-types';
 import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, Difficulty, PaginatedResponse } from '@/types';
+import { RichLabel } from '@/components/editor';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -172,8 +173,11 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                       // - number[] (array of indices) for multiple_select
                       // - null for essay
                       const displayOptions = Array.isArray(questionOptions) && questionOptions.length > 0
-                        ? questionOptions.map((opt: string, index: number) => {
-                            const optionText = typeof opt === 'string' ? opt : String(opt);
+                        ? questionOptions.map((opt: string | { text?: string }, index: number) => {
+                            const optionText =
+                              typeof opt === 'string'
+                                ? opt
+                                : String((opt as { text?: string }).text ?? '');
                             const correctAnswer = question.correct_answer;
                             let isCorrect = false;
 
@@ -194,9 +198,7 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                       return (
                         <Card key={question.id} variant="outlined">
                           <CardContent>
-                            <Typography variant="body1" gutterBottom>
-                              {questionText}
-                            </Typography>
+                            <RichLabel html={String(questionText)} fontSize="1rem" sx={{ mb: 1 }} />
                             
                             {/* Display options if available */}
                             {displayOptions.length > 0 && questionType !== 'essay' && (
@@ -205,18 +207,36 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                                   گزینه‌ها:
                                 </Typography>
                                 <Stack spacing={0.5}>
-                                  {displayOptions.map((opt: any, idx: number) => (
-                                    <Typography
-                                      key={idx}
-                                      variant="body2"
-                                      sx={{
-                                        color: opt.is_correct ? 'success.main' : 'text.secondary',
-                                        fontWeight: opt.is_correct ? 'bold' : 'normal',
-                                      }}
-                                    >
-                                      {String.fromCharCode(65 + idx)}. {typeof opt === 'string' ? opt : opt.text}
-                                      {opt.is_correct && ' ✓'}
-                                    </Typography>
+                                  {displayOptions.map((opt: { text: string; is_correct: boolean }, idx: number) => (
+                                    <Stack direction="row" spacing={0.5} alignItems="flex-start" key={idx}>
+                                      <Typography
+                                        variant="body2"
+                                        component="span"
+                                        sx={{
+                                          flexShrink: 0,
+                                          color: opt.is_correct ? 'success.main' : 'text.secondary',
+                                          fontWeight: opt.is_correct ? 'bold' : 'normal',
+                                        }}
+                                      >
+                                        {String.fromCharCode(65 + idx)}.
+                                      </Typography>
+                                      <RichLabel
+                                        html={opt.text}
+                                        fontSize="0.875rem"
+                                        block={false}
+                                        sx={{
+                                          color: opt.is_correct ? 'success.main' : 'text.secondary',
+                                          fontWeight: opt.is_correct ? 'bold' : 'normal',
+                                          flex: 1,
+                                          minWidth: 0,
+                                        }}
+                                      />
+                                      {opt.is_correct && (
+                                        <Typography component="span" variant="body2" color="success.main">
+                                          ✓
+                                        </Typography>
+                                      )}
+                                    </Stack>
                                   ))}
                                 </Stack>
                               </Box>

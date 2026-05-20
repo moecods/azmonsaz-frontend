@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type MutableRefObject,
+  type Ref,
+} from 'react';
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import DOMPurify from 'dompurify';
@@ -73,16 +81,28 @@ function sanitize(html: string): string {
   });
 }
 
-export function RichTextRenderer({
-  html,
-  className,
-  sx,
-  compact = false,
-  dir = 'rtl',
-}: RichTextRendererProps) {
-  const ref = useRef<HTMLDivElement>(null);
+function assignRef<T>(r: Ref<T> | undefined, v: T | null) {
+  if (!r) return;
+  if (typeof r === 'function') (r as (x: T | null) => void)(v);
+  else (r as MutableRefObject<T | null>).current = v;
+}
+
+export const RichTextRenderer = forwardRef<HTMLDivElement, RichTextRendererProps>(
+  function RichTextRenderer(
+    { html, className, sx, compact = false, dir = 'rtl' }: RichTextRendererProps,
+    forwardedRef,
+  ) {
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      localRef.current = el;
+      assignRef(forwardedRef, el);
+    },
+    [forwardedRef],
+  );
 
   const safe = useMemo(() => sanitize(html ?? ''), [html]);
+  const innerHtml = useMemo(() => ({ __html: safe }), [safe]);
 
   /*
    * Run after every render (no deps) — not just when `safe` changes.
@@ -97,7 +117,7 @@ export function RichTextRenderer({
    * so the cost is just the querySelectorAll lookups.
    */
   useEffect(() => {
-    const root = ref.current;
+    const root = localRef.current;
     if (!root) return;
     renderMathIn(root);
     wrapImagesIn(root);
@@ -118,14 +138,16 @@ export function RichTextRenderer({
 
   return (
     <Box
-      ref={ref}
+      ref={setRef}
       className={`rich-text-content tiptap${compact ? ' compact' : ''}${className ? ' ' + className : ''}`}
       sx={sx}
       dir={dir}
-      dangerouslySetInnerHTML={{ __html: safe }}
+      dangerouslySetInnerHTML={innerHtml}
     />
   );
-}
+});
+
+RichTextRenderer.displayName = 'RichTextRenderer';
 
 /**
  * Wrap every <img> with a `<span data-image-node>` so the same CSS that styles

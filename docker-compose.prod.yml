@@ -1,0 +1,23 @@
+# Frontend-only production image (Next.js standalone).
+# Set NEXT_PUBLIC_API_URL to the public API base URL (baked in at build time).
+#
+# From this directory:
+#   export NEXT_PUBLIC_API_URL=https://api.example.com/api
+#   docker compose -f docker-compose.prod.yml up --build -d
+#
+# Run Postgres + Laravel from the azmonsaz repo separately.
+
+name: azmonsaz-frontend-prod
+
+services:
+  next:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    restart: unless-stopped
+    ports:
+      - "${NEXT_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production

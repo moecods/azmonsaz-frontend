@@ -28,6 +28,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { QuestionResultDisplay } from '@/components/questions/QuestionResultDisplay';
+import { RichLabel } from '@/components/editor';
 import { handleError } from '@/lib/error-handler';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
@@ -234,9 +235,18 @@ export default function ExamResultPage() {
                     <CardContent>
                       <Stack spacing={2}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                          <Typography variant="h6">
-                            سوال {index + 1}: {question.question_text}
+                        <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="h6" component="span" sx={{ flexShrink: 0 }}>
+                            سوال {index + 1}:
                           </Typography>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <RichLabel
+                              html={question.question_text}
+                              fontSize="1.25rem"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Stack>
                           <Stack direction="row" spacing={1} flexWrap="wrap">
                             <Chip
                               label={statusLabel}

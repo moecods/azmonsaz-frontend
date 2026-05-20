@@ -4,6 +4,7 @@ import { Box, Stack, Typography, Chip, Alert } from '@mui/material';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { getQuestionTypeKind } from '@/lib/question-types';
+import { RichLabel } from '@/components/editor';
 
 export interface ResultQuestion {
   id?: number;
@@ -61,23 +62,26 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
                   : 'transparent',
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={1}>
+              <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
                 {isYourAnswer ? (
                   <RadioButtonCheckedIcon
                     color={isCorrect ? 'success' : 'error'}
+                    sx={{ mt: 0.25 }}
                   />
                 ) : (
-                  <RadioButtonUncheckedIcon />
+                  <RadioButtonUncheckedIcon sx={{ mt: 0.25 }} />
                 )}
-                <Typography
-                  variant="body1"
+                <RichLabel
+                  html={optionText(option)}
+                  fontSize="1rem"
+                  block={false}
                   sx={{
+                    flex: '1 1 200px',
+                    minWidth: 0,
                     fontWeight: isCorrect ? 'bold' : 'normal',
                     color: isCorrect ? 'success.dark' : 'text.primary',
                   }}
-                >
-                  {optionText(option)}
-                </Typography>
+                />
                 {isCorrect && (
                   <Chip label="پاسخ صحیح" color="success" size="small" />
                 )}
@@ -129,16 +133,18 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
                   : 'transparent',
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography
-                  variant="body1"
+              <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
+                <RichLabel
+                  html={optionText(option)}
+                  fontSize="1rem"
+                  block={false}
                   sx={{
+                    flex: '1 1 200px',
+                    minWidth: 0,
                     fontWeight: isCorrect ? 'bold' : 'normal',
                     color: isCorrect ? 'success.dark' : 'text.primary',
                   }}
-                >
-                  {optionText(option)}
-                </Typography>
+                />
                 {isCorrect && (
                   <Chip label="پاسخ صحیح" color="success" size="small" />
                 )}
@@ -169,18 +175,19 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
       <Typography variant="body2" color="text.secondary" gutterBottom>
         پاسخ شما:
       </Typography>
-      <Typography
-        variant="body1"
+      <Box
         sx={{
           p: 2,
           bgcolor: bgColor,
           borderRadius: 1,
         }}
       >
-        {question.your_answer != null && question.your_answer !== ''
-          ? String(question.your_answer)
-          : 'پاسخی داده نشده'}
-      </Typography>
+        {question.your_answer != null && question.your_answer !== '' ? (
+          <RichLabel html={String(question.your_answer)} fontSize="1rem" />
+        ) : (
+          <Typography variant="body1">پاسخی داده نشده</Typography>
+        )}
+      </Box>
       {isPendingGrading && (
         <Alert severity="info" sx={{ mt: 1 }}>
           این سوال تشریحی است و در انتظار تصحیح معلم می‌باشد.

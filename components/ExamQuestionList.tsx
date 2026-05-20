@@ -28,6 +28,7 @@ import { ExamQuestion, QuestionOption } from '@/types';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import { RichLabel } from '@/components/editor';
 
 interface ExamQuestionListProps {
   questions: ExamQuestion[];
@@ -171,9 +172,7 @@ export default function ExamQuestionList({
                             <Chip label="Custom" size="small" color="secondary" />
                           )}
                         </Stack>
-                        <Typography variant="body1" sx={{ mt: 1 }}>
-                          {getQuestionText(question)}
-                        </Typography>
+                        <RichLabel html={getQuestionText(question)} fontSize="1rem" sx={{ mt: 1 }} />
                       </Box>
                       <Stack direction="row" spacing={1}>
                         <IconButton

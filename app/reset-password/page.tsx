@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Box,
   Button,
@@ -13,11 +13,11 @@ import {
   Alert,
   Stack,
   Container,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { resetPasswordSchema, ResetPasswordFormData } from '@/lib/validation';
-import { useForgotPassword } from '@/hooks';
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { resetPasswordSchema, ResetPasswordFormData } from "@/lib/validation";
+import { useForgotPassword } from "@/hooks";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const phoneNumber = searchParams.get('phone_number') || '';
+  const phoneNumber = searchParams.get("phone_number") || "";
 
   const {
     control,
@@ -37,15 +37,15 @@ export default function ResetPasswordPage() {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       phone_number: phoneNumber,
-      code: '',
-      password: '',
-      password_confirmation: '',
+      code: "",
+      password: "",
+      password_confirmation: "",
     },
   });
 
   useEffect(() => {
     if (phoneNumber) {
-      setValue('phone_number', phoneNumber);
+      setValue("phone_number", phoneNumber);
     }
   }, [phoneNumber, setValue]);
 
@@ -55,10 +55,14 @@ export default function ResetPasswordPage() {
       await resetPassword(data);
       setSuccess(true);
       setTimeout(() => {
-        router.push('/login');
+        router.push("/login");
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'تنظیم مجدد رمز عبور ناموفق بود. لطفا دوباره تلاش کنید.');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "تنظیم مجدد رمز عبور ناموفق بود. لطفا دوباره تلاش کنید.";
+      setError(message);
     }
   };
 
@@ -67,13 +71,13 @@ export default function ResetPasswordPage() {
       <Container maxWidth="sm">
         <Box
           sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <Card sx={{ width: '100%', maxWidth: 450 }}>
+          <Card sx={{ width: "100%", maxWidth: 450 }}>
             <CardContent sx={{ p: 4 }}>
               <Stack spacing={3} textAlign="center">
                 <Alert severity="success">
@@ -91,13 +95,13 @@ export default function ResetPasswordPage() {
     <Container maxWidth="sm">
       <Box
         sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Card sx={{ width: '100%', maxWidth: 450 }}>
+        <Card sx={{ width: "100%", maxWidth: 450 }}>
           <CardContent sx={{ p: 4 }}>
             <Stack spacing={3}>
               <Typography variant="h4" component="h1" textAlign="center">
@@ -120,7 +124,10 @@ export default function ResetPasswordPage() {
                         placeholder="09123456789"
                         autoComplete="tel"
                         error={!!errors.phone_number}
-                        helperText={errors.phone_number?.message || 'فرمت: 09123456789 یا +989123456789'}
+                        helperText={
+                          errors.phone_number?.message ||
+                          "فرمت: 09123456789 یا +989123456789"
+                        }
                         disabled={isResettingPassword}
                       />
                     )}
@@ -185,14 +192,18 @@ export default function ResetPasswordPage() {
                     size="large"
                     disabled={isResettingPassword}
                   >
-                    {isResettingPassword ? 'در حال تنظیم...' : 'تنظیم رمز عبور'}
+                    {isResettingPassword ? "در حال تنظیم..." : "تنظیم رمز عبور"}
                   </Button>
                 </Stack>
               </form>
 
-              <Box sx={{ textAlign: 'center' }}>
-                <Link href="/login" style={{ textDecoration: 'none' }}>
-                  <Typography variant="body2" color="primary" sx={{ cursor: 'pointer' }}>
+              <Box sx={{ textAlign: "center" }}>
+                <Link href="/login" style={{ textDecoration: "none" }}>
+                  <Typography
+                    variant="body2"
+                    color="primary"
+                    sx={{ cursor: "pointer" }}
+                  >
                     بازگشت به صفحه ورود
                   </Typography>
                 </Link>
@@ -204,4 +215,3 @@ export default function ResetPasswordPage() {
     </Container>
   );
 }
-

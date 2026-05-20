@@ -3,6 +3,7 @@
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { isEssay } from '@/lib/question-types';
 import type { PrintHeaderOverrides } from '@/components/ExamPrintView';
+import { RichLabel } from '@/components/editor';
 
 const EN_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -176,9 +177,7 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
                 <TableCell sx={{ textAlign: 'right', padding: 2 }}>
                   <Box sx={{ mb: 2 }}>
                     <Box sx={{ fontSize: '11pt', mb: 1.25, textAlign: 'justify' }}>
-                      {questionText.split('\n').map((line: string, i: number) => (
-                        <span key={i}>{line}<br /></span>
-                      ))}
+                      <RichLabel html={questionText} fontSize="11pt" />
                     </Box>
 
                     {isEssayType ? (
@@ -216,9 +215,7 @@ export default function FormalSchoolTemplate({ exam, headerOverrides }: FormalSc
                                 <Box component="span" sx={{ fontWeight: 'bold', minWidth: '20px', fontFamily: '"Vazirmatn", serif' }}>
                                   {label})
                                 </Box>
-                                <Box component="span" sx={{ flex: 1 }}>
-                                  {optionText}
-                                </Box>
+                                <RichLabel html={optionText} fontSize="10pt" sx={{ flex: 1 }} />
                               </Box>
                             );
                           })}

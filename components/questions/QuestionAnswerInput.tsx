@@ -13,13 +13,11 @@ import {
   TextField,
 } from '@mui/material';
 import { getQuestionTypeKind } from '@/lib/question-types';
-import { RichTextRenderer } from '@/components/editor/RichTextRenderer';
+import { RichLabel } from '@/components/editor';
 
 function itemText(item: string | { text: string }): string {
   return typeof item === 'string' ? item : item?.text ?? '';
 }
-
-const looksLikeHtml = (s: string) => /<[a-z][^>]*>/i.test(s);
 
 /** Body font size used for the option label and for the control's
  * single-line vertical alignment box. Line-height is intentionally NOT
@@ -27,44 +25,6 @@ const looksLikeHtml = (s: string) => /<[a-z][^>]*>/i.test(s);
  * without being clipped or visually capped. */
 const LABEL_FONT_SIZE = '0.95rem';
 const LABEL_FIRST_LINE = 1.5; // line-height for the FIRST line only (control alignment)
-
-function RichLabel({ html }: { html: string }) {
-  if (!html) return null;
-  if (!looksLikeHtml(html)) {
-    return (
-      <Box
-        component="span"
-        sx={{
-          fontSize: LABEL_FONT_SIZE,
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
-        {html}
-      </Box>
-    );
-  }
-  return (
-    <RichTextRenderer
-      html={html}
-      compact
-      sx={{
-        display: 'block',
-        minWidth: 0,
-        flex: 1,
-        maxWidth: '100%',
-        height: 'auto',
-        maxHeight: 'none',
-        fontSize: LABEL_FONT_SIZE,
-        '& > :first-child': { marginTop: 0 },
-        '& > :last-child': { marginBottom: 0 },
-        '& p': { my: 0 },
-        '& p + p': { mt: 0.35 },
-        '& ul, & ol': { my: 0.25 },
-      }}
-    />
-  );
-}
 
 interface OptionRowProps {
   /** The Radio / Checkbox control. */

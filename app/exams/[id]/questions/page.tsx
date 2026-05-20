@@ -56,6 +56,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
 import QuestionBankDrawer from '@/components/questions/QuestionBankDrawer';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
+import { RichLabel, htmlToPlainText } from '@/components/editor';
 import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
 import {
@@ -212,9 +213,11 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                     />
                   </Tooltip>
                 </Stack>
-                <Typography variant="body1" fontWeight="medium">
-                  {questionText}
-                </Typography>
+                <RichLabel
+                  html={questionText}
+                  fontSize="1rem"
+                  sx={{ fontWeight: 500 }}
+                />
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5}>
@@ -249,31 +252,37 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                 گزینه‌ها:
               </Typography>
               <Stack spacing={0.5}>
-                {options.map((option: { text?: string; is_correct?: boolean } | string, optionIndex: number) => (
-                  <Stack
-                    key={optionIndex}
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                  >
-                    <Typography variant="body2" sx={{ minWidth: 24, fontWeight: 'medium' }}>
-                      {String.fromCharCode(65 + optionIndex)}.
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        flex: 1,
-                        fontWeight: (typeof option === 'object' && option && 'is_correct' in option && option.is_correct) ? 'bold' : 'normal',
-                        color: (typeof option === 'object' && option && 'is_correct' in option && option.is_correct) ? 'success.main' : 'text.primary',
-                      }}
+                {options.map((option: { text?: string; is_correct?: boolean } | string, optionIndex: number) => {
+                  const isCorrect =
+                    typeof option === 'object' && option && 'is_correct' in option && option.is_correct;
+                  const optionText = typeof option === 'string' ? option : (option.text ?? '');
+                  return (
+                    <Stack
+                      key={optionIndex}
+                      direction="row"
+                      spacing={1}
+                      alignItems="flex-start"
                     >
-                      {typeof option === 'string' ? option : option.text}
-                    </Typography>
-                    {(typeof option === 'object' && option && 'is_correct' in option && option.is_correct) && (
-                      <Chip label="صحیح" size="small" color="success" />
-                    )}
-                  </Stack>
-                ))}
+                      <Typography
+                        variant="body2"
+                        sx={{ minWidth: 24, fontWeight: 'medium', mt: 0.25 }}
+                      >
+                        {String.fromCharCode(65 + optionIndex)}.
+                      </Typography>
+                      <RichLabel
+                        html={optionText}
+                        fontSize="0.875rem"
+                        sx={{
+                          fontWeight: isCorrect ? 600 : 400,
+                          color: isCorrect ? 'success.main' : 'text.primary',
+                        }}
+                      />
+                      {isCorrect && (
+                        <Chip label="صحیح" size="small" color="success" />
+                      )}
+                    </Stack>
+                  );
+                })}
               </Stack>
             </Box>
           )}
@@ -878,17 +887,20 @@ function ExamQuestionsContent() {
           <DialogContentText>
             آیا از حذف این سوال اطمینان دارید؟ این عمل قابل بازگشت نیست.
           </DialogContentText>
-          {questionToDelete && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                متن سوال:
-              </Typography>
-              <Typography variant="body1">
-                {getQuestionText(questionToDelete).substring(0, 200)}
-                {getQuestionText(questionToDelete).length > 200 ? '...' : ''}
-              </Typography>
-            </Box>
-          )}
+          {questionToDelete && (() => {
+            const plain = htmlToPlainText(getQuestionText(questionToDelete));
+            return (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  متن سوال:
+                </Typography>
+                <Typography variant="body1">
+                  {plain.substring(0, 200)}
+                  {plain.length > 200 ? '...' : ''}
+                </Typography>
+              </Box>
+            );
+          })()}
         </DialogContent>
         <DialogActions>
           <Button

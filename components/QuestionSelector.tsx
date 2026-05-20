@@ -27,6 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
 import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, QuestionType, Difficulty } from '@/types';
+import { RichLabel } from '@/components/editor';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -191,9 +192,7 @@ export default function QuestionSelector({ onAddQuestion }: QuestionSelectorProp
                       {questions.map((question) => (
                         <Card key={question.id} variant="outlined">
                           <CardContent>
-                            <Typography variant="body1" gutterBottom>
-                              {question.text}
-                            </Typography>
+                            <RichLabel html={question.text} fontSize="1rem" sx={{ display: 'block', mb: 1 }} />
                             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                               <Chip label={question.difficulty} size="small" />
                               <Chip label={question.category?.name} size="small" />

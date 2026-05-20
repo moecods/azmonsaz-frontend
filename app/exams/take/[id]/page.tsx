@@ -23,6 +23,7 @@ import {
 import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo } from '@/hooks/useExams';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { QuestionAnswerInput } from '@/components/questions/QuestionAnswerInput';
+import { RichLabel } from '@/components/editor';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SaveIcon from '@mui/icons-material/Save';
 import SendIcon from '@mui/icons-material/Send';
@@ -656,10 +657,12 @@ export default function TakeExamPage() {
             <Card>
               <CardContent>
                 <Stack spacing={3}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Typography variant="h6" gutterBottom sx={{ flex: 1 }}>
-                      {currentQuestion.payload.question_text}
-                    </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, width: '100%' }}>
+                    <RichLabel
+                      html={currentQuestion.payload.question_text}
+                      fontSize="1.25rem"
+                      sx={{ flex: 1, minWidth: 0, fontWeight: 600 }}
+                    />
                     <Chip
                       icon={
                         saveAnswerMutation.isPending ? (

@@ -3,6 +3,7 @@
 import { Box, Typography } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 import { getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import { RichLabel } from '@/components/editor';
 import type { Exam } from '@/types';
 
 interface ExamWithPayload extends Exam {
@@ -117,12 +118,10 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
                 {questionNumber}.
               </Box>
               <Box sx={{ flex: 1 }}>
-              {questionText.split('\n').map((line, i) => (
-                <span key={i}>{line}<br /></span>
-              ))}
-              <Box component="span" sx={{ fontSize: '10pt', color: '#666', mr: 1 }}>
-                (بارم: {points})
-              </Box>
+                <RichLabel html={questionText} fontSize="11pt" />
+                <Box component="span" sx={{ fontSize: '10pt', color: '#666', mr: 1 }}>
+                  (بارم: {points})
+                </Box>
               </Box>
             </Box>
 
@@ -162,9 +161,7 @@ export default function SimplePersianTemplate({ exam }: SimplePersianTemplatePro
                         <Box component="span" sx={{ fontWeight: 'bold', minWidth: '25px', fontFamily: '"B Nazanin", serif' }}>
                           {label})
                         </Box>
-                        <Box component="span" sx={{ flex: 1 }}>
-                          {optionText}
-                        </Box>
+                        <RichLabel html={optionText} fontSize="10pt" sx={{ flex: 1 }} />
                       </Box>
                     );
                   })}

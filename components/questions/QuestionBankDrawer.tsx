@@ -25,6 +25,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { getQuestionTypeLabel, getQuestionTypeKind } from '@/lib/question-types';
 import { useQuestions, useQuestionCategories } from '@/hooks';
+import { RichLabel } from '@/components/editor';
 import { Question, ExamQuestion, Difficulty, PaginatedResponse } from '@/types';
 
 function optionText(opt: string | { text?: string }): string {
@@ -206,9 +207,13 @@ export default function QuestionBankDrawer({
                 return (
                   <Card key={question.id} variant="outlined" sx={{ overflow: 'visible' }}>
                     <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap', mb: 1.5 }}>
-                        {questionText}
-                      </Typography>
+                      <Box sx={{ mb: 1.5 }}>
+                        <RichLabel
+                          html={questionText}
+                          fontSize="1rem"
+                          sx={{ fontWeight: 500 }}
+                        />
+                      </Box>
 
                       {(kind === 'options_single' || kind === 'options_multiple' || questionType === 'true_false') && options.length > 0 && (
                         <Box sx={{ mb: 1.5 }}>
@@ -219,7 +224,7 @@ export default function QuestionBankDrawer({
                                 key={idx}
                                 sx={{
                                   display: 'flex',
-                                  alignItems: 'center',
+                                  alignItems: 'flex-start',
                                   gap: 1,
                                   p: 1,
                                   borderRadius: 1,
@@ -228,10 +233,14 @@ export default function QuestionBankDrawer({
                                   borderColor: 'success.main',
                                 }}
                               >
-                                <Typography component="span" sx={{ fontWeight: 600, minWidth: 20 }}>{String.fromCharCode(65 + idx)}.</Typography>
-                                <Typography variant="body2" sx={{ flex: 1, fontWeight: isCorrectOption(idx) ? 600 : 400 }}>
-                                  {optionText(opt)}
+                                <Typography component="span" sx={{ fontWeight: 600, minWidth: 20 }}>
+                                  {String.fromCharCode(65 + idx)}.
                                 </Typography>
+                                <RichLabel
+                                  html={optionText(opt)}
+                                  fontSize="0.875rem"
+                                  sx={{ fontWeight: isCorrectOption(idx) ? 600 : 400 }}
+                                />
                                 {isCorrectOption(idx) && <Chip label="پاسخ صحیح" color="success" size="small" />}
                               </Box>
                             ))}
@@ -257,11 +266,12 @@ export default function QuestionBankDrawer({
                             {((q.correct_order as number[]) ?? []).map((orderIdx: number, i: number) => {
                               const items = (q.items as Array<string | { text?: string }>) ?? [];
                               const item = items[orderIdx];
+                              const itemHtml = item != null ? optionText(item as string | { text?: string }) : `مورد ${orderIdx + 1}`;
                               return (
-                                <Typography key={i} variant="body2" sx={{ display: 'flex', gap: 1 }}>
-                                  <span>{i + 1}.</span>
-                                  <span>{item != null ? optionText(item as string | { text?: string }) : `مورد ${orderIdx + 1}`}</span>
-                                </Typography>
+                                <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                                  <Typography component="span" variant="body2">{i + 1}.</Typography>
+                                  <RichLabel html={itemHtml} fontSize="0.875rem" />
+                                </Box>
                               );
                             })}
                           </Stack>
@@ -276,9 +286,11 @@ export default function QuestionBankDrawer({
                               const leftItems = (q.left_items as Array<string | { text?: string }>) ?? [];
                               const rightItems = (q.right_items as Array<string | { text?: string }>) ?? [];
                               return (
-                                <Typography key={i} variant="body2">
-                                  {optionText(leftItems[m.left_index] ?? '')} ← {optionText(rightItems[m.right_index] ?? '')}
-                                </Typography>
+                                <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                                  <RichLabel html={optionText(leftItems[m.left_index] ?? '')} fontSize="0.875rem" />
+                                  <Typography component="span" variant="body2">←</Typography>
+                                  <RichLabel html={optionText(rightItems[m.right_index] ?? '')} fontSize="0.875rem" />
+                                </Box>
                               );
                             })}
                           </Stack>

@@ -3,6 +3,7 @@
 import { Box, Typography } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import { RichLabel } from '@/components/editor';
 import type { Exam } from '@/types';
 
 interface ExamWithPayload extends Exam {
@@ -151,17 +152,11 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
               >
                 {questionNumber}.
               </Typography>
-              <Typography
-                sx={{
-                  fontSize: '11pt',
-                  flex: 1,
-                  textAlign: 'justify',
-                }}
-              >
-                {questionText.split('\n').map((line, i) => (
-                  <span key={i}>{line}<br /></span>
-                ))}
-              </Typography>
+              <RichLabel
+                html={questionText}
+                fontSize="11pt"
+                sx={{ flex: 1, textAlign: 'justify' }}
+              />
             </Box>
             <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 0.6 }}>
               <Typography
@@ -218,14 +213,7 @@ export default function CollegeTemplate({ exam }: CollegeTemplateProps) {
                         >
                           {String.fromCharCode(65 + optionIndex)}.
                         </Typography>
-                        <Typography
-                          sx={{
-                            flex: 1,
-                            fontSize: '10pt',
-                          }}
-                        >
-                          {optionText}
-                        </Typography>
+                        <RichLabel html={optionText} fontSize="10pt" sx={{ flex: 1 }} />
                       </Box>
                     );
                   })}

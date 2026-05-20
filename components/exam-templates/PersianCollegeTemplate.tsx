@@ -3,6 +3,7 @@
 import { Box, Typography, Chip } from '@mui/material';
 import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
 import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
+import { RichLabel } from '@/components/editor';
 import type { Exam } from '@/types';
 
 interface ExamWithPayload extends Exam {
@@ -181,18 +182,11 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
                 {questionNumber}
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  sx={{
-                    fontSize: '12pt',
-                    flex: 1,
-                    textAlign: 'justify',
-                    fontWeight: 500,
-                  }}
-                >
-                  {questionText.split('\n').map((line, i) => (
-                    <span key={i}>{line}<br /></span>
-                  ))}
-                </Typography>
+                <RichLabel
+                  html={questionText}
+                  fontSize="12pt"
+                  sx={{ flex: 1, textAlign: 'justify', fontWeight: 500 }}
+                />
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
                   <Chip
                     label={typeLabel}
@@ -269,14 +263,7 @@ export default function PersianCollegeTemplate({ exam }: PersianCollegeTemplateP
                         >
                           {label}
                         </Box>
-                        <Typography
-                          sx={{
-                            flex: 1,
-                            fontSize: '11pt',
-                          }}
-                        >
-                          {optionText}
-                        </Typography>
+                        <RichLabel html={optionText} fontSize="11pt" sx={{ flex: 1 }} />
                       </Box>
                     );
                   })}

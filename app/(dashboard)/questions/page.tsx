@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import {Stack, Typography, Button, IconButton, useMediaQuery, useTheme} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useQuestionManagement } from '@/hooks';
-import { QuestionFilters, QuestionTable } from '@/components/questions';
+import { QuestionFilters, QuestionList } from '@/components/questions';
 import Breadcrumb from '@/components/Breadcrumb';
 import {useState} from "react";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
@@ -78,8 +78,8 @@ export default function QuestionsPage() {
         onFilterChange={updateFilter}
       />
 
-      {/* Questions Table */}
-      <QuestionTable
+      {/* Questions */}
+      <QuestionList
         questions={questions}
         loading={isLoading}
         pagination={pagination}
