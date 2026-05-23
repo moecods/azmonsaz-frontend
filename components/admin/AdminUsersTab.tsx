@@ -53,6 +53,7 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
   const [userOpen, setUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userPage, setUserPage] = useState(1);
+  const [userSearch, setUserSearch] = useState('');
 
   const userForm = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -66,7 +67,7 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
   });
 
   const { data: usersData, isLoading: usersLoading, isError: usersError, error: usersErrorDetail } = useUsers(
-    isActive ? { page: userPage, per_page: 15 } : undefined
+    isActive ? { page: userPage, per_page: 15, search: userSearch || undefined } : undefined
   );
 
   const createUserMutation = useCreateUser();
@@ -217,6 +218,17 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
             افزودن کاربر
           </Button>
         </Stack>
+
+        <TextField
+          size="small"
+          placeholder="جستجو نام، موبایل، ایمیل…"
+          value={userSearch}
+          onChange={(e) => {
+            setUserSearch(e.target.value);
+            setUserPage(1);
+          }}
+          sx={{ maxWidth: 360 }}
+        />
 
         {usersLoading ? (
           <Box display="flex" justifyContent="center" p={3}>

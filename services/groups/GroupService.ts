@@ -68,6 +68,20 @@ export class GroupService {
     return this.apiClient.patch<Group>(`/groups/${id}`, data);
   }
 
+  async getCreatorAccess(groupId: number): Promise<
+    ApiResponse<Array<{ user_id: number; user?: { id: number; name: string; phone_number?: string }; can_attach_to_exams: boolean }>>
+  > {
+    return this.apiClient.get(`/groups/${groupId}/creator-access`);
+  }
+
+  async syncCreatorAccess(groupId: number, userIds: number[]): Promise<ApiResponse<unknown>> {
+    return this.apiClient.put(`/groups/${groupId}/creator-access`, { user_ids: userIds });
+  }
+
+  async getAccessibleGroups(): Promise<ApiResponse<Group[]>> {
+    return this.apiClient.get<Group[]>('/groups/accessible');
+  }
+
   /**
    * Delete a group
    */

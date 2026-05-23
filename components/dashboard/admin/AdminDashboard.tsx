@@ -6,7 +6,7 @@ import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useCreatorDashboard } from "@/hooks/useExams";
 import { useNotifications } from "@/hooks/useNotifications";
 import ShellContentLoader from "@/components/layout/ShellContentLoader";
-import { buildTeacherDashboardData } from "@/lib/teacher-dashboard";
+import { buildAdminDashboardData } from "@/lib/admin-dashboard";
 import DashboardSectionEmpty from "@/components/dashboard/student/DashboardSectionEmpty";
 import DashboardNotifications from "@/components/dashboard/student/DashboardNotifications";
 import DashboardWeekCalendar from "@/components/dashboard/student/DashboardWeekCalendar";
@@ -15,11 +15,11 @@ import TeacherCompactExamRow from "@/components/dashboard/teacher/TeacherCompact
 import DashboardGradingPanel from "@/components/dashboard/teacher/DashboardGradingPanel";
 import ExamContextSwitcher from "@/components/exams/ExamContextSwitcher";
 
-interface CreatorDashboardProps {
+interface AdminDashboardProps {
   userName?: string | null;
 }
 
-export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
+export default function AdminDashboard({ userName }: AdminDashboardProps) {
   const router = useRouter();
   const { data, isLoading, isFetching } = useCreatorDashboard();
   const { data: notificationsData, isLoading: notificationsLoading } = useNotifications({
@@ -27,22 +27,9 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
     page: 1,
   });
 
-  const dashboard = useMemo(
-    () =>
-      buildTeacherDashboardData({
-        exams: data?.exams ?? [],
-        stats: data?.stats ?? {
-          live_count: 0,
-          pending_grading_exams_count: 0,
-          total_published: 0,
-        },
-      }),
-    [data]
-  );
+  const dashboard = useMemo(() => buildAdminDashboardData(data ?? { exams: [], stats: { live_count: 0, pending_grading_exams_count: 0, total_published: 0 } }), [data]);
 
   const notifications = notificationsData?.data ?? [];
-  const pageLoading = isLoading;
-  const pageFetching = !isLoading && isFetching;
   const hasExams = dashboard.exams.length > 0;
 
   const shownIds = useMemo(() => {
@@ -55,31 +42,28 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
   }, [dashboard.focus]);
 
   return (
-    <ShellContentLoader loading={pageLoading} fetching={pageFetching}>
+    <ShellContentLoader loading={isLoading} fetching={!isLoading && isFetching}>
       <Stack spacing={{ xs: 2, md: 2.5 }} sx={{ maxWidth: 900, mx: "auto" }}>
         <Stack direction="row" alignItems="flex-end" justifyContent="space-between" spacing={1}>
           <Box>
             <Typography variant="h5" fontWeight={800}>
-              سلام، {userName || "معلم عزیز"}
+              سلام، {userName || "مدیر"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              خلاصه وضعیت آزمون‌های شما
+              نمای کلی همه آزمون‌های منتشرشده
             </Typography>
             {hasExams && (
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-                {dashboard.stats.live_count > 0 && (
-                  <Chip
-                    size="small"
-                    color="success"
-                    label={`${dashboard.stats.live_count.toLocaleString("fa-IR")} در حال اجرا`}
-                  />
+                <Chip size="small" color="success" label={`${dashboard.stats.live_count.toLocaleString("fa-IR")} در حال اجرا`} />
+                <Chip size="small" color="warning" label={`${dashboard.stats.pending_grading_exams_count.toLocaleString("fa-IR")} نیاز به تصحیح`} />
+                {(dashboard.stats.participants_today ?? 0) > 0 && (
+                  <Chip size="small" variant="outlined" label={`${dashboard.stats.participants_today!.toLocaleString("fa-IR")} شرکت‌کننده امروز`} />
                 )}
-                {dashboard.stats.pending_grading_exams_count > 0 && (
-                  <Chip
-                    size="small"
-                    color="warning"
-                    label={`${dashboard.stats.pending_grading_exams_count.toLocaleString("fa-IR")} نیاز به تصحیح`}
-                  />
+                {(dashboard.stats.participants_next_7_days ?? 0) > 0 && (
+                  <Chip size="small" variant="outlined" label={`${dashboard.stats.participants_next_7_days!.toLocaleString("fa-IR")} شرکت‌کننده این هفته`} />
+                )}
+                {dashboard.stats.total_published > dashboard.exams.length && (
+                  <Chip size="small" variant="outlined" label={`${dashboard.stats.total_published.toLocaleString("fa-IR")} آزمون منتشرشده`} />
                 )}
               </Stack>
             )}
@@ -89,11 +73,11 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
           </Button>
         </Stack>
 
-        {!hasExams && !pageLoading ? (
-          <DashboardSectionEmpty message="هنوز آزمون منتشرشده‌ای ندارید." />
+        {!hasExams && !isLoading ? (
+          <DashboardSectionEmpty message="آزمون منتشرشده‌ای وجود ندارد." />
         ) : (
           <>
-            <ExamContextSwitcher exams={dashboard.exams} />
+            <ExamContextSwitcher exams={dashboard.exams} showCreator />
 
             {dashboard.focus ? (
               <TeacherFocusExam focus={dashboard.focus} />
@@ -105,6 +89,9 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
               <Stack spacing={0.75}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>
                   سایر موارد
+                  {dashboard.stats.total_published > 3 && (
+                    <> · {dashboard.stats.total_published.toLocaleString("fa-IR")} آزمون</>
+                  )}
                 </Typography>
                 {dashboard.focus.others.slice(0, 3).map((exam) => (
                   <TeacherCompactExamRow key={exam.id} exam={exam} />
@@ -117,15 +104,11 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
                 اعلان‌ها
               </Typography>
               {notificationsLoading ? (
-                <Typography variant="body2" color="text.secondary">
-                  در حال بارگذاری…
-                </Typography>
+                <Typography variant="body2" color="text.secondary">در حال بارگذاری…</Typography>
               ) : notifications.length > 0 ? (
                 <DashboardNotifications notifications={notifications.slice(0, 3)} />
               ) : (
-                <Typography variant="body2" color="text.disabled">
-                  اعلان جدیدی نیست.
-                </Typography>
+                <Typography variant="body2" color="text.disabled">اعلان جدیدی نیست.</Typography>
               )}
             </Box>
 
@@ -145,20 +128,8 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
 
 function CardPlaceholder({ message }: { message: string }) {
   return (
-    <Box
-      sx={{
-        py: 2,
-        px: 2,
-        borderRadius: 2,
-        border: "1px dashed",
-        borderColor: "divider",
-        bgcolor: "action.hover",
-        textAlign: "center",
-      }}
-    >
-      <Typography variant="body2" color="text.secondary">
-        {message}
-      </Typography>
+    <Box sx={{ py: 2, px: 2, borderRadius: 2, border: "1px dashed", borderColor: "divider", bgcolor: "action.hover", textAlign: "center" }}>
+      <Typography variant="body2" color="text.secondary">{message}</Typography>
     </Box>
   );
 }

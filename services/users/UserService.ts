@@ -9,6 +9,7 @@ import { User, ApiResponse, PaginatedResponse } from '@/types';
 export interface UserFilters {
   page?: number;
   per_page?: number;
+  search?: string;
 }
 
 export interface CreateUserData {
@@ -97,8 +98,18 @@ export class UserService {
   /**
    * Impersonate a user (Admin only)
    */
-  async impersonate(id: number): Promise<ApiResponse<{ token: string; user: User }>> {
-    return this.apiClient.post<{ token: string; user: User }>(`/users/${id}/impersonate`);
+  async impersonate(id: number): Promise<
+    ApiResponse<{
+      token: string;
+      user: User;
+      impersonation?: { active: boolean; admin_id: number; admin_name: string };
+    }>
+  > {
+    return this.apiClient.post(`/users/${id}/impersonate`);
+  }
+
+  async stopImpersonating(): Promise<ApiResponse<null>> {
+    return this.apiClient.post('/users/stop-impersonating');
   }
 
   /**

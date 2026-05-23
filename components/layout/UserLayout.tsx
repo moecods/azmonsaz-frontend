@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 import UserSidebar from "./UserSidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
+import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import { NavigationProvider } from "@/components/layout/NavigationProvider";
 import {
   MOBILE_BOTTOM_NAV_HEIGHT,
@@ -55,6 +56,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
             ...SHELL_CONTENT_PADDING,
           }}
         >
+          <ImpersonationBanner />
           <StartedExamsAlert />
           <NavigationProvider>{children}</NavigationProvider>
         </Box>

@@ -12,6 +12,7 @@ import { ExamService } from './exams/ExamService';
 import { UserService } from './users/UserService';
 import { PartnerService } from './partners/PartnerService';
 import { GroupService } from './groups/GroupService';
+import { AuditLogService } from './audit/AuditLogService';
 import { MediaService } from './media/MediaService';
 import { NotificationService } from './notifications/NotificationService';
 
@@ -43,6 +44,7 @@ export const examService = new ExamService(apiClient);
 export const userService = new UserService(apiClient);
 export const partnerService = new PartnerService(apiClient);
 export const groupService = new GroupService(apiClient);
+export const auditLogService = new AuditLogService(apiClient);
 export const mediaService = new MediaService(apiClient);
 export const notificationService = new NotificationService(apiClient);
 

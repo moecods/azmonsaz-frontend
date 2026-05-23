@@ -190,6 +190,7 @@ export const examSchema = z.object({
   result_release_after_exam_end: z.boolean().default(true),
   result_release_after_grading_complete: z.boolean().default(true),
   result_release_requires_manual: z.boolean().default(false),
+  created_by: z.number().int().positive().optional().nullable(),
 }).refine((data) => {
   if (data.schedule_type !== 'fixed_window') return true;
   // If exam_date, start_time, and end_time are provided, validate time order

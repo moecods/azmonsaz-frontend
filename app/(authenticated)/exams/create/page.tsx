@@ -40,6 +40,7 @@ function CreateExamContent() {
   const { user } = useAuth();
 
   const isCreator = useMemo(() => isCreatorUser(user?.roles), [user?.roles]);
+  const isAdmin = useMemo(() => user?.roles?.includes("admin"), [user?.roles]);
 
   const deepLinkParams = useMemo(
     () => ({
@@ -82,6 +83,7 @@ function CreateExamContent() {
       result_release_after_exam_end: true,
       result_release_after_grading_complete: true,
       result_release_requires_manual: false,
+      created_by: null,
     },
   });
 
@@ -98,6 +100,8 @@ function CreateExamContent() {
     validationResult.success && deepLinkParams.exam_id
       ? parseInt(deepLinkParams.exam_id, 10)
       : null;
+
+  const showCreatorSelect = isAdmin && !examId;
 
   const { data: partnerData } = usePartner(partnerId);
   const { data: existingExam, isLoading: isLoadingExam } = useExam(examId);
@@ -173,6 +177,10 @@ function CreateExamContent() {
     } else {
       const examData = {
         ...baseData,
+        ...(showCreatorSelect &&
+          data.created_by != null && {
+            created_by: Number(data.created_by),
+          }),
         ...(validationResult.success &&
           deepLinkParams.partner_id && {
             partner_id: parseInt(deepLinkParams.partner_id, 10),
@@ -266,6 +274,7 @@ function CreateExamContent() {
             onSubmit={onSubmit}
             isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
             existingExam={!!existingExam}
+            showCreatorSelect={showCreatorSelect}
           />
         </Stack>
       </Container>

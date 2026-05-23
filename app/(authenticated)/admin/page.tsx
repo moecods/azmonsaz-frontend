@@ -6,10 +6,12 @@ import { Box, Card, Tabs, Tab, Stack, Typography } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
+import HistoryIcon from '@mui/icons-material/History';
 import Breadcrumb from '@/components/Breadcrumb';
 import { AdminPartnersTab } from '@/components/admin/AdminPartnersTab';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
 import { AdminQuestionCategoriesTab } from '@/components/admin/AdminQuestionCategoriesTab';
+import { AdminAuditLogsTab } from '@/components/admin/AdminAuditLogsTab';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -46,27 +48,35 @@ export default function AdminPage() {
         <Breadcrumb items={[{ label: 'پنل مدیریت' }]} />
         <Box>
           <Typography variant="h4">پنل مدیریت</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            کاربران، شرکا و لاگ تغییرات
+          </Typography>
         </Box>
 
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab icon={<BusinessIcon />} label="شرکا" iconPosition="start" data-cy="admin-tab-partners" />
+            <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
               <Tab icon={<PeopleIcon />} label="کاربران" iconPosition="start" data-cy="admin-tab-users" />
+              <Tab icon={<HistoryIcon />} label="لاگ‌ها" iconPosition="start" />
+              <Tab icon={<BusinessIcon />} label="شرکا" iconPosition="start" data-cy="admin-tab-partners" />
               <Tab icon={<CategoryIcon />} label="دسته‌بندی سوالات" iconPosition="start" data-cy="admin-tab-question-categories" />
             </Tabs>
           </Box>
 
           <TabPanel value={tabValue} index={0}>
-            <AdminPartnersTab isActive={tabValue === 0} />
+            <AdminUsersTab isActive={tabValue === 0} />
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <AdminUsersTab isActive={tabValue === 1} />
+            <AdminAuditLogsTab isActive={tabValue === 1} />
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
-            <AdminQuestionCategoriesTab isActive={tabValue === 2} />
+            <AdminPartnersTab isActive={tabValue === 2} />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={3}>
+            <AdminQuestionCategoriesTab isActive={tabValue === 3} />
           </TabPanel>
         </Card>
       </Stack>

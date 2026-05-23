@@ -28,6 +28,7 @@ interface ExamFormWizardProps {
   onSubmit: (data: ExamFormData, redirectToQuestions: boolean) => void;
   isSubmitting: boolean;
   existingExam?: boolean;
+  showCreatorSelect?: boolean;
 }
 
 export function ExamFormWizard({
@@ -35,6 +36,7 @@ export function ExamFormWizard({
   onSubmit,
   isSubmitting,
   existingExam,
+  showCreatorSelect = false,
 }: ExamFormWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
@@ -47,7 +49,7 @@ export function ExamFormWizard({
   const scheduleType = useWatch({ control, name: "schedule_type" });
 
   const stepFields: (keyof ExamFormData)[][] = [
-    ["title", "type"],
+    showCreatorSelect ? ["created_by", "title", "type"] : ["title", "type"],
     ["passing_score", "grading_mode", "grading_config", "instructions", "tags"],
     [
       "schedule_type",
@@ -95,7 +97,9 @@ export function ExamFormWizard({
         </Stepper>
 
         <Paper variant="outlined" sx={{ p: 3, mb: 3, minHeight: 280 }}>
-          {activeStep === 0 && <BasicInfoStep form={form} />}
+          {activeStep === 0 && (
+            <BasicInfoStep form={form} showCreatorSelect={showCreatorSelect && !existingExam} />
+          )}
           {activeStep === 1 && <ExamSettingsStep form={form} />}
           {activeStep === 2 && <SchedulingStep form={form} />}
         </Paper>

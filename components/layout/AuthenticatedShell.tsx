@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { DesktopSidebar } from "@/components/layout/UserSidebar";
 import UserLayout from "@/components/layout/UserLayout";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
+import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import { NavigationProvider } from "@/components/layout/NavigationProvider";
 import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
 
@@ -73,6 +74,7 @@ export default function AuthenticatedShell({ children }: { children: ReactNode }
                 maxWidth: "100%",
               }}
             >
+              <ImpersonationBanner />
               <StartedExamsAlert />
               <NavigationProvider>{children}</NavigationProvider>
             </Box>

@@ -186,12 +186,7 @@ export class ExamService {
   /**
    * Get list of exams (filtered by user role)
    */
-  async getCreatorDashboard(): Promise<
-    ApiResponse<{
-      exams: CreatorDashboardExam[];
-      stats: CreatorDashboardStats;
-    }>
-  > {
+  async getCreatorDashboard(): Promise<ApiResponse<CreatorDashboardPayload>> {
     return this.apiClient.get('/exams/dashboard');
   }
 
@@ -405,6 +400,8 @@ export interface CreatorDashboardStats {
   live_count: number;
   pending_grading_exams_count: number;
   total_published: number;
+  participants_today?: number;
+  participants_next_7_days?: number;
 }
 
 export interface CreatorDashboardExam {
@@ -423,6 +420,23 @@ export interface CreatorDashboardExam {
   completed_participants_count: number;
   is_live: boolean;
   pending_grading_participants_count: number;
+  creator?: { id: number; name: string } | null;
+}
+
+export interface CreatorDashboardPayload {
+  is_admin_view?: boolean;
+  exams: CreatorDashboardExam[];
+  focus_exams?: CreatorDashboardExam[];
+  stats: CreatorDashboardStats;
+}
+
+export interface ExamCapabilities {
+  can_manage_schedule: boolean;
+  can_manage_content: boolean;
+  can_grade: boolean;
+  can_manage_participants: boolean;
+  can_publish: boolean;
+  can_delete: boolean;
 }
 
 export interface ExamListItem {
@@ -506,6 +520,7 @@ export interface ExamWithParticipants {
   result_release_after_grading_complete?: boolean;
   result_release_requires_manual?: boolean;
   results_released_at?: string | null;
+  capabilities?: ExamCapabilities;
   participants: ExamParticipant[];
   groups?: Array<{
     id: number;

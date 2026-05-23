@@ -188,6 +188,8 @@ export interface CreateExamRequest {
   type?: 'offline' | 'online';
   callback_url?: string;
   partner_id?: number;
+  /** Admin only: assign exam ownership to a creator user */
+  created_by?: number;
   meta?: ExamMeta;
   exam_date?: string;
   start_time?: string;

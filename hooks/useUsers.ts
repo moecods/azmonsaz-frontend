@@ -4,11 +4,15 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userService, ApiError } from '@/services';
+import { userService, ApiError, getApiClient } from '@/services';
+import { storeAdminTokenForImpersonation } from '@/lib/impersonation';
 import { User, UserFilters, CreateUserData, UpdateUserData } from '@/services/users';
 import { queryKeys } from '@/lib/query-client';
 
-export function useUsers(filters?: UserFilters) {
+export function useUsers(
+  filters?: UserFilters,
+  queryOptions?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: queryKeys.users(filters),
     queryFn: async () => {
@@ -18,6 +22,7 @@ export function useUsers(filters?: UserFilters) {
       }
       return response.data;
     },
+    enabled: queryOptions?.enabled ?? true,
   });
 }
 
@@ -102,7 +107,6 @@ export function useToggleUserActive() {
 
 export function useImpersonateUser() {
   const queryClient = useQueryClient();
-  const { getApiClient } = require('@/services');
 
   return useMutation({
     mutationFn: async (id: number) => {
@@ -113,14 +117,31 @@ export function useImpersonateUser() {
       return response.data;
     },
     onSuccess: async (data) => {
-      // Save new token
       const apiClient = getApiClient();
+      const currentToken = apiClient.getToken();
+      if (currentToken) {
+        storeAdminTokenForImpersonation(currentToken);
+      }
       apiClient.setToken(data.token);
-      // Update user data in cache
-      queryClient.setQueryData(queryKeys.me(), data.user);
-      // Invalidate and refetch to ensure consistency
+      queryClient.setQueryData(queryKeys.me(), {
+        ...data.user,
+        impersonation: data.impersonation,
+      });
       await queryClient.refetchQueries({ queryKey: queryKeys.me() });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      window.location.href = '/dashboard';
+    },
+  });
+}
+
+export function useStopImpersonating() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await userService.stopImpersonating();
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to stop impersonation');
+      }
+      return response.data;
     },
   });
 }

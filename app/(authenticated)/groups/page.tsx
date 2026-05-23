@@ -52,7 +52,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DescriptionIcon from '@mui/icons-material/Description';
 import Breadcrumb from '@/components/Breadcrumb';
-import {Toast} from '@/components/feedback/Alert/Alert';
+import { Toast } from '@/components/feedback/Alert/Alert';
+import GroupCreatorAccessDialog from '@/components/groups/GroupCreatorAccessDialog';
+import { useAuth } from '@/hooks';
+import type { Group } from '@/services/groups/GroupService';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 
 export default function GroupsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -65,12 +69,16 @@ export default function GroupsPage() {
   const [groupDescription, setGroupDescription] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [accessDialogOpen, setAccessDialogOpen] = useState(false);
+  const [accessGroup, setAccessGroup] = useState<Group | null>(null);
   const [alert, setAlert] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({
     open: false,
     message: '',
     severity: 'success',
   });
 
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('admin');
   const { data: groups, isLoading, refetch } = useGroups();
   const createGroupMutation = useCreateGroup();
   const updateGroupMutation = useUpdateGroup();
@@ -106,6 +114,16 @@ export default function GroupsPage() {
     setSelectedGroup(group.id);
     setImportFile(null);
     setImportDialogOpen(true);
+  };
+
+  const handleOpenAccess = (group: Group) => {
+    setAccessGroup(group);
+    setAccessDialogOpen(true);
+  };
+
+  const handleCloseAccess = () => {
+    setAccessDialogOpen(false);
+    setAccessGroup(null);
   };
 
   const handleCloseDialogs = () => {
@@ -368,6 +386,17 @@ export default function GroupsPage() {
                       <TableCell>{group.creator?.name || '-'}</TableCell>
                       <TableCell align="center">
                         <Stack direction="row" spacing={1} justifyContent="center">
+                          {isAdmin && (
+                            <IconButton
+                              size="small"
+                              color="info"
+                              onClick={() => handleOpenAccess(group)}
+                              title="مدیریت دسترسی معلمین"
+                              data-cy="group-creator-access"
+                            >
+                              <ManageAccountsIcon />
+                            </IconButton>
+                          )}
                           <IconButton
                             size="small"
                             color="primary"
@@ -732,13 +761,26 @@ export default function GroupsPage() {
         </DialogActions>
       </Dialog>
 
+      <GroupCreatorAccessDialog
+        open={accessDialogOpen}
+        group={accessGroup}
+        onClose={handleCloseAccess}
+        onSaved={(message) => {
+          setAlert({ open: true, message, severity: 'success' });
+          refetch();
+        }}
+        onError={(message) => {
+          setAlert({ open: true, message, severity: 'error' });
+        }}
+      />
+
       {alert.open && (
-          <Toast
-              open={alert.open}
-              onClose={() => setAlert({ ...alert, open: false })}
-              message={alert.message}
-              severity={alert.severity}
-          />
+        <Toast
+          open={alert.open}
+          onClose={() => setAlert({ ...alert, open: false })}
+          message={alert.message}
+          severity={alert.severity}
+        />
       )}
     </Stack>
   );
