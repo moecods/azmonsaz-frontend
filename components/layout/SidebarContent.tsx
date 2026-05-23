@@ -146,9 +146,9 @@ export default function SidebarContent({ onNavigate }: SidebarContentProps) {
             <Typography variant="subtitle1" fontWeight="bold" noWrap>
               {user?.name || "کاربر"}
             </Typography>
-            {user?.email && (
+            {user?.phone_number && (
               <Typography variant="caption" sx={{ opacity: 0.9 }} noWrap>
-                {user.email}
+                {user.phone_number}
               </Typography>
             )}
             {user?.roles && user.roles.length > 0 && (

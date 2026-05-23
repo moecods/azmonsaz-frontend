@@ -8,6 +8,7 @@ interface ExamQuestionsToolbarProps {
   title: string;
   questionCount: number;
   totalPoints: number;
+  maxScore?: number | null;
   onBack: () => void;
   onOpenBank?: () => void;
   showMobileBankToggle?: boolean;
@@ -17,6 +18,7 @@ export function ExamQuestionsToolbar({
   title,
   questionCount,
   totalPoints,
+  maxScore,
   onBack,
   onOpenBank,
   showMobileBankToggle,
@@ -38,7 +40,16 @@ export function ExamQuestionsToolbar({
       </Typography>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Chip label={`${questionCount} سوال`} size="small" color="primary" variant="outlined" />
-        <Chip label={`${totalPoints} نمره کل`} size="small" variant="outlined" />
+        <Chip
+          label={
+            maxScore != null
+              ? `بارم: ${totalPoints} / ${maxScore}`
+              : `${totalPoints} نمره کل`
+          }
+          size="small"
+          variant="outlined"
+          color={maxScore != null && totalPoints > maxScore ? 'error' : 'default'}
+        />
       </Stack>
     </Box>
   );

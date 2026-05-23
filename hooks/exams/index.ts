@@ -5,7 +5,7 @@ export {
   useSubmitExam,
 } from "./useExamTaking";
 
-export { useMyExamResult, useExamAiReview } from "./useExamResult";
+export { useMyExamResult, useExamAiReview, useGraderNoteEngagement, useMarkResultViewed } from "./useExamResult";
 
 export {
   TakeExamProvider,

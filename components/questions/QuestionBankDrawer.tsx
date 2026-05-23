@@ -51,7 +51,7 @@ export default function QuestionBankDrawer({
   onAddQuestion,
   closeOnAdd = true,
   variant = "drawer",
-  defaultPoints = 10,
+  defaultPoints = 1,
   initialSearch = '',
   initialCategory = '',
   initialDifficulty = '',

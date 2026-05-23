@@ -13,7 +13,7 @@ import type {
   ExamStartResponse, 
   ExamQuestionsResponse,
   ExamSubmissionResult, 
-  ExamResultDetail,
+  ExamResultDetail, 
   SearchUsersParams,
   SearchUsersResponse,
   AddParticipantsByPhoneRequest,
@@ -178,6 +178,21 @@ export function useDeleteExamQuestion() {
   });
 }
 
+export function useCreatorDashboard() {
+  return useQuery({
+    queryKey: ['exams', 'dashboard'],
+    queryFn: async () => {
+      const response = await examService.getCreatorDashboard();
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch dashboard');
+      }
+      return response.data;
+    },
+    staleTime: 60 * 1000,
+    refetchOnMount: true,
+  });
+}
+
 export function useExams(params?: {
   per_page?: number;
   status?: 'published' | 'draft';
@@ -246,6 +261,28 @@ export function usePublishExam() {
       queryClient.invalidateQueries({ queryKey: queryKeys.exams() });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(examId) });
       queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+    },
+  });
+}
+
+export function useReleaseExamResults() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.releaseExamResults(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to release exam results',
+          undefined,
+          (response as { errors?: Record<string, string[]> }).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
     },
   });
 }
@@ -339,18 +376,36 @@ export function useDeactivateExam() {
   });
 }
 
-export function useExamInfo(id: number | null) {
+export function useExamInfo(examRef: string | number | null) {
+  const numericId =
+    typeof examRef === 'number'
+      ? examRef
+      : typeof examRef === 'string' && /^\d+$/.test(examRef)
+        ? parseInt(examRef, 10)
+        : null;
+  const publicUuid =
+    typeof examRef === 'string' && !/^\d+$/.test(examRef) ? examRef : null;
+
   return useQuery({
-    queryKey: ['exam', 'info', id],
+    queryKey: ['exam', 'info', numericId ?? publicUuid],
     queryFn: async () => {
-      if (!id) return null;
-      const response = await examService.getExamInfo(id);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch exam info');
+      if (numericId) {
+        const response = await examService.getExamTakeContext(numericId);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch exam info');
+        }
+        return response.data;
       }
-      return response.data;
+      if (publicUuid) {
+        const response = await examService.getExamInfo(publicUuid);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch exam info');
+        }
+        return response.data;
+      }
+      return null;
     },
-    enabled: !!id,
+    enabled: !!numericId || !!publicUuid,
   });
 }
 
@@ -358,8 +413,8 @@ export function useRegisterForExam() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (examId: number) => {
-      const response = await examService.registerForExam(examId);
+    mutationFn: async (examIdOrPublicUuid: number | string) => {
+      const response = await examService.registerForExam(examIdOrPublicUuid);
       if (!response.success) {
         throw new ApiError(
           response.message || 'Failed to register for exam',
@@ -380,8 +435,8 @@ export function useRegisterForExamPublic() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ examId, data }: { examId: number; data: { phone_number: string; national_id?: string; name?: string } }) => {
-      const response = await examService.registerForExamPublic(examId, data);
+    mutationFn: async ({ publicUuid, data }: { publicUuid: string; data: { phone_number: string; national_id?: string; name?: string } }) => {
+      const response = await examService.registerForExamPublic(publicUuid, data);
       if (!response.success) {
         throw new ApiError(
           response.message || 'Failed to register for exam',
@@ -405,7 +460,7 @@ export {
   useSubmitExam,
 } from "./exams/useExamTaking";
 
-export { useMyExamResult, useExamAiReview } from "./exams/useExamResult";
+export { useMyExamResult, useExamAiReview, useGraderNoteEngagement, useMarkResultViewed } from "./exams/useExamResult";
 
 export function useSearchUsers(examId: number | null, params: SearchUsersParams, enabled: boolean = true) {
   return useQuery({

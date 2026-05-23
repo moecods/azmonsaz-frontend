@@ -30,7 +30,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam, useGenerateExamLink } from '@/hooks/useExams';
+import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam, useGenerateExamLink, useReleaseExamResults } from '@/hooks/useExams';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SchoolIcon from '@mui/icons-material/School';
@@ -44,6 +44,7 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import PowerOffIcon from '@mui/icons-material/PowerOff';
 import PrintIcon from '@mui/icons-material/Print';
 import GradeIcon from '@mui/icons-material/Grade';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Breadcrumb from '@/components/Breadcrumb';
 import { examService } from '@/services';
@@ -99,11 +100,33 @@ function ExamDetailContent() {
   const activateExamMutation = useActivateExam();
   const deactivateExamMutation = useDeactivateExam();
   const generateExamLinkMutation = useGenerateExamLink();
+  const releaseExamResultsMutation = useReleaseExamResults();
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
     const tabName = newValue === 1 ? 'participants' : newValue === 2 ? 'notifications' : 'info';
     router.replace(`/exams/${examId}?tab=${tabName}`, { scroll: false });
+  };
+
+  const handleReleaseResults = () => {
+    if (!examId) return;
+    releaseExamResultsMutation.mutate(examId, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: 'نتایج آزمون برای شرکت‌کنندگان منتشر شد',
+          severity: 'success',
+        });
+        queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+      },
+      onError: (error: Error) => {
+        setSnackbar({
+          open: true,
+          message: error.message || 'خطا در انتشار نتایج',
+          severity: 'error',
+        });
+      },
+    });
   };
 
   const handlePublish = () => {
@@ -303,6 +326,20 @@ function ExamDetailContent() {
                   <ListItemIcon><GradeIcon fontSize="small" /></ListItemIcon>
                   <ListItemText>تصحیح دستی</ListItemText>
                 </MenuItem>
+                {exam.result_release_requires_manual && exam.status === 'published' && !exam.results_released_at && (
+                  <MenuItem
+                    onClick={() => {
+                      handleReleaseResults();
+                      setActionsMenuAnchor(null);
+                    }}
+                    disabled={releaseExamResultsMutation.isPending}
+                  >
+                    <ListItemIcon><VisibilityIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>
+                      {releaseExamResultsMutation.isPending ? 'در حال انتشار...' : 'انتشار نتایج'}
+                    </ListItemText>
+                  </MenuItem>
+                )}
                 {exam.type === 'offline' && (
                   <MenuItem
                     onClick={() => {
@@ -596,6 +633,7 @@ function ExamDetailContent() {
               <ParticipantManagement
                 examId={examId!}
                 participants={exam.participants}
+                gradingMode={exam.grading_mode}
                 groups={exam.groups || []}
                 registrationLink={exam.registration_link}
                 examLink={exam.exam_link}

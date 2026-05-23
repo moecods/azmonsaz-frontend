@@ -17,7 +17,7 @@ import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
  */
 export default function AuthenticatedShell({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
 
   return (
     <ProtectedRoute>
@@ -65,7 +65,14 @@ export default function AuthenticatedShell({ children }: { children: ReactNode }
               WebkitOverflowScrolling: "touch",
             }}
           >
-            <Box sx={{ p: 3, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+            <Box
+              sx={{
+                p: 3,
+                boxSizing: "border-box",
+                width: "100%",
+                maxWidth: "100%",
+              }}
+            >
               <StartedExamsAlert />
               <NavigationProvider>{children}</NavigationProvider>
             </Box>

@@ -33,7 +33,7 @@ export function getExamInstructions(exam: Exam): string | undefined {
 /** Get points_per_question from exam (flat or legacy meta). */
 export function getExamPointsPerQuestion(exam: Exam): number {
   const e = exam as ExamWithFlat;
-  return e.points_per_question ?? (exam.meta as { points_per_question?: number })?.points_per_question ?? 10;
+  return e.points_per_question ?? (exam.meta as { points_per_question?: number })?.points_per_question ?? 1;
 }
 
 /**
@@ -52,14 +52,27 @@ export function loadExamMetaToForm(exam: Exam): Partial<ExamFormData> {
   };
   const meta = exam.meta as Record<string, unknown> | undefined;
 
+  const examExtended = exam as Exam & {
+    grading_mode?: string;
+    grading_config?: Record<string, unknown> | null;
+  };
+
   return {
     duration_minutes: flat.duration_minutes ?? (meta?.duration_minutes as number) ?? null,
     passing_score: flat.passing_score ?? (meta?.passing_score as number) ?? null,
+    grading_mode: (examExtended.grading_mode ?? 'numeric_percent') as ExamFormData['grading_mode'],
+    grading_config: examExtended.grading_config ?? null,
     instructions: (flat.instructions ?? meta?.instructions ?? '') as string,
     tags: (flat.tags ?? meta?.tags ?? []) as string[],
     exam_date: flat.exam_date ?? null,
     start_time: flat.start_time ?? null,
     end_time: flat.end_time ?? null,
+    result_release_after_exam_end:
+      (examExtended as { result_release_after_exam_end?: boolean }).result_release_after_exam_end ?? true,
+    result_release_after_grading_complete:
+      (examExtended as { result_release_after_grading_complete?: boolean }).result_release_after_grading_complete ?? true,
+    result_release_requires_manual:
+      (examExtended as { result_release_requires_manual?: boolean }).result_release_requires_manual ?? false,
   };
 }
 

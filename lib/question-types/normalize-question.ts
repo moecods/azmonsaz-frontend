@@ -56,10 +56,21 @@ export function normalizeQuestion(source: Record<string, unknown>): NormalizedQu
     (nested?.right_items as NormalizedQuestion["right_items"]) ??
     [];
 
-  const blanks =
+  let blanks =
     (source.blanks as NormalizedQuestion["blanks"]) ??
     (nested?.blanks as NormalizedQuestion["blanks"]) ??
     [];
+
+  if (blanks.length === 0 && type === "fill_in_the_blank" && Array.isArray(source.correct_answer)) {
+    const nestedAnswers = source.correct_answer as unknown[];
+    if (nestedAnswers.length > 0 && Array.isArray(nestedAnswers[0])) {
+      blanks = (nestedAnswers as string[][]).map((answers, position) => ({
+        position,
+        correct_answers: answers.map(String),
+        grading: "auto" as const,
+      }));
+    }
+  }
 
   let correct_answers: string[] = [];
   const ca = source.correct_answers ?? source.correct_answer;
@@ -78,7 +89,12 @@ export function normalizeQuestion(source: Record<string, unknown>): NormalizedQu
     items,
     correct_order:
       (source.correct_order as number[]) ??
-      items.map((_, i) => i),
+      (type === "ordering" &&
+      Array.isArray(source.correct_answer) &&
+      (source.correct_answer as unknown[]).length > 0 &&
+      (source.correct_answer as unknown[]).every((v) => typeof v === "number")
+        ? (source.correct_answer as number[])
+        : items.map((_, i) => i)),
     left_items,
     right_items,
     matches:

@@ -59,8 +59,8 @@ export default function ProtectedRoute({ children, requiredPermission, requiredR
     }
   }, [isAuthenticated, isLoading, router, mounted]);
 
-  // Hydration: only block the full viewport when there is no session token yet
-  if (!mounted && !hasToken) {
+  // Same markup on server and first client paint (token lives in localStorage).
+  if (!mounted) {
     return (
       <Box
         sx={{

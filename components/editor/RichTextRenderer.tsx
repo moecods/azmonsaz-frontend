@@ -140,7 +140,11 @@ export const RichTextRenderer = forwardRef<HTMLDivElement, RichTextRendererProps
     <Box
       ref={setRef}
       className={`rich-text-content tiptap${compact ? ' compact' : ''}${className ? ' ' + className : ''}`}
-      sx={sx}
+      sx={{
+        overflow: 'visible',
+        maxHeight: 'none',
+        ...sx,
+      }}
       dir={dir}
       dangerouslySetInnerHTML={innerHtml}
     />

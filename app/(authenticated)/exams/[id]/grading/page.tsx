@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -12,12 +12,6 @@ import {
   TextField,
   Alert,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Divider,
   Grid,
 } from '@mui/material';
@@ -28,24 +22,34 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { handleError } from '@/lib/error-handler';
-import { RichLabel } from '@/components/editor';
+import GraderNoteInput, { GraderNoteValue } from '@/components/exams/GraderNoteInput';
+import GradingQuestionCard, { GradingQuestionData } from '@/components/exams/GradingQuestionCard';
+import GradingPendingNavigator from '@/components/exams/GradingPendingNavigator';
+import {
+  buildPendingGradingTargets,
+  getPendingGradingStats,
+  gradingQuestionAnchorId,
+} from '@/lib/grading-navigation';
+import { scrollToGraderNoteTarget } from '@/lib/grader-notes';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8030/api';
+
+const emptyNote = (): GraderNoteValue => ({
+  text: '',
+  audio_media_id: null,
+  audio_url: null,
+  requires_acknowledgment: false,
+});
 const getAuthHeader = () => ({
   Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
 });
 
-interface GradingData {
-  exam_question_id: number;
+type GradingData = GradingQuestionData & {
   question_id: number;
-  question_text: string;
-  question_type: string;
-  answer: any;
   manual_score: number | null;
-  max_points: number;
   order: number;
-}
+};
 
 interface ParticipantGradingData {
   participant: {
@@ -57,6 +61,10 @@ interface ParticipantGradingData {
     total_points: number;
   };
   questions: GradingData[];
+  grader_notes?: {
+    exam?: GraderNoteValue | null;
+    questions?: Record<string, GraderNoteValue>;
+  };
 }
 
 export default function ExamGradingPage() {
@@ -67,11 +75,15 @@ export default function ExamGradingPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<number | null>(null);
   const [gradingData, setGradingData] = useState<ParticipantGradingData | null>(null);
   const [scores, setScores] = useState<Record<number, number>>({});
+  const [examNote, setExamNote] = useState<GraderNoteValue>(emptyNote());
+  const [questionNotes, setQuestionNotes] = useState<Record<number, GraderNoteValue>>({});
   const [loadingGrading, setLoadingGrading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [aiGradingQuestion, setAiGradingQuestion] = useState<number | null>(null);
   const [aiGradingAll, setAiGradingAll] = useState(false);
+  const [gradingNavDismissed, setGradingNavDismissed] = useState(false);
+  const questionAnchorRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { user } = useAuth();
   const hasPro = !!user?.subscription?.ends_at && new Date(user.subscription.ends_at) > new Date();
 
@@ -82,6 +94,43 @@ export default function ExamGradingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadGradingData is stable
   }, [selectedParticipant, examId]);
+
+  useEffect(() => {
+    setGradingNavDismissed(false);
+  }, [selectedParticipant]);
+
+  const gradingQuestions = gradingData?.questions ?? [];
+
+  const pendingGradingStats = useMemo(
+    () => getPendingGradingStats(gradingQuestions),
+    [gradingQuestions]
+  );
+
+  const pendingGradingTargets = useMemo(
+    () => buildPendingGradingTargets(gradingQuestions),
+    [gradingQuestions]
+  );
+
+  const nextPendingTarget = pendingGradingTargets[0] ?? null;
+
+  const showGradingPendingNavigator =
+    Boolean(selectedParticipant && gradingData) &&
+    !gradingNavDismissed &&
+    !pendingGradingStats.allDone;
+
+  const setQuestionAnchorRef = useCallback(
+    (examQuestionId: number) => (el: HTMLDivElement | null) => {
+      questionAnchorRefs.current[gradingQuestionAnchorId(examQuestionId)] = el;
+    },
+    []
+  );
+
+  const handleJumpToPendingQuestion = useCallback(() => {
+    if (!nextPendingTarget) return;
+    scrollToGraderNoteTarget(questionAnchorRefs.current[nextPendingTarget.id], {
+      reserveBottomSpace: showGradingPendingNavigator,
+    });
+  }, [nextPendingTarget, showGradingPendingNavigator]);
 
   const loadGradingData = async (participantId: number) => {
     if (!examId) return;
@@ -100,14 +149,30 @@ export default function ExamGradingPage() {
       const result = await response.json();
       if (result.success) {
         setGradingData(result.data);
-        // Initialize scores from existing manual scores
         const initialScores: Record<number, number> = {};
         result.data.questions.forEach((q: GradingData) => {
-          if (q.manual_score !== null) {
-            initialScores[q.exam_question_id] = q.manual_score;
-          }
+          initialScores[q.exam_question_id] = q.effective_score ?? q.auto_score ?? 0;
         });
         setScores(initialScores);
+
+        const notes = result.data.grader_notes;
+        setExamNote({
+          text: notes?.exam?.text ?? '',
+          audio_media_id: notes?.exam?.audio_media_id ?? null,
+          audio_url: notes?.exam?.audio_url ?? null,
+          requires_acknowledgment: notes?.exam?.requires_acknowledgment ?? false,
+        });
+        const qNotes: Record<number, GraderNoteValue> = {};
+        Object.entries(notes?.questions ?? {}).forEach(([eqId, note]) => {
+          const n = note as GraderNoteValue;
+          qNotes[parseInt(eqId, 10)] = {
+            text: n.text ?? '',
+            audio_media_id: n.audio_media_id ?? null,
+            audio_url: n.audio_url ?? null,
+            requires_acknowledgment: n.requires_acknowledgment ?? false,
+          };
+        });
+        setQuestionNotes(qNotes);
       }
     } catch (error) {
       handleError(error, { context: 'Load Grading Data' });
@@ -131,17 +196,37 @@ export default function ExamGradingPage() {
     setSuccessMessage(null);
 
     try {
-      const grades = Object.entries(scores).map(([examQuestionId, score]) => ({
-        exam_question_id: parseInt(examQuestionId),
-        score: score,
+      const grades = gradingData.questions.map((q) => ({
+        exam_question_id: q.exam_question_id,
+        score: scores[q.exam_question_id] ?? q.effective_score ?? 0,
       }));
+
+      const questionNotesPayload: Record<
+        string,
+        { text?: string; audio_media_id?: number | null; requires_acknowledgment?: boolean }
+      > = {};
+      Object.entries(questionNotes).forEach(([eqId, note]) => {
+        questionNotesPayload[eqId] = {
+          text: note.text || undefined,
+          audio_media_id: note.audio_media_id,
+          requires_acknowledgment: note.requires_acknowledgment ?? false,
+        };
+      });
 
       const response = await fetch(
         `${API_URL}/exams/${examId}/participants/${selectedParticipant}/grade`,
         {
           method: 'POST',
           headers: getAuthHeader(),
-          body: JSON.stringify({ grades }),
+          body: JSON.stringify({
+            grades,
+            exam_note: {
+              text: examNote.text || undefined,
+              audio_media_id: examNote.audio_media_id,
+              requires_acknowledgment: examNote.requires_acknowledgment ?? false,
+            },
+            question_notes: questionNotesPayload,
+          }),
         }
       );
 
@@ -209,15 +294,10 @@ export default function ExamGradingPage() {
     }
   };
 
-  // Get participants with essay questions
-  const participantsWithEssays = examData?.participants?.filter((p: { id: number; status: string }) => {
-    // For now, show all completed participants
-    // In future, we can filter to only show those with essay questions
-    return p.status === 'completed';
-  }) || [];
+  const completedParticipants =
+    examData?.participants?.filter((p: { status: string }) => p.status === 'completed') || [];
 
-  // Filter questions to only show essay type
-  const essayQuestions = gradingData?.questions.filter((q) => q.question_type === 'essay') || [];
+  const hasEssayQuestions = gradingQuestions.some((q) => q.question_type === 'essay');
 
   if (isLoading) {
     return (
@@ -232,7 +312,11 @@ export default function ExamGradingPage() {
   }
 
   return (
-    <Stack spacing={4}>
+    <>
+    <Stack
+      spacing={{ xs: 2, md: 4 }}
+      sx={{ pb: showGradingPendingNavigator ? { xs: 18, md: 10 } : 0 }}
+    >
         <Breadcrumb
           items={[
             { label: 'مدیریت آزمون‌ها', href: '/exams' },
@@ -274,10 +358,10 @@ export default function ExamGradingPage() {
                   شرکت‌کنندگان
                 </Typography>
                 <Stack spacing={1} sx={{ mt: 2 }}>
-                  {participantsWithEssays.length === 0 ? (
+                  {completedParticipants.length === 0 ? (
                     <Alert severity="info">هیچ شرکت‌کننده‌ای یافت نشد.</Alert>
                   ) : (
-                    participantsWithEssays.map((participant: { id: number; user?: { name?: string }; user_id: number }) => (
+                    completedParticipants.map((participant: { id: number; user?: { name?: string }; user_id: number; score?: number; total_points?: number }) => (
                       <Button
                         key={participant.id}
                         variant={selectedParticipant === participant.id ? 'contained' : 'outlined'}
@@ -319,7 +403,7 @@ export default function ExamGradingPage() {
                   </Box>
                 </CardContent>
               </Card>
-            ) : gradingData && essayQuestions.length > 0 ? (
+            ) : gradingData && gradingQuestions.length > 0 ? (
               <Card>
                 <CardContent>
                   <Stack spacing={3}>
@@ -327,13 +411,13 @@ export default function ExamGradingPage() {
                       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
                         <Box>
                           <Typography variant="h6" gutterBottom>
-                            تصحیح سوالات تشریحی
+                            تصحیح دستی
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             شرکت‌کننده: {gradingData.participant.user_name}
                           </Typography>
                         </Box>
-                        {hasPro && (
+                        {hasPro && hasEssayQuestions && (
                           <Button
                             variant="outlined"
                             startIcon={aiGradingAll ? <CircularProgress size={18} /> : <SmartToyIcon />}
@@ -346,85 +430,42 @@ export default function ExamGradingPage() {
                       </Stack>
                     </Box>
 
+                    <GraderNoteInput
+                      label="یادداشت کلی آزمون"
+                      value={examNote}
+                      onChange={setExamNote}
+                    />
+
                     <Divider />
 
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>شماره</TableCell>
-                            <TableCell>سوال</TableCell>
-                            <TableCell>پاسخ</TableCell>
-                            <TableCell>نمره</TableCell>
-                            <TableCell>حداکثر</TableCell>
-                            {hasPro && <TableCell>AI</TableCell>}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {essayQuestions.map((question, index) => (
-                            <TableRow key={question.exam_question_id}>
-                              <TableCell>{index + 1}</TableCell>
-                              <TableCell>
-                                <RichLabel html={question.question_text} fontSize="0.875rem" />
-                              </TableCell>
-                              <TableCell>
-                                <Box
-                                  sx={{
-                                    p: 2,
-                                    bgcolor: 'grey.50',
-                                    borderRadius: 1,
-                                    maxHeight: 150,
-                                    overflow: 'auto',
-                                  }}
-                                >
-                                  <RichLabel
-                                    html={
-                                      question.answer != null && question.answer !== ''
-                                        ? String(question.answer)
-                                        : 'پاسخی ثبت نشده است'
-                                    }
-                                    fontSize="0.875rem"
-                                  />
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  type="number"
-                                  size="small"
-                                  value={scores[question.exam_question_id] || ''}
-                                  onChange={(e) =>
-                                    handleScoreChange(question.exam_question_id, e.target.value)
-                                  }
-                                  inputProps={{
-                                    min: 0,
-                                    max: question.max_points,
-                                  }}
-                                  sx={{ width: 100 }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2" color="text.secondary">
-                                  {question.max_points}
-                                </Typography>
-                              </TableCell>
-                              {hasPro && (
-                                <TableCell>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={aiGradingQuestion === question.exam_question_id ? <CircularProgress size={16} /> : <SmartToyIcon />}
-                                    onClick={() => handleAiGradeQuestion(question.exam_question_id)}
-                                    disabled={aiGradingQuestion !== null}
-                                  >
-                                    AI
-                                  </Button>
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                    <Stack spacing={2}>
+                      {gradingQuestions.map((question, index) => (
+                        <GradingQuestionCard
+                          key={question.exam_question_id}
+                          index={index}
+                          question={question}
+                          score={scores[question.exam_question_id] ?? question.effective_score ?? 0}
+                          onScoreChange={(value) =>
+                            handleScoreChange(question.exam_question_id, value)
+                          }
+                          note={questionNotes[question.exam_question_id] ?? emptyNote()}
+                          onNoteChange={(note) =>
+                            setQuestionNotes((prev) => ({
+                              ...prev,
+                              [question.exam_question_id]: note,
+                            }))
+                          }
+                          showAiButton={hasPro && hasEssayQuestions}
+                          aiLoading={aiGradingQuestion === question.exam_question_id}
+                          onAiGrade={
+                            question.question_type === 'essay'
+                              ? () => handleAiGradeQuestion(question.exam_question_id)
+                              : undefined
+                          }
+                          scrollAnchorRef={setQuestionAnchorRef(question.exam_question_id)}
+                        />
+                      ))}
+                    </Stack>
 
                     <Box>
                       <Stack direction="row" spacing={2} justifyContent="flex-end">
@@ -434,24 +475,31 @@ export default function ExamGradingPage() {
                           onClick={handleSaveGrades}
                           disabled={saving}
                         >
-                          {saving ? 'در حال ذخیره...' : 'ذخیره نمرات'}
+                          {saving ? 'در حال ذخیره...' : 'ذخیره نمرات و یادداشت‌ها'}
                         </Button>
                       </Stack>
                     </Box>
                   </Stack>
                 </CardContent>
               </Card>
-            ) : gradingData && essayQuestions.length === 0 ? (
+            ) : gradingData && gradingQuestions.length === 0 ? (
               <Card>
                 <CardContent>
-                  <Alert severity="info">
-                    این آزمون سوال تشریحی ندارد.
-                  </Alert>
+                  <Alert severity="info">این آزمون سوالی ندارد.</Alert>
                 </CardContent>
               </Card>
             ) : null}
           </Grid>
         </Grid>
       </Stack>
+
+      <GradingPendingNavigator
+        visible={showGradingPendingNavigator}
+        stats={pendingGradingStats}
+        nextTarget={nextPendingTarget}
+        onJump={handleJumpToPendingQuestion}
+        onDismiss={() => setGradingNavDismissed(true)}
+      />
+    </>
   );
 }

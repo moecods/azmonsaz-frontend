@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -22,13 +22,24 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LoginIcon from '@mui/icons-material/Login';
 import TextField from '@mui/material/TextField';
+import { parseExamRouteRef } from '@/lib/exam-route';
 
 export default function ExamParticipatePage() {
   const params = useParams();
   const router = useRouter();
-  const examId = params?.id ? parseInt(params.id as string) : null;
+  const { numericId, publicUuid } = parseExamRouteRef(params?.uuid as string);
+
+  useEffect(() => {
+    if (numericId) {
+      router.replace(`/exams/take/${numericId}`);
+    }
+  }, [numericId, router]);
+
+  if (numericId) {
+    return null;
+  }
   const { isAuthenticated, setToken } = useAuth();
-  const { data: examInfo, isLoading, error } = useExamInfo(examId);
+  const { data: examInfo, isLoading, error } = useExamInfo(publicUuid);
   const registerMutation = useRegisterForExam();
   const registerPublicMutation = useRegisterForExamPublic();
   const [registering, setRegistering] = useState(false);
@@ -39,27 +50,29 @@ export default function ExamParticipatePage() {
     name: '',
   });
 
+  const takePath = publicUuid ? `/exams/take/${publicUuid}` : '/exams';
+  const participatePath = publicUuid ? `/exams/participate/${publicUuid}` : '/exams';
+  const numericExamId = examInfo?.id;
+
   const handleRegister = async () => {
-    if (!examId || !isAuthenticated) {
-      router.push(`/login?redirect=/exams/participate/${examId}`);
+    if (!publicUuid || !isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(participatePath)}`);
       return;
     }
 
     setRegistering(true);
     try {
-      await registerMutation.mutateAsync(examId);
-      // After registration (or if already registered), redirect to take exam
-      router.push(`/exams/take/${examId}`);
-    } catch (error) {
+      await registerMutation.mutateAsync(publicUuid);
+      router.push(takePath);
+    } catch {
       // Error is handled by mutation
-      // If user is already registered, the backend now returns success, so this shouldn't error
     } finally {
       setRegistering(false);
     }
   };
 
   const handlePublicRegister = async () => {
-    if (!examId) return;
+    if (!publicUuid) return;
 
     if (!publicFormData.phone_number.trim()) {
       return;
@@ -68,7 +81,7 @@ export default function ExamParticipatePage() {
     setRegistering(true);
     try {
       const result = await registerPublicMutation.mutateAsync({
-        examId,
+        publicUuid,
         data: {
           phone_number: publicFormData.phone_number,
           national_id: publicFormData.national_id || undefined,
@@ -76,14 +89,12 @@ export default function ExamParticipatePage() {
         },
       });
 
-      // If user was created or token was returned, save it
       if (result.token) {
         setToken(result.token);
       }
 
-      // After registration, redirect to take exam
-      router.push(`/exams/take/${examId}`);
-    } catch (error) {
+      router.push(takePath);
+    } catch {
       // Error is handled by mutation
     } finally {
       setRegistering(false);
@@ -92,10 +103,10 @@ export default function ExamParticipatePage() {
 
   const handleStart = () => {
     if (!isAuthenticated) {
-      router.push(`/login?redirect=/exams/participate/${examId}`);
+      router.push(`/login?redirect=${encodeURIComponent(participatePath)}`);
       return;
     }
-    router.push(`/exams/take/${examId}`);
+    router.push(takePath);
   };
 
   if (isLoading) {
@@ -125,7 +136,6 @@ export default function ExamParticipatePage() {
   const isAfterEnd = endAt && now > endAt;
   const isDuringExam = !isBeforeStart && !isAfterEnd;
 
-  // Type-safe: flat fields or legacy meta
   const durationMinutes = (examInfo as { duration_minutes?: number })?.duration_minutes ?? examInfo?.meta?.duration_minutes ?? null;
   const passingScore = (examInfo as { passing_score?: number })?.passing_score ?? examInfo?.meta?.passing_score ?? null;
   const hasDurationMinutes = durationMinutes !== null && typeof durationMinutes === 'number';
@@ -153,7 +163,6 @@ export default function ExamParticipatePage() {
                 </Box>
               </Stack>
 
-              {/* Time Information */}
               {(startAt || endAt) && (
                 <Box>
                   <Divider sx={{ my: 2 }} />
@@ -241,7 +250,7 @@ export default function ExamParticipatePage() {
                 </Box>
               )}
 
-              {examInfo.instructions  && (
+              {examInfo.instructions && (
                 <Alert severity="info">
                   <Typography variant="body2" fontWeight="bold" gutterBottom>
                     دستورالعمل:
@@ -319,7 +328,7 @@ export default function ExamParticipatePage() {
                       variant="outlined"
                       fullWidth
                       startIcon={<LoginIcon />}
-                      onClick={() => router.push(`/login?redirect=/exams/participate/${examId}`)}
+                      onClick={() => router.push(`/login?redirect=${encodeURIComponent(participatePath)}`)}
                     >
                       ورود به حساب کاربری
                     </Button>
@@ -379,7 +388,7 @@ export default function ExamParticipatePage() {
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => router.push(`/exams/${examId}/result`)}
+                    onClick={() => numericExamId && router.push(`/exams/${numericExamId}/result`)}
                   >
                     مشاهده نتایج
                   </Button>
@@ -400,4 +409,3 @@ export default function ExamParticipatePage() {
     </Container>
   );
 }
-

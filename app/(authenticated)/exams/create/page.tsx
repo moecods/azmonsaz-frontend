@@ -79,6 +79,9 @@ function CreateExamContent() {
       available_from: null,
       due_by: null,
       register_until: null,
+      result_release_after_exam_end: true,
+      result_release_after_grading_complete: true,
+      result_release_requires_manual: false,
     },
   });
 
@@ -141,11 +144,16 @@ function CreateExamContent() {
       type: data.type,
       duration_minutes: data.duration_minutes ?? undefined,
       passing_score: data.passing_score ?? undefined,
+      grading_mode: data.grading_mode ?? undefined,
+      grading_config: data.grading_config ?? undefined,
       instructions: data.instructions ?? undefined,
       tags: data.tags ?? undefined,
       exam_date: data.exam_date ?? undefined,
       start_time: data.start_time ?? undefined,
       end_time: data.end_time ?? undefined,
+      result_release_after_exam_end: data.result_release_after_exam_end,
+      result_release_after_grading_complete: data.result_release_after_grading_complete,
+      result_release_requires_manual: data.result_release_requires_manual,
     };
 
     if (existingExam) {

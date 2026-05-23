@@ -71,6 +71,8 @@ export interface RichLabelProps {
   /** Extra sx merged into the renderer / span. */
   sx?: SxProps<Theme>;
   className?: string;
+  /** Allow full vertical expansion (essay answers, grader notes). */
+  fullContent?: boolean;
 }
 
 const DEFAULT_FONT_SIZE = '0.95rem';
@@ -90,19 +92,26 @@ export function RichLabel({
   block = true,
   sx,
   className,
+  fullContent = false,
 }: RichLabelProps) {
   if (!html) return null;
+
+  const mergedClassName = [className, fullContent ? 'rich-text-answer' : '']
+    .filter(Boolean)
+    .join(' ');
 
   if (!looksLikeHtml(html)) {
     return (
       <Box
         component={block ? 'div' : 'span'}
-        className={className}
+        className={mergedClassName || undefined}
         sx={{
           fontSize,
           minWidth: 0,
-          flex: 1,
+          flex: fullContent ? 'none' : 1,
           whiteSpace: 'pre-wrap',
+          overflow: fullContent ? 'visible' : undefined,
+          maxHeight: fullContent ? 'none' : undefined,
           ...sx,
         }}
       >
@@ -115,14 +124,15 @@ export function RichLabel({
     <RichTextRenderer
       html={html}
       compact={compact}
-      className={className}
+      className={mergedClassName || undefined}
       sx={{
         display: block ? 'block' : 'inline',
         minWidth: 0,
-        flex: block ? 1 : undefined,
+        flex: block && !fullContent ? 1 : undefined,
         maxWidth: '100%',
         height: 'auto',
         maxHeight: 'none',
+        overflow: fullContent ? 'visible' : undefined,
         fontSize,
         verticalAlign: block ? undefined : 'baseline',
         '& > :first-child': { marginTop: 0 },

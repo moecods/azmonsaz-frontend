@@ -13,6 +13,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import Breadcrumb from '@/components/Breadcrumb';
 import { getExamDurationMinutes } from '@/lib/exam-utils';
 import { useMemo } from 'react';
@@ -124,7 +125,7 @@ export default function AvailableExamsPage() {
 
   return (
     <ShellContentLoader loading={isLoading} fetching={!isLoading && isFetching}>
-      <Stack spacing={4}>
+      <Stack spacing={{ xs: 2, md: 4 }}>
         <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
         <Box>
           <Typography variant="h4" gutterBottom>آزمون‌های من</Typography>
@@ -165,10 +166,24 @@ export default function AvailableExamsPage() {
                         <Typography variant="body2" color="text.secondary">ایجادکننده: {exam.creator.name}</Typography>
                       )}
 
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
                         <Chip label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} size="small" variant="outlined" />
                         {getExamDurationMinutes(exam) != null && (
                           <Chip icon={<AccessTimeIcon />} label={`${getExamDurationMinutes(exam)} دقیقه`} size="small" variant="outlined" />
+                        )}
+                        {exam.has_grader_notes && (
+                          <Chip
+                            icon={<RecordVoiceOverIcon sx={{ color: 'warning.main' }} />}
+                            label="یادداشت معلم"
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            sx={{
+                              borderColor: 'warning.main',
+                              color: 'warning.dark',
+                              bgcolor: 'warning.50',
+                            }}
+                          />
                         )}
                       </Stack>
 
@@ -184,7 +199,9 @@ export default function AvailableExamsPage() {
                       sx={{ mt: 2 }}
                     >
                       {displayStatus === 'completed'
-                        ? 'مشاهده نتایج'
+                        ? exam.can_view_result === false
+                          ? 'وضعیت نتیجه'
+                          : 'مشاهده نتایج'
                         : displayStatus === 'started'
                           ? 'ادامه آزمون'
                           : isDisabled

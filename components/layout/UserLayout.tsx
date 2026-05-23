@@ -6,7 +6,10 @@ import UserSidebar from "./UserSidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import { NavigationProvider } from "@/components/layout/NavigationProvider";
-import { MOBILE_BOTTOM_NAV_HEIGHT } from "@/components/layout/layout-constants";
+import {
+  MOBILE_BOTTOM_NAV_HEIGHT,
+  SHELL_CONTENT_PADDING,
+} from "@/components/layout/layout-constants";
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -44,7 +47,14 @@ export default function UserLayout({ children }: UserLayoutProps) {
           pb: `${MOBILE_BOTTOM_NAV_HEIGHT}px`,
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: "100%", p: 2, boxSizing: "border-box" }}>
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+            ...SHELL_CONTENT_PADDING,
+          }}
+        >
           <StartedExamsAlert />
           <NavigationProvider>{children}</NavigationProvider>
         </Box>

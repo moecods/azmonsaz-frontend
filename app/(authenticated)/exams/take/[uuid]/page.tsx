@@ -29,6 +29,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import SendIcon from '@mui/icons-material/Send';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import { parseExamRouteRef } from '@/lib/exam-route';
 
 interface Question {
   id: number;
@@ -44,16 +45,53 @@ interface Question {
 
 export default function TakeExamPage() {
   const params = useParams();
-  const examId = params?.id ? parseInt(params.id as string) : null;
+  const { numericId, publicUuid } = parseExamRouteRef(params?.uuid as string);
+  const examRef = numericId ?? publicUuid;
+  const needsIdFromApi = !numericId && !!publicUuid;
+  const { data: examInfo, isLoading, error } = useExamInfo(needsIdFromApi ? publicUuid : null);
+  const examId = numericId ?? examInfo?.id ?? null;
+  const resolvedPublicUuid = publicUuid ?? examInfo?.public_uuid ?? null;
+
+  if (needsIdFromApi && isLoading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error || !examId) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Alert severity="error">
+          {error instanceof Error ? error.message : 'آزمون یافت نشد.'}
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <TakeExamProvider examId={examId}>
-      <TakeExamPageContent examId={examId} />
+      <TakeExamPageContent
+        examId={examId}
+        publicUuid={resolvedPublicUuid}
+        examRef={examRef}
+      />
     </TakeExamProvider>
   );
 }
 
-function TakeExamPageContent({ examId }: { examId: number | null }) {
+function TakeExamPageContent({
+  examId,
+  publicUuid,
+  examRef,
+}: {
+  examId: number | null;
+  publicUuid: string | null;
+  examRef: string | number | null;
+}) {
   const router = useRouter();
   const {
     questions,
@@ -86,7 +124,7 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
   const startExamMutation = useStartExam();
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
-  const { data: examInfo, isLoading: isLoadingExamInfo, error: examInfoError } = useExamInfo(examId);
+  const { data: examInfo, isLoading: isLoadingExamInfo, error: examInfoError } = useExamInfo(examRef);
   
   // Get participant status
   const participantStatus = examInfo?.registration_status;
@@ -317,8 +355,8 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
   const isRegistered = examInfo?.is_registered;
   const shouldShowStartButton = isRegistered && (participantStatus === 'registered' || participantStatus === null);
 
-  // Loading exam info
-  if (isLoadingExamInfo || (examId && !examInfo && !examInfoError)) {
+  // Loading exam info (only while take-context / public info is in flight)
+  if (isLoadingExamInfo) {
     return (
       <ProtectedRoute>
         <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -370,9 +408,15 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
                 </Alert>
                 <Button
                   variant="contained"
-                  onClick={() => router.push(`/exams/participate/${examId}`)}
+                  onClick={() => {
+                    if (publicUuid) {
+                      router.push(`/exams/participate/${publicUuid}`);
+                    } else if (examId) {
+                      router.push(`/exams/take/${examId}`);
+                    }
+                  }}
                 >
-                  رفتن به صفحه ثبت‌نام
+                  {publicUuid ? 'رفتن به صفحه ثبت‌نام' : 'تلاش مجدد'}
                 </Button>
               </Stack>
             </CardContent>
@@ -454,9 +498,15 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
                 </Alert>
                 <Button
                   variant="outlined"
-                  onClick={() => router.push(`/exams/participate/${examId}`)}
+                  onClick={() => {
+                    if (publicUuid) {
+                      router.push(`/exams/participate/${publicUuid}`);
+                    } else {
+                      router.push('/exams/available');
+                    }
+                  }}
                 >
-                  بازگشت به صفحه ثبت‌نام
+                  {publicUuid ? 'بازگشت به صفحه ثبت‌نام' : 'بازگشت به آزمون‌های من'}
                 </Button>
               </Stack>
             </CardContent>
@@ -553,13 +603,35 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
     );
   }
 
-  if (startExamMutation.isPending || (!examStarted && participantStatus === 'started')) {
+  if (startExamMutation.isPending) {
     return (
       <ProtectedRoute>
         <Container maxWidth="lg" sx={{ py: 4 }}>
           <Box display="flex" justifyContent="center" p={3}>
             <CircularProgress />
           </Box>
+        </Container>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!examStarted && participantStatus === 'started' && questions.length === 0) {
+    return (
+      <ProtectedRoute>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Stack spacing={2} alignItems="center">
+            <CircularProgress />
+            <Typography variant="body2" color="text.secondary">
+              در حال بارگذاری سوالات...
+            </Typography>
+            {startExamMutation.isError && (
+              <Alert severity="error" sx={{ width: '100%' }}>
+                {startExamMutation.error instanceof Error
+                  ? startExamMutation.error.message
+                  : 'خطا در بارگذاری آزمون'}
+              </Alert>
+            )}
+          </Stack>
         </Container>
       </ProtectedRoute>
     );
@@ -580,26 +652,61 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
   }
 
   if (submitted && result) {
+    const resultVisible = result.result_visibility?.visible !== false;
+    const resultMessage = result.result_visibility?.message;
+
     return (
       <ProtectedRoute>
         <Container maxWidth="md" sx={{ py: 4 }}>
           <Card>
             <CardContent>
               <Stack spacing={3} alignItems="center">
-                <CheckCircleIcon
-                  sx={{ fontSize: 64, color: result.passed ? 'success.main' : 'error.main' }}
-                />
+                <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main' }} />
                 <Typography variant="h4" gutterBottom>
-                  {result.passed ? 'تبریک! شما قبول شدید' : 'متأسفانه شما رد شدید'}
+                  آزمون با موفقیت ارسال شد
                 </Typography>
-                <Box textAlign="center">
-                  <Typography variant="h5" gutterBottom>
-                    نمره شما: {result.score} از {result.total_points}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    درصد: {Math.round((result.score / result.total_points) * 100)}%
-                  </Typography>
-                </Box>
+                {resultVisible ? (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      {result.passed
+                        ? 'به حد نصاب رسیدید'
+                        : 'پاسخ‌های شما ثبت شد — می‌توانید بعد از انتشار نتیجه، کارنامه را ببینید'}
+                    </Typography>
+                    <Box textAlign="center">
+                      {result.outcome_label ? (
+                        <>
+                          <Chip
+                            label={result.outcome_label}
+                            color="primary"
+                            sx={{ fontSize: '1.1rem', mb: 1, py: 2, height: 'auto' }}
+                          />
+                          {result.scaled_score != null && (
+                            <Typography variant="body1" color="text.secondary">
+                              نمره: {result.scaled_score}
+                            </Typography>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="h5" gutterBottom>
+                            نمره شما: {result.score} از {result.total_points}
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            درصد:{' '}
+                            {result.total_points > 0
+                              ? Math.round((result.score / result.total_points) * 100)
+                              : 0}
+                            %
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  </>
+                ) : (
+                  <Alert severity="info" sx={{ width: '100%' }}>
+                    {resultMessage || 'نتیجه پس از برآورده شدن شرایط انتشار در دسترس خواهد بود.'}
+                  </Alert>
+                )}
                 <Stack direction="row" spacing={2}>
                   <Button
                     variant="outlined"
@@ -611,7 +718,7 @@ function TakeExamPageContent({ examId }: { examId: number | null }) {
                     variant="contained"
                     onClick={() => router.push(`/exams/${examId}/result`)}
                   >
-                    مشاهده جزئیات نتیجه
+                    {resultVisible ? 'مشاهده جزئیات نتیجه' : 'وضعیت نتیجه'}
                   </Button>
                 </Stack>
               </Stack>

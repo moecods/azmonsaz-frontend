@@ -1,76 +1,60 @@
 "use client";
 
-import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import QuestionBankDrawer from "@/components/questions/QuestionBankDrawer";
 import CreateCustomQuestion from "@/components/questions/CreateCustomQuestion";
-import type { Question } from "@/types";
+import type { ExamQuestion } from "@/types";
 
 interface ExamQuestionBankPaneProps {
   examId?: number;
-  isMobile: boolean;
   defaultPoints: number;
-  bankDrawerOpen: boolean;
-  onOpenBank: () => void;
-  onCloseBank: () => void;
-  onAddQuestion: (question: Question) => void;
-  closeOnAdd: boolean;
+  onAddQuestion: (question: ExamQuestion) => void;
 }
 
+/**
+ * Question bank below the exam question list (stacked layout).
+ */
 export function ExamQuestionBankPane({
   examId,
-  isMobile,
   defaultPoints,
-  bankDrawerOpen,
-  onOpenBank,
-  onCloseBank,
   onAddQuestion,
-  closeOnAdd,
 }: ExamQuestionBankPaneProps) {
   return (
-    <Paper
-      sx={{
-        p: isMobile ? 3 : 0,
-        height: isMobile ? "fit-content" : "calc(100vh - 140px)",
-        position: isMobile ? "relative" : "sticky",
-        top: isMobile ? 0 : 24,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <Stack spacing={3}>
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            افزودن سوال
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            از بانک سوالات انتخاب کنید یا سوال جدید بسازید. با باز شدن پنل بانک، سوالات با جزئیات و آمار نمایش داده می‌شوند.
-          </Typography>
-        </Box>
-        {!isMobile ? (
-          <QuestionBankDrawer
-            variant="embedded"
-            onAddQuestion={onAddQuestion}
-            closeOnAdd={false}
-            defaultPoints={defaultPoints}
-          />
-        ) : (
-          <>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={onOpenBank} fullWidth>
-              افزودن از بانک سوالات
-            </Button>
+    <Card variant="outlined">
+      <CardContent>
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              افزودن سوال از بانک
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              سوال را از لیست زیر انتخاب کنید تا به آزمون اضافه شود.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              maxHeight: { xs: "55vh", md: "min(70vh, 640px)" },
+              minHeight: 320,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 1,
+            }}
+          >
             <QuestionBankDrawer
-              open={bankDrawerOpen}
-              onClose={onCloseBank}
+              variant="embedded"
               onAddQuestion={onAddQuestion}
-              closeOnAdd={closeOnAdd}
+              closeOnAdd={false}
               defaultPoints={defaultPoints}
             />
-          </>
-        )}
-        <CreateCustomQuestion examId={examId} />
-      </Stack>
-    </Paper>
+          </Box>
+
+          <CreateCustomQuestion examId={examId} />
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }

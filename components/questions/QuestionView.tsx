@@ -12,6 +12,7 @@ import {
   QuestionResultDisplay,
   type ResultQuestion,
 } from "./QuestionResultDisplay";
+import type { ResultAudience } from "@/lib/exam-result-copy";
 import type { PreviewAnswerValue } from "./QuestionAnswerInput";
 
 export interface QuestionViewProps {
@@ -24,6 +25,8 @@ export interface QuestionViewProps {
   disabled?: boolean;
   /** result mode — full result row from API */
   resultQuestion?: ResultQuestion;
+  /** Who is viewing the result (wording differs for teacher vs student). */
+  resultAudience?: ResultAudience;
 }
 
 function toTakePayload(source: Record<string, unknown>): QuestionPayload {
@@ -53,6 +56,7 @@ export default function QuestionView({
   onAnswerChange,
   disabled,
   resultQuestion,
+  resultAudience = "student",
 }: QuestionViewProps) {
   const options = mergeViewOptions(mode, optionsPartial);
   const norm = normalizeQuestion(source);
@@ -69,7 +73,7 @@ export default function QuestionView({
   }
 
   if (mode === "result" && resultQuestion) {
-    return <QuestionResultDisplay question={resultQuestion} />;
+    return <QuestionResultDisplay question={resultQuestion} audience={resultAudience} />;
   }
 
   if (mode === "take") {

@@ -434,6 +434,16 @@
   background: rgba(37, 99, 235, 0.85);
 }
 
+/* Full-height answer / grader-note bodies — no clipping */
+.rich-text-content.rich-text-answer {
+  overflow: visible;
+  max-height: none;
+}
+.rich-text-content.rich-text-answer table {
+  overflow: visible;
+  table-layout: auto;
+}
+
 /* ============ Compact variant for option rows ============ */
 .rich-text-content.compact {
   font-size: 0.95em;

@@ -56,18 +56,84 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InputAdornment from '@mui/material/InputAdornment';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Tooltip from '@mui/material/Tooltip';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { getErrorMessage } from '@/lib/error-handler';
 
 import {
   TabPanelProps,
-  ParticipantManagementProps
+  ParticipantManagementProps,
+  ExamUser,
+  UserParticipant,
 } from './ParticipantManagement.types';
+
+function ParticipantNameCell({ user }: { user: ExamUser | null | undefined }) {
+  const name = user?.name || '-';
+  const email = user?.email;
+  const nationalId = user?.national_id;
+  if (!email && !nationalId) {
+    return <>{name}</>;
+  }
+  return (
+    <Tooltip
+      title={
+        <Stack spacing={0.5}>
+          {email ? <Typography variant="caption">ایمیل: {email}</Typography> : null}
+          {nationalId ? <Typography variant="caption">کد ملی: {nationalId}</Typography> : null}
+        </Stack>
+      }
+    >
+      <Typography
+        component="span"
+        sx={{ cursor: 'help', borderBottom: '1px dotted', borderColor: 'text.disabled' }}
+      >
+        {name}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+function scoreHeaderCells(isDescriptive: boolean) {
+  if (isDescriptive) {
+    return (
+      <>
+        <TableCell align="center">نمره عددی</TableCell>
+        <TableCell align="center">نمره توصیفی</TableCell>
+      </>
+    );
+  }
+  return <TableCell align="center">نمره</TableCell>;
+}
+
+function scoreBodyCells(participant: UserParticipant, isDescriptive: boolean) {
+  if (isDescriptive) {
+    const numeric =
+      participant.scaled_score != null
+        ? String(participant.scaled_score)
+        : participant.score !== null && participant.total_points !== null
+          ? `${participant.score} / ${participant.total_points}`
+          : '-';
+    return (
+      <>
+        <TableCell align="center">{numeric}</TableCell>
+        <TableCell align="center">{participant.outcome_label || '-'}</TableCell>
+      </>
+    );
+  }
+  return (
+    <TableCell align="center">
+      {participant.score !== null && participant.total_points !== null
+        ? `${participant.score} / ${participant.total_points}`
+        : '-'}
+    </TableCell>
+  );
+}
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -81,11 +147,13 @@ function TabPanel(props: TabPanelProps) {
 export default function ParticipantManagement({
   examId,
   participants,
+  gradingMode = 'numeric_percent',
   groups = [],
   registrationLink,
   examLink,
   onSuccess,
 }: ParticipantManagementProps) {
+  const isDescriptiveGrading = gradingMode === 'descriptive';
   const [tabValue, setTabValue] = useState(0);
   const [viewMode, setViewMode] = useState<'all' | 'grouped'>('all');
   const [phoneNumbers, setPhoneNumbers] = useState('');
@@ -277,13 +345,23 @@ export default function ParticipantManagement({
   };
 
   const handleRemoveGroup = async (groupId: number) => {
-    if (!confirm('آیا از حذف این گروه از آزمون اطمینان دارید؟')) return;
+    if (
+      !confirm(
+        'آیا از حذف این گروه از آزمون اطمینان دارید؟\nاعضایی که فقط در این گروه باشند از لیست شرکت‌کنندگان هم حذف می‌شوند.'
+      )
+    ) {
+      return;
+    }
 
     try {
-      await removeGroupMutation.mutateAsync({ examId, groupId });
+      const result = await removeGroupMutation.mutateAsync({ examId, groupId });
+      const removed = result?.participants_removed ?? 0;
       setAlert({
         open: true,
-        message: 'گروه با موفقیت از آزمون حذف شد',
+        message:
+          removed > 0
+            ? `گروه حذف شد و ${removed} شرکت‌کننده از آزمون خارج شدند.`
+            : 'گروه با موفقیت از آزمون حذف شد.',
         severity: 'success',
       });
       onSuccess?.();
@@ -465,7 +543,19 @@ export default function ParticipantManagement({
                             secondaryAction={
                               <Stack direction="row" spacing={1}>
                                 {isInExam ? (
-                                  <Chip label="در آزمون" size="small" color="success" />
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <Chip label="در آزمون" size="small" color="success" />
+                                    <IconButton
+                                      edge="end"
+                                      aria-label="حذف گروه از آزمون"
+                                      color="error"
+                                      size="small"
+                                      disabled={removeGroupMutation.isPending}
+                                      onClick={() => handleRemoveGroup(group.id)}
+                                    >
+                                      <DeleteOutlineIcon fontSize="small" />
+                                    </IconButton>
+                                  </Stack>
                                 ) : (
                                   <Checkbox
                                     edge="end"
@@ -692,10 +782,8 @@ export default function ParticipantManagement({
                       <TableRow>
                         <TableCell>نام</TableCell>
                         <TableCell>شماره تماس</TableCell>
-                        <TableCell>کد ملی</TableCell>
-                        <TableCell>ایمیل</TableCell>
                         <TableCell>گروه</TableCell>
-                        <TableCell align="center">نمره</TableCell>
+                        {scoreHeaderCells(isDescriptiveGrading)}
                         <TableCell align="center">وضعیت</TableCell>
                         <TableCell>تاریخ شروع</TableCell>
                         <TableCell>تاریخ تکمیل</TableCell>
@@ -704,10 +792,10 @@ export default function ParticipantManagement({
                     <TableBody>
                       {participants.map((participant) => (
                         <TableRow key={participant.id}>
-                          <TableCell>{participant.user?.name || '-'}</TableCell>
+                          <TableCell>
+                            <ParticipantNameCell user={participant.user} />
+                          </TableCell>
                           <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                          <TableCell>{participant.user?.national_id || '-'}</TableCell>
-                          <TableCell>{participant.user?.email || '-'}</TableCell>
                           <TableCell>
                             {participant.group ? (
                               <Chip label={participant.group.name} size="small" color="primary" />
@@ -715,11 +803,7 @@ export default function ParticipantManagement({
                               <Chip label="بدون گروه" size="small" variant="outlined" />
                             )}
                           </TableCell>
-                          <TableCell align="center">
-                            {participant.score !== null && participant.total_points !== null
-                              ? `${participant.score} / ${participant.total_points}`
-                              : '-'}
-                          </TableCell>
+                          {scoreBodyCells(participant, isDescriptiveGrading)}
                           <TableCell align="center">
                             {participant.completed_at ? (
                               <Chip
@@ -823,9 +907,7 @@ export default function ParticipantManagement({
                                       <TableRow>
                                         <TableCell>نام</TableCell>
                                         <TableCell>شماره تماس</TableCell>
-                                        <TableCell>کد ملی</TableCell>
-                                        <TableCell>ایمیل</TableCell>
-                                        <TableCell align="center">نمره</TableCell>
+                                        {scoreHeaderCells(isDescriptiveGrading)}
                                         <TableCell align="center">وضعیت</TableCell>
                                         <TableCell>تاریخ شروع</TableCell>
                                         <TableCell>تاریخ تکمیل</TableCell>
@@ -834,15 +916,11 @@ export default function ParticipantManagement({
                                     <TableBody>
                                       {groupParticipants.map((participant) => (
                                         <TableRow key={participant.id}>
-                                          <TableCell>{participant.user?.name || '-'}</TableCell>
-                                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                                          <TableCell>{participant.user?.national_id || '-'}</TableCell>
-                                          <TableCell>{participant.user?.email || '-'}</TableCell>
-                                          <TableCell align="center">
-                                            {participant.score !== null && participant.total_points !== null
-                                              ? `${participant.score} / ${participant.total_points}`
-                                              : '-'}
+                                          <TableCell>
+                                            <ParticipantNameCell user={participant.user} />
                                           </TableCell>
+                                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
+                                          {scoreBodyCells(participant, isDescriptiveGrading)}
                                           <TableCell align="center">
                                             {participant.completed_at ? (
                                               <Chip
@@ -915,9 +993,7 @@ export default function ParticipantManagement({
                       <TableRow>
                         <TableCell>نام</TableCell>
                         <TableCell>شماره تماس</TableCell>
-                                      <TableCell>کد ملی</TableCell>
-                        <TableCell>ایمیل</TableCell>
-                        <TableCell align="center">نمره</TableCell>
+                        {scoreHeaderCells(isDescriptiveGrading)}
                         <TableCell align="center">وضعیت</TableCell>
                         <TableCell>تاریخ شروع</TableCell>
                         <TableCell>تاریخ تکمیل</TableCell>
@@ -926,15 +1002,11 @@ export default function ParticipantManagement({
                     <TableBody>
                                     {participantsWithoutGroup.map((participant) => (
                         <TableRow key={participant.id}>
-                          <TableCell>{participant.user?.name || '-'}</TableCell>
-                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                                        <TableCell>{participant.user?.national_id || '-'}</TableCell>
-                          <TableCell>{participant.user?.email || '-'}</TableCell>
-                          <TableCell align="center">
-                                          {participant.score !== null && participant.total_points !== null
-                                            ? `${participant.score} / ${participant.total_points}`
-                              : '-'}
+                          <TableCell>
+                            <ParticipantNameCell user={participant.user} />
                           </TableCell>
+                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
+                          {scoreBodyCells(participant, isDescriptiveGrading)}
                           <TableCell align="center">
                             {participant.completed_at ? (
                               <Chip

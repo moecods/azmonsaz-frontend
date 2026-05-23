@@ -81,6 +81,8 @@ export function questionToFormData(question: Question): QuestionFormData {
 
   const categoryId = resolveCategoryId(question, q);
   const blanks = resolveBlanks(question, q, qType);
+  const items = resolveOrderingItems(q, qType);
+  const correct_order = resolveCorrectOrder(q, qType, items);
   const leftItems = resolveLeftItems(question, q, qType);
   const rightItems = resolveRightItems(question, q, qType);
   const matches = resolveMatches(question, q, qType);
@@ -98,8 +100,8 @@ export function questionToFormData(question: Question): QuestionFormData {
     category_id: categoryId,
     tags: question.tags || [],
     difficulty: question.difficulty,
-    items: (q.items || []) as QuestionFormData['items'],
-    correct_order: (q.correct_order || []) as number[],
+    items,
+    correct_order,
     left_items: leftItems,
     right_items: rightItems,
     blanks,
@@ -175,7 +177,26 @@ function resolveBlanks(
   }
 
   if (typeof opts === 'object' && opts !== null && 'blanks' in opts && Array.isArray((opts as { blanks: unknown }).blanks)) {
-    return (opts as { blanks: { position: number; correct_answer: string }[] }).blanks;
+    return ((opts as { blanks: Array<Record<string, unknown>> }).blanks).map((blank) => {
+      const answers = (blank.correct_answers as string[] | undefined) ?? [];
+      const legacy = blank.correct_answer != null ? String(blank.correct_answer) : "";
+      return {
+        position: Number(blank.position ?? 0),
+        correct_answer: answers[0] ?? legacy,
+        correct_answers: answers.length > 0 ? answers : legacy ? [legacy] : [],
+        grading: (blank.grading as "auto" | "manual") ?? "auto",
+      };
+    });
+  }
+
+  const ca = q.correct_answer;
+  if (Array.isArray(ca) && ca.length > 0 && Array.isArray(ca[0])) {
+    return (ca as string[][]).map((answers, position) => ({
+      position,
+      correct_answers: answers.map(String),
+      correct_answer: answers[0] != null ? String(answers[0]) : "",
+      grading: "auto" as const,
+    }));
   }
 
   if (question.text && String(question.text).includes('_____')) {
@@ -184,6 +205,47 @@ function resolveBlanks(
   }
 
   return blanks;
+}
+
+function resolveOrderingItems(
+  q: Record<string, unknown>,
+  qType: string
+): QuestionFormData["items"] {
+  if (qType !== "ordering") {
+    return [];
+  }
+
+  if (Array.isArray(q.items) && q.items.length > 0) {
+    return q.items as QuestionFormData["items"];
+  }
+
+  const opts = q.options;
+  if (typeof opts === "object" && opts !== null && !Array.isArray(opts) && "items" in opts) {
+    return (opts as { items: QuestionFormData["items"] }).items ?? [];
+  }
+
+  return [];
+}
+
+function resolveCorrectOrder(
+  q: Record<string, unknown>,
+  qType: string,
+  items: QuestionFormData["items"]
+): number[] {
+  if (qType !== "ordering") {
+    return [];
+  }
+
+  if (Array.isArray(q.correct_order) && q.correct_order.length > 0) {
+    return q.correct_order as number[];
+  }
+
+  const ca = q.correct_answer;
+  if (Array.isArray(ca) && ca.length > 0 && ca.every((v) => typeof v === "number")) {
+    return ca as number[];
+  }
+
+  return items.map((_, i) => i);
 }
 
 function resolveLeftItems(

@@ -141,6 +141,12 @@ export interface Exam {
   exam_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
+  grading_mode?: 'numeric_percent' | 'numeric_scale' | 'descriptive' | 'banded';
+  grading_config?: Record<string, unknown> | null;
+  result_release_after_exam_end?: boolean;
+  result_release_after_grading_complete?: boolean;
+  result_release_requires_manual?: boolean;
+  results_released_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -198,6 +204,9 @@ export interface UpdateExamRequest {
   exam_date?: string;
   start_time?: string;
   end_time?: string;
+  result_release_after_exam_end?: boolean;
+  result_release_after_grading_complete?: boolean;
+  result_release_requires_manual?: boolean;
 }
 
 export interface CreateQuestionRequest {

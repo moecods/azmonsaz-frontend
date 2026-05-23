@@ -9,7 +9,7 @@ export function baseExamPayload(
     question_text: data.text,
     type: data.type,
     order: 1,
-    points: 10,
+    points: 1,
     difficulty: data.difficulty,
     tags: data.tags ?? [],
   };

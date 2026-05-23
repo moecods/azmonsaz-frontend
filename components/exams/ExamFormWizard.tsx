@@ -40,6 +40,7 @@ export function ExamFormWizard({
   const [showPreview, setShowPreview] = useState(false);
   const { handleSubmit, control, trigger } = form;
 
+  const title = useWatch({ control, name: "title" });
   const type = useWatch({ control, name: "type" });
   const durationMinutes = useWatch({ control, name: "duration_minutes" });
   const gradingMode = useWatch({ control, name: "grading_mode" });
@@ -75,7 +76,9 @@ export function ExamFormWizard({
     const chips: string[] = [];
     if (type) chips.push(type === "online" ? "آنلاین" : "آفلاین");
     if (durationMinutes) chips.push(`${durationMinutes} دقیقه`);
-    if (gradingMode) chips.push(gradingMode);
+    if (gradingMode === "descriptive") chips.push("نمره‌دهی توصیفی");
+    else if (gradingMode === "numeric_scale") chips.push("مقیاس عددی");
+    else if (gradingMode === "numeric_percent") chips.push("درصدی");
     if (scheduleType) chips.push(scheduleType);
     return chips;
   }, [type, durationMinutes, gradingMode, scheduleType]);
@@ -97,7 +100,7 @@ export function ExamFormWizard({
           {activeStep === 2 && <SchedulingStep form={form} />}
         </Paper>
 
-        {formData.title && (
+        {title && (
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
@@ -110,7 +113,7 @@ export function ExamFormWizard({
             {showPreview && (
               <Paper sx={{ p: 2, mt: 2, bgcolor: "grey.50" }}>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  {formData.title}
+                  {title}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1, gap: 0.5 }}>
                   {previewChips.map((c) => (

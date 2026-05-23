@@ -113,6 +113,12 @@ export class ExamService {
     );
   }
 
+  async releaseExamResults(id: number): Promise<ApiResponse<{ results_released_at: string }>> {
+    return this.apiClient.post<{ results_released_at: string }>(
+      `/exams/${id}/release-results`
+    );
+  }
+
   /**
    * Unpublish exam (change status to draft)
    */
@@ -180,6 +186,15 @@ export class ExamService {
   /**
    * Get list of exams (filtered by user role)
    */
+  async getCreatorDashboard(): Promise<
+    ApiResponse<{
+      exams: CreatorDashboardExam[];
+      stats: CreatorDashboardStats;
+    }>
+  > {
+    return this.apiClient.get('/exams/dashboard');
+  }
+
   async getExams(params?: {
     per_page?: number;
     status?: 'published' | 'draft';
@@ -223,24 +238,34 @@ export class ExamService {
   /**
    * Get exam info by participation link (public access)
    */
-  async getExamInfo(id: number): Promise<ApiResponse<ExamInfo>> {
-    return this.apiClient.get<ExamInfo>(`/exams/${id}/info`);
+  async getExamInfo(publicUuid: string): Promise<ApiResponse<ExamInfo>> {
+    return this.apiClient.get<ExamInfo>(`/exams/public/${publicUuid}/info`);
   }
 
   /**
-   * Register user for exam
+   * Exam context for take page when opened via numeric id (authenticated).
    */
-  async registerForExam(id: number): Promise<ApiResponse<ExamRegistration>> {
-    return this.apiClient.post<ExamRegistration>(`/exams/${id}/register`);
+  async getExamTakeContext(examId: number): Promise<ApiResponse<ExamInfo>> {
+    return this.apiClient.get<ExamInfo>(`/exams/${examId}/take-context`);
+  }
+
+  /**
+   * Register user for exam (numeric id or public uuid).
+   */
+  async registerForExam(examIdOrPublicUuid: number | string): Promise<ApiResponse<ExamRegistration>> {
+    if (typeof examIdOrPublicUuid === 'number') {
+      return this.apiClient.post<ExamRegistration>(`/exams/${examIdOrPublicUuid}/register`);
+    }
+    return this.apiClient.post<ExamRegistration>(`/exams/public/${examIdOrPublicUuid}/register`);
   }
 
   /**
    * Public registration for exam via link (with auto-registration if user doesn't exist)
    */
-  async registerForExamPublic(id: number, data: PublicExamRegistrationRequest): Promise<ApiResponse<PublicExamRegistrationResponse>> {
+  async registerForExamPublic(publicUuid: string, data: PublicExamRegistrationRequest): Promise<ApiResponse<PublicExamRegistrationResponse>> {
     // Use direct fetch for public registration (no auth token)
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-    const url = `${baseURL}/exams/${id}/register-public`;
+    const url = `${baseURL}/exams/public/${publicUuid}/register-public`;
     
     const response = await fetch(url, {
       method: 'POST',
@@ -290,8 +315,8 @@ export class ExamService {
   /**
    * Get user's exam result with detailed answers and ranking
    */
-  async getMyExamResult(id: number): Promise<ApiResponse<ExamResultDetail>> {
-    return this.apiClient.get<ExamResultDetail>(`/exams/${id}/my-result`);
+  async getMyExamResult(id: number): Promise<ApiResponse<ExamResultResponse>> {
+    return this.apiClient.get<ExamResultResponse>(`/exams/${id}/my-result`);
   }
 
   async requestAiReview(
@@ -300,6 +325,30 @@ export class ExamService {
   ): Promise<ApiResponse<{ explanation: string; feedback?: string }>> {
     return this.apiClient.post<{ explanation: string; feedback?: string }>(
       `/exams/${examId}/my-result/ai-review/${examQuestionId}`
+    );
+  }
+
+  async markResultViewed(examId: number): Promise<ApiResponse<ExamResultResponse>> {
+    return this.apiClient.post<ExamResultResponse>(`/exams/${examId}/my-result/mark-viewed`);
+  }
+
+  async markGraderNoteSeen(
+    examId: number,
+    payload: { scope: 'exam' | 'question'; exam_question_id?: number }
+  ): Promise<ApiResponse<ExamResultResponse>> {
+    return this.apiClient.post<ExamResultResponse>(
+      `/exams/${examId}/my-result/grader-notes/mark-seen`,
+      payload
+    );
+  }
+
+  async acknowledgeGraderNote(
+    examId: number,
+    payload: { scope: 'exam' | 'question'; exam_question_id?: number }
+  ): Promise<ApiResponse<ExamResultResponse>> {
+    return this.apiClient.post<ExamResultResponse>(
+      `/exams/${examId}/my-result/grader-notes/acknowledge`,
+      payload
     );
   }
 
@@ -342,9 +391,38 @@ export class ExamService {
   /**
    * Remove group from exam
    */
-  async removeGroupFromExam(examId: number, groupId: number): Promise<ApiResponse<{ message: string }>> {
-    return this.apiClient.delete<{ message: string }>(`/exams/${examId}/groups/${groupId}`);
+  async removeGroupFromExam(
+    examId: number,
+    groupId: number,
+  ): Promise<ApiResponse<{ participants_removed?: number }>> {
+    return this.apiClient.delete<{ participants_removed?: number }>(
+      `/exams/${examId}/groups/${groupId}`,
+    );
   }
+}
+
+export interface CreatorDashboardStats {
+  live_count: number;
+  pending_grading_exams_count: number;
+  total_published: number;
+}
+
+export interface CreatorDashboardExam {
+  id: number;
+  title: string;
+  type: 'online' | 'offline';
+  exam_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  status: string;
+  is_active: boolean;
+  questions_count: number;
+  participants_count: number;
+  completed_participants_count: number;
+  is_live: boolean;
+  pending_grading_participants_count: number;
 }
 
 export interface ExamListItem {
@@ -424,6 +502,10 @@ export interface ExamWithParticipants {
   exam_link: string | null;
   questions_count: number;
   participants_count: number;
+  result_release_after_exam_end?: boolean;
+  result_release_after_grading_complete?: boolean;
+  result_release_requires_manual?: boolean;
+  results_released_at?: string | null;
   participants: ExamParticipant[];
   groups?: Array<{
     id: number;
@@ -450,6 +532,15 @@ export interface ExamWithParticipants {
   updated_at: string;
 }
 
+export interface AvailableExamResultSummary {
+  score: number;
+  total_points: number;
+  passed: boolean;
+  percentage: number;
+  outcome_label?: string | null;
+  scaled_score?: number | null;
+}
+
 export interface AvailableExam {
   id: number;
   title: string;
@@ -461,6 +552,18 @@ export interface AvailableExam {
   completed_at: string | null;
   exam_start_at?: string | null;
   exam_end_at?: string | null;
+  grading_mode?: string;
+  can_view_result?: boolean;
+  /** True when result is visible and the student has unseen or unacknowledged grader notes. */
+  has_grader_notes?: boolean;
+  /** True when result is visible but the student has not opened the result page yet. */
+  is_result_unseen?: boolean;
+  result_viewed_at?: string | null;
+  result_unavailable_reason?: string | null;
+  result_message?: string | null;
+  result_available_at?: string | null;
+  pending_grading_count?: number;
+  result?: AvailableExamResultSummary | null;
   creator?: {
     id: number;
     name: string;
@@ -469,6 +572,7 @@ export interface AvailableExam {
 
 export interface ExamInfo {
   id: number;
+  public_uuid?: string;
   title: string;
   type: 'online' | 'offline';
   meta: Record<string, unknown>;
@@ -535,25 +639,85 @@ export interface ExamQuestionsResponse {
   }>;
 }
 
+export interface ResultVisibility {
+  visible: boolean;
+  reason?: string | null;
+  message?: string | null;
+  available_at?: string | null;
+  pending_grading_count?: number;
+}
+
 export interface ExamSubmissionResult {
   score: number;
   total_points: number;
   passed: boolean;
   completed_at: string;
+  outcome_label?: string | null;
+  scaled_score?: number | null;
+  grading_mode?: string | null;
+  result_visibility?: ResultVisibility;
+}
+
+export interface ExamResultHidden {
+  visible: false;
+  reason: string;
+  message: string;
+  available_at?: string | null;
+  pending_grading_count?: number;
+  exam: {
+    id: number;
+    title: string;
+    grading_mode?: string;
+  };
+}
+
+export type ExamResultResponse = ExamResultDetail | ExamResultHidden;
+
+export interface GraderNoteEngagementState {
+  is_seen: boolean;
+  is_acknowledged: boolean;
+  requires_acknowledgment: boolean;
+  seen_at?: string | null;
+  acknowledged_at?: string | null;
+}
+
+export interface GraderNotesSummary {
+  total_with_content: number;
+  unseen_count: number;
+  pending_acknowledgment_count: number;
+}
+
+export interface GraderNotePayload {
+  text?: string | null;
+  audio_media_id?: number | null;
+  audio_url?: string | null;
+  requires_acknowledgment?: boolean;
+  saved_at?: string | null;
+  engagement?: GraderNoteEngagementState;
 }
 
 export interface ExamResultDetail {
+  visible?: true;
+  grader_notes?: {
+    exam?: GraderNotePayload | null;
+    summary?: GraderNotesSummary;
+  };
   exam: {
     id: number;
     title: string;
     type: 'online' | 'offline';
-    meta: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+    grading_mode?: string;
+    grading_config?: Record<string, unknown> | null;
+    passing_score?: number | null;
   };
   result: {
     score: number;
     total_points: number;
     passed: boolean;
     percentage: number;
+    outcome_label?: string | null;
+    scaled_score?: number | null;
     rank: number;
     total_participants: number;
     started_at: string | null;
@@ -569,6 +733,8 @@ export interface ExamResultDetail {
     is_correct: boolean;
     points_earned: number;
     points_total: number;
+    is_pending_grading?: boolean;
+    grader_note?: GraderNotePayload | null;
   }>;
 }
 

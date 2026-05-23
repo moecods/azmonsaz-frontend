@@ -27,7 +27,7 @@ export function getQuestionType(question: ExamQuestion): string {
 /**
  * Build payload for adding question from bank
  */
-export function buildBankQuestionPayload(order: number, points: number = 10): Record<string, unknown> {
+export function buildBankQuestionPayload(order: number, points: number = 1): Record<string, unknown> {
   return {
     order,
     points,
@@ -40,7 +40,7 @@ export function buildBankQuestionPayload(order: number, points: number = 10): Re
 export function buildCustomQuestionPayload(
   question: ExamQuestion,
   order: number,
-  points: number = 10
+  points: number = 1
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     question_text: question.custom_text || '',

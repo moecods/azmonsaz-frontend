@@ -14,11 +14,7 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Drawer,
-  useMediaQuery,
-  useTheme,
   Divider,
-  Paper,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -52,14 +48,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import EditIcon from '@mui/icons-material/Edit';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
-import AddIcon from '@mui/icons-material/Add';
-import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamQuestionsToolbar } from '@/components/exams/exam-questions/ExamQuestionsToolbar';
 import { ExamQuestionBankPane } from '@/components/exams/exam-questions/ExamQuestionBankPane';
-import QuestionBankDrawer from '@/components/questions/QuestionBankDrawer';
 import QuestionDisplay from '@/components/questions/QuestionDisplay';
-import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
 import { RichLabel, htmlToPlainText } from '@/components/editor';
 import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
@@ -72,14 +64,24 @@ import {
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
 import { handleError, getErrorMessage } from '@/lib/error-handler';
+import {
+  getDefaultQuestionPoints,
+  getExamMaxScore,
+  maxPointsAllowedForQuestion,
+  wouldExceedExamMaxScore,
+  type ExamWithGrading,
+} from '@/lib/exam-points';
 import {ArrowRightIcon} from "@mui/x-date-pickers";
 
 interface SortableQuestionItemProps {
   question: ExamQuestion;
   index: number;
   defaultPoints: number;
+  maxPointsAllowed: number;
+  examMaxScore: number | null;
   onDelete: (questionId: number) => void;
   onUpdatePoints: (question: ExamQuestion, points: number) => void;
+  onPointsRejected: (message: string) => void;
   onEdit: (question: ExamQuestion) => void;
   isDeleting: boolean;
   isUpdating: boolean;
@@ -89,8 +91,11 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
   question,
   index,
   defaultPoints,
+  maxPointsAllowed,
+  examMaxScore,
   onDelete,
   onUpdatePoints,
+  onPointsRejected,
   onEdit,
   isDeleting,
   isUpdating,
@@ -105,10 +110,19 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
 
   const handlePointsBlur = () => {
     const val = parseInt(pointsValue, 10);
-    if (!Number.isNaN(val) && val >= 1 && val !== points) {
-      onUpdatePoints(question, val);
-    } else if (Number.isNaN(val) || val < 1) {
+    if (Number.isNaN(val) || val < 1) {
       setPointsValue(String(points));
+      return;
+    }
+    if (examMaxScore != null && val > maxPointsAllowed) {
+      onPointsRejected(
+        `بارم این سوال نمی‌تواند بیشتر از ${maxPointsAllowed} باشد (حداکثر نمره آزمون: ${examMaxScore}).`
+      );
+      setPointsValue(String(points));
+      return;
+    }
+    if (val !== points) {
+      onUpdatePoints(question, val);
     }
   };
   const {
@@ -197,7 +211,10 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                         onBlur={handlePointsBlur}
                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                         disabled={isUpdating}
-                        inputProps={{ min: 1, max: 100 }}
+                        inputProps={{
+                          min: 1,
+                          max: examMaxScore != null ? Math.max(1, maxPointsAllowed) : 100,
+                        }}
                         sx={{
                           width: 48,
                           '& .MuiOutlinedInput-root': {
@@ -313,13 +330,8 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
 function ExamQuestionsContent() {
   const params = useParams();
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const examId = params?.id ? parseInt(params.id as string) : null;
 
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [bankDrawerOpen, setBankDrawerOpen] = useState(false);
-  const [closeBankOnAdd, setCloseBankOnAdd] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -478,13 +490,26 @@ function ExamQuestionsContent() {
     }
   }, [questions, examId, updateQuestionMutation]);
 
-  const defaultPoints = (examWithQuestions as { points_per_question?: number })?.points_per_question ?? 10;
+  const examForPoints = examWithQuestions as ExamWithGrading | undefined;
+  const defaultPoints = getDefaultQuestionPoints(examForPoints);
+  const examMaxScore = getExamMaxScore(examForPoints);
+
+  const rejectPointsOverflow = useCallback((message: string) => {
+    setSnackbar({ open: true, message, severity: 'error' });
+  }, []);
 
   const handleAddQuestion = useCallback((question: ExamQuestion) => {
     if (!examId) return;
 
     const nextOrder = questions.length + 1;
     const points = defaultPoints;
+    const cap = wouldExceedExamMaxScore(examForPoints, questions, defaultPoints, points);
+    if (cap.exceeds) {
+      rejectPointsOverflow(
+        `افزودن سوال با بارم ${points} مجاز نیست. مجموع بارم (${cap.projectedTotal}) از حداکثر نمره (${cap.maxScore}) بیشتر می‌شود.`
+      );
+      return;
+    }
     
     if (question.question_id) {
       const payload = buildBankQuestionPayload(nextOrder, points);
@@ -537,8 +562,7 @@ function ExamQuestionsContent() {
         }
       );
     }
-    setMobileDrawerOpen(false);
-  }, [examId, questions.length, addQuestionMutation, defaultPoints]);
+  }, [examId, questions.length, addQuestionMutation, defaultPoints, examForPoints, questions, rejectPointsOverflow]);
 
   const handleDeleteQuestion = useCallback((questionId: number) => {
     const question = questions.find((q) => q.id === questionId);
@@ -558,6 +582,19 @@ function ExamQuestionsContent() {
   const handleUpdatePoints = useCallback(
     (question: ExamQuestion, points: number) => {
       if (!examId) return;
+      const cap = wouldExceedExamMaxScore(
+        examForPoints,
+        questions,
+        defaultPoints,
+        points,
+        question.id
+      );
+      if (cap.exceeds) {
+        rejectPointsOverflow(
+          `مجموع بارم (${cap.projectedTotal}) نمی‌تواند از حداکثر نمره آزمون (${cap.maxScore}) بیشتر باشد.`
+        );
+        return;
+      }
       updateQuestionMutation.mutate(
         {
           examId,
@@ -596,7 +633,7 @@ function ExamQuestionsContent() {
         }
       );
     },
-    [examId, updateQuestionMutation]
+    [examId, updateQuestionMutation, examForPoints, questions, defaultPoints, rejectPointsOverflow]
   );
 
   const confirmDeleteQuestion = useCallback(() => {
@@ -673,19 +710,6 @@ function ExamQuestionsContent() {
     );
   }
 
-  const questionBankSidebar = (
-    <ExamQuestionBankPane
-      examId={examId ?? undefined}
-      isMobile={isMobile}
-      defaultPoints={defaultPoints}
-      bankDrawerOpen={bankDrawerOpen}
-      onOpenBank={() => setMobileDrawerOpen(true)}
-      onCloseBank={() => setBankDrawerOpen(false)}
-      onAddQuestion={handleAddQuestion}
-      closeOnAdd={closeBankOnAdd}
-    />
-  );
-
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Stack spacing={4}>
@@ -699,45 +723,19 @@ function ExamQuestionsContent() {
           title={examWithQuestions.title}
           questionCount={questions.length}
           totalPoints={totalPoints}
+          maxScore={examMaxScore}
           onBack={() => router.push(`/exams/${examId}`)}
-          onOpenBank={() => setMobileDrawerOpen(true)}
-          showMobileBankToggle={isMobile}
         />
 
-        {/* Mobile Drawer */}
-        {isMobile && (
-          <Drawer
-            anchor="bottom"
-            open={mobileDrawerOpen}
-            onClose={() => setMobileDrawerOpen(false)}
-            PaperProps={{
-              sx: {
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                maxHeight: '80vh',
-              },
-            }}
-          >
-            <Box sx={{ p: 3 }}>
-              {questionBankSidebar}
-            </Box>
-          </Drawer>
+        {examMaxScore != null && totalPoints > examMaxScore && (
+          <Alert severity="warning">
+            مجموع بارم سوالات ({totalPoints}) از حداکثر نمره آزمون ({examMaxScore}) بیشتر است. بارم
+            سوالات را کاهش دهید.
+          </Alert>
         )}
 
-        {/* Main Content */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'minmax(320px, 40%) 1fr',
-            gap: 3,
-          }}
-        >
-          {/* Sidebar - Desktop */}
-          {!isMobile && questionBankSidebar}
-
-          {/* Questions List */}
-          <Box>
-            <Card>
+        {/* Exam questions list (top) */}
+        <Card>
               <CardContent>
                 <Stack spacing={3}>
                   <Box>
@@ -746,6 +744,7 @@ function ExamQuestionsContent() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {questions.length} سوال • مجموع بارم: {totalPoints}
+                      {examMaxScore != null ? ` / ${examMaxScore}` : ''}
                       {' • '}
                       آسان: {difficultyStats.easy}، متوسط: {difficultyStats.medium}، سخت: {difficultyStats.hard}
                       {' • '}
@@ -759,18 +758,9 @@ function ExamQuestionsContent() {
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         هنوز سوالی اضافه نشده است
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        از بخش افزودن سوال، سوالات را به آزمون اضافه کنید
+                      <Typography variant="body2" color="text.secondary">
+                        از بخش «افزودن سوال از بانک» در پایین صفحه، سوالات را به آزمون اضافه کنید
                       </Typography>
-                      {isMobile && (
-                        <Button
-                          variant="contained"
-                          startIcon={<AddIcon />}
-                          onClick={() => setMobileDrawerOpen(true)}
-                        >
-                          افزودن اولین سوال
-                        </Button>
-                      )}
                     </Box>
                   ) : (
                     <DndContext
@@ -788,8 +778,16 @@ function ExamQuestionsContent() {
                             question={question}
                             index={index}
                             defaultPoints={defaultPoints}
+                            examMaxScore={examMaxScore}
+                            maxPointsAllowed={maxPointsAllowedForQuestion(
+                              examForPoints,
+                              questions,
+                              defaultPoints,
+                              question.id
+                            )}
                             onDelete={handleDeleteQuestion}
                             onUpdatePoints={handleUpdatePoints}
+                            onPointsRejected={rejectPointsOverflow}
                             onEdit={handleEditQuestion}
                             isDeleting={deleteQuestionMutation.isPending}
                             isUpdating={updateQuestionMutation.isPending}
@@ -810,19 +808,6 @@ function ExamQuestionsContent() {
                         </Alert>
                       )}
 
-                      {isMobile && (
-                          <Box>
-                            <Button
-                                variant="outlined"
-                                sx={{ width: "100%" }}
-                                startIcon={<AddIcon />}
-                                onClick={() => setMobileDrawerOpen(true)}
-                            >
-                              افزودن سوال
-                            </Button>
-                          </Box>
-                      )}
-
                       <Alert severity="info" icon={<DragHandleIcon />}>
                         برای تغییر ترتیب سوالات، روی آیکون دستگیره کلیک کرده و سوال را به موقعیت مورد نظر بکشید
                       </Alert>
@@ -831,8 +816,13 @@ function ExamQuestionsContent() {
                 </Stack>
               </CardContent>
             </Card>
-          </Box>
-        </Box>
+
+        {/* Question bank (below exam list) */}
+        <ExamQuestionBankPane
+          examId={examId ?? undefined}
+          defaultPoints={defaultPoints}
+          onAddQuestion={handleAddQuestion}
+        />
       </Stack>
 
       {/* Delete Confirmation Dialog */}

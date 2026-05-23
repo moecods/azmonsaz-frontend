@@ -28,6 +28,8 @@ export interface UserParticipant {
   group: GroupInfo | null;
   score: number | null;
   total_points: number | null;
+  scaled_score?: number | null;
+  outcome_label?: string | null;
   passed: boolean;
   status?: string;
   started_at: string | null;
@@ -71,6 +73,7 @@ export interface ParticipantResult {
 export interface ParticipantManagementProps {
   examId: number;
   participants: UserParticipant[];
+  gradingMode?: string;
   groups?: GroupInfo[];
   registrationLink?: string | null;
   examLink?: string | null;

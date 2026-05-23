@@ -203,48 +203,52 @@ export default function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
           },
         }}
       >
-        {/* User Info */}
-        {user && (
-          <>
-            <Box sx={{ px: 2, py: 1.5 }}>
-              <Typography variant="subtitle2" fontWeight="bold" noWrap>
-                {user.name}
-              </Typography>
-              {user.email && (
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {user.email}
+        {user
+          ? [
+              <Box key="user-info" sx={{ px: 2, py: 1.5 }}>
+                <Typography variant="subtitle2" fontWeight="bold" noWrap>
+                  {user.name}
                 </Typography>
-              )}
-              {user.roles && user.roles.length > 0 && (
-                <Stack direction="row" spacing={0.5} sx={{ mt: 1 }} flexWrap="wrap">
-                  {user.roles.map((role) => (
-                    <Chip
-                      key={role}
-                      label={getRoleLabel(role)}
-                      size="small"
-                      color={getRoleColor(role)}
-                      sx={{ height: 20, fontSize: '0.65rem' }}
-                    />
-                  ))}
-                </Stack>
-              )}
-            </Box>
-            <Divider />
-            <MenuItem onClick={() => handleMenuNavigation('/dashboard')}>
-              <DashboardIcon sx={{ mr: 2, fontSize: 20 }} />
-              داشبورد
-            </MenuItem>
-            <MenuItem onClick={() => handleMenuNavigation('/profile')}>
-              <PersonIcon sx={{ mr: 2, fontSize: 20 }} />
-              پروفایل
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }} data-cy="logout-button">
-              <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
-              خروج
-            </MenuItem>
-          </>
-        )}
+                {user.email ? (
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {user.email}
+                  </Typography>
+                ) : null}
+                {user.roles && user.roles.length > 0 ? (
+                  <Stack direction="row" spacing={0.5} sx={{ mt: 1 }} flexWrap="wrap">
+                    {user.roles.map((role) => (
+                      <Chip
+                        key={role}
+                        label={getRoleLabel(role)}
+                        size="small"
+                        color={getRoleColor(role)}
+                        sx={{ height: 20, fontSize: '0.65rem' }}
+                      />
+                    ))}
+                  </Stack>
+                ) : null}
+              </Box>,
+              <Divider key="user-menu-divider-1" />,
+              <MenuItem key="user-menu-dashboard" onClick={() => handleMenuNavigation('/dashboard')}>
+                <DashboardIcon sx={{ mr: 2, fontSize: 20 }} />
+                داشبورد
+              </MenuItem>,
+              <MenuItem key="user-menu-profile" onClick={() => handleMenuNavigation('/profile')}>
+                <PersonIcon sx={{ mr: 2, fontSize: 20 }} />
+                پروفایل
+              </MenuItem>,
+              <Divider key="user-menu-divider-2" />,
+              <MenuItem
+                key="user-menu-logout"
+                onClick={handleLogout}
+                sx={{ color: 'error.main' }}
+                data-cy="logout-button"
+              >
+                <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
+                خروج
+              </MenuItem>,
+            ]
+          : null}
       </Menu>
     </Paper>
   );

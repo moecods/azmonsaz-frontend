@@ -5,6 +5,11 @@ import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { getQuestionTypeKind } from "@/lib/question-types";
 import { normalizeQuestion, optionText } from "@/lib/question-types/normalize-question";
+import {
+  participantAnswerChipLabel,
+  participantAnswerLabel,
+  type ResultAudience,
+} from "@/lib/exam-result-copy";
 import { RichLabel } from "@/components/editor";
 
 export interface ResultQuestion {
@@ -30,27 +35,41 @@ function optionLabel(opt: string | { text: string }): string {
   return typeof opt === "string" ? opt : opt.text;
 }
 
-/** Correct answers get a green outline only; wrong/neutral rows stay borderless. */
-function answerRowSx(highlight: "correct" | "none") {
+function answerRowSx(highlight: "correct" | "selected" | "none") {
   return {
     p: 1.5,
     mb: 1,
     borderRadius: 1,
     bgcolor: "background.paper",
     ...(highlight === "correct"
-      ? { border: "1px solid", borderColor: "success.main" }
-      : {}),
+      ? { border: "1px solid", borderColor: "success.light" }
+      : highlight === "selected"
+        ? { border: "1px solid", borderColor: "divider", bgcolor: "action.hover" }
+        : {}),
   } as const;
+}
+
+function compareRowBg(ok: boolean, audience: ResultAudience): string {
+  if (ok) {
+    return "success.light";
+  }
+  return audience === "student" ? "action.hover" : "grey.100";
 }
 
 interface QuestionResultDisplayProps {
   question: ResultQuestion;
+  /** student = exam result page; grader = teacher grading UI */
+  audience?: ResultAudience;
 }
 
-export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) {
+export function QuestionResultDisplay({
+  question,
+  audience = "student",
+}: QuestionResultDisplayProps) {
   const kind = getQuestionTypeKind(question.type);
   const norm = normalizeQuestion(question as unknown as Record<string, unknown>);
   const options = question.options ?? [];
+  const answerLabel = participantAnswerLabel(audience);
 
   if (kind === "options_single" || question.type === "true_false") {
     return (
@@ -62,20 +81,18 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
           const isCorrect = Array.isArray(question.correct_answer)
             ? question.correct_answer.includes(optIndex)
             : question.correct_answer === optIndex;
-          const isYourAnswer = question.your_answer === optIndex;
+          const isSelected = question.your_answer === optIndex;
+          const highlight = isCorrect ? "correct" : isSelected ? "selected" : "none";
           return (
-            <Box
-              key={optIndex}
-              sx={answerRowSx(isCorrect ? "correct" : "none")}
-            >
+            <Box key={optIndex} sx={answerRowSx(highlight)}>
               <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
-                {isYourAnswer ? (
+                {isSelected ? (
                   <RadioButtonCheckedIcon
-                    color={isCorrect ? "success" : "error"}
-                    sx={{ mt: 0.25 }}
+                    color={isCorrect ? "success" : "disabled"}
+                    sx={{ mt: 0.25, ...(!isCorrect ? { color: "text.secondary" } : {}) }}
                   />
                 ) : (
-                  <RadioButtonUncheckedIcon sx={{ mt: 0.25 }} />
+                  <RadioButtonUncheckedIcon sx={{ mt: 0.25, color: "text.disabled" }} />
                 )}
                 <RichLabel
                   html={optionLabel(option)}
@@ -87,9 +104,15 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
                     fontWeight: isCorrect ? "bold" : "normal",
                   }}
                 />
-                {isCorrect && <Chip label="پاسخ صحیح" color="success" size="small" />}
-                {isYourAnswer && !isCorrect && (
-                  <Chip label="پاسخ شما" color="error" size="small" />
+                {isCorrect && (
+                  <Chip label="پاسخ صحیح" color="success" size="small" variant="outlined" />
+                )}
+                {isSelected && !isCorrect && (
+                  <Chip
+                    label={participantAnswerChipLabel(audience, false)}
+                    size="small"
+                    variant="outlined"
+                  />
                 )}
               </Stack>
             </Box>
@@ -109,23 +132,28 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
           const correctAnswers = Array.isArray(question.correct_answer)
             ? question.correct_answer
             : [question.correct_answer];
-          const yourAnswers = Array.isArray(question.your_answer)
+          const selectedAnswers = Array.isArray(question.your_answer)
             ? question.your_answer
             : question.your_answer != null
               ? [question.your_answer]
               : [];
           const isCorrect = correctAnswers.includes(optIndex);
-          const isYourAnswer = yourAnswers.includes(optIndex);
+          const isSelected = selectedAnswers.includes(optIndex);
+          const highlight = isCorrect ? "correct" : isSelected ? "selected" : "none";
           return (
-            <Box key={optIndex} sx={answerRowSx(isCorrect ? "correct" : "none")}>
+            <Box key={optIndex} sx={answerRowSx(highlight)}>
               <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
                 <RichLabel html={optionLabel(option)} fontSize="1rem" block={false} sx={{ flex: 1 }} />
-                {isCorrect && <Chip label="پاسخ صحیح" color="success" size="small" />}
-                {isYourAnswer && !isCorrect && (
-                  <Chip label="پاسخ شما" color="error" size="small" />
+                {isCorrect && (
+                  <Chip label="پاسخ صحیح" color="success" size="small" variant="outlined" />
                 )}
-                {isYourAnswer && isCorrect && (
-                  <Chip label="پاسخ شما (صحیح)" color="success" size="small" />
+                {isSelected && (
+                  <Chip
+                    label={participantAnswerChipLabel(audience, !!isCorrect)}
+                    color={isCorrect ? "success" : "default"}
+                    size="small"
+                    variant="outlined"
+                  />
                 )}
               </Stack>
             </Box>
@@ -138,10 +166,12 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
   if (kind === "ordering" && norm.items.length > 0) {
     const yourOrder = Array.isArray(question.your_answer) ? question.your_answer : [];
     const correctOrder = norm.correct_order;
+    const orderCaption =
+      audience === "grader" ? "ترتیب دانش‌آموز / ترتیب صحیح:" : "ترتیب شما / ترتیب صحیح:";
     return (
       <Stack spacing={1}>
         <Typography variant="body2" color="text.secondary">
-          ترتیب شما / ترتیب صحیح:
+          {orderCaption}
         </Typography>
         {correctOrder.map((idx, i) => {
           const yours = yourOrder[i];
@@ -152,11 +182,13 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
               sx={{
                 p: 1,
                 borderRadius: 1,
-                bgcolor: ok ? "success.light" : "error.light",
+                bgcolor: compareRowBg(ok, audience),
+                border: "1px solid",
+                borderColor: ok ? "success.light" : "divider",
               }}
             >
-              <Typography variant="caption">
-                {i + 1}. {ok ? "✓" : "✗"}
+              <Typography variant="caption" color="text.secondary">
+                {i + 1}. {ok ? "مطابق پاسخ صحیح" : "متفاوت از پاسخ صحیح"}
               </Typography>
               <RichLabel html={optionText(norm.items[yours ?? idx])} fontSize="0.9rem" />
             </Box>
@@ -181,11 +213,17 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
           return (
             <Box
               key={i}
-              sx={{ p: 1, borderRadius: 1, bgcolor: ok ? "success.light" : "error.light" }}
+              sx={{
+                p: 1,
+                borderRadius: 1,
+                bgcolor: compareRowBg(ok, audience),
+                border: "1px solid",
+                borderColor: ok ? "success.light" : "divider",
+              }}
             >
               <RichLabel html={optionText(norm.left_items[m.left_index])} fontSize="0.9rem" />
-              <Typography variant="caption" display="block">
-                پاسخ شما:{" "}
+              <Typography variant="caption" display="block" color="text.secondary">
+                {answerLabel}:{" "}
                 {yourRights.map((ri) => optionText(norm.right_items[ri])).join("، ") || "—"}
               </Typography>
             </Box>
@@ -215,12 +253,18 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
               sx={{
                 p: 1,
                 borderRadius: 1,
-                bgcolor: manual ? "grey.100" : ok ? "success.light" : "error.light",
+                bgcolor: manual ? "grey.50" : compareRowBg(ok, audience),
+                border: "1px solid",
+                borderColor: manual ? "divider" : ok ? "success.light" : "divider",
               }}
             >
               <Typography variant="body2">
                 جای خالی {i + 1}: {yours || "—"}
-                {manual ? " (تصحیح دستی)" : ` — پاسخ صحیح: ${expected.join(" / ")}`}
+                {manual
+                  ? " (در حال بررسی)"
+                  : audience === "grader"
+                    ? ` — پاسخ صحیح: ${expected.join(" / ")}`
+                    : ""}
               </Typography>
             </Box>
           );
@@ -243,18 +287,29 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
       expected.some((e) => e.trim().toLowerCase() === yours.trim().toLowerCase());
     return (
       <Stack spacing={1.5}>
-        <Box sx={{ ...answerRowSx(ok ? "correct" : "none"), p: 2 }}>
+        <Box
+          sx={{
+            ...answerRowSx(ok ? "correct" : "selected"),
+            p: { xs: 1.5, md: 2 },
+            overflow: "visible",
+            maxHeight: "none",
+          }}
+        >
           <Typography variant="body2" color="text.secondary">
-            پاسخ شما:
+            {answerLabel}:
           </Typography>
-          <Typography variant="body1">{yours || "پاسخی داده نشده"}</Typography>
+          {yours ? (
+            <RichLabel html={yours} fontSize="1rem" compact={false} fullContent />
+          ) : (
+            <Typography variant="body1">پاسخی داده نشده</Typography>
+          )}
           {manual && (
             <Alert severity="info" sx={{ mt: 1 }}>
-              در انتظار تصحیح دستی
+              این پاسخ توسط معلم بررسی می‌شود
             </Alert>
           )}
         </Box>
-        {!manual && expected.length > 0 && (
+        {audience === "grader" && !manual && expected.length > 0 && (
           <Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               پاسخ‌های قابل قبول:
@@ -274,31 +329,48 @@ export function QuestionResultDisplay({ question }: QuestionResultDisplayProps) 
 
   const isPendingGrading = question.is_pending_grading;
   const bgColor = isPendingGrading
-    ? "grey.100"
+    ? "grey.50"
     : question.is_correct
       ? "success.light"
-      : "error.light";
+      : "action.hover";
 
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" gutterBottom>
-        پاسخ شما:
+        {answerLabel}:
       </Typography>
-      <Box sx={{ p: 2, bgcolor: bgColor, borderRadius: 1 }}>
+      <Box
+        sx={{
+          p: { xs: 1.5, md: 2 },
+          bgcolor: bgColor,
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: question.is_correct ? "success.light" : "divider",
+          overflow: "visible",
+          maxHeight: "none",
+        }}
+      >
         {question.your_answer != null && question.your_answer !== "" ? (
-          <RichLabel html={String(question.your_answer)} fontSize="1rem" />
+          <RichLabel
+            html={String(question.your_answer)}
+            fontSize="1rem"
+            compact={false}
+            fullContent
+          />
         ) : (
           <Typography variant="body1">پاسخی داده نشده</Typography>
         )}
       </Box>
       {isPendingGrading && (
         <Alert severity="info" sx={{ mt: 1 }}>
-          این سوال تشریحی است و در انتظار تصحیح معلم می‌باشد.
+          {audience === "grader"
+            ? "این سوال هنوز نمره‌دهی نشده است."
+            : "این بخش پس از بررسی معلم تکمیل می‌شود."}
         </Alert>
       )}
-      {!isPendingGrading && question.is_correct && (
-        <Alert severity="success" sx={{ mt: 1 }}>
-          پاسخ شما صحیح است
+      {!isPendingGrading && question.is_correct && audience === "student" && (
+        <Alert severity="success" sx={{ mt: 1 }} variant="outlined">
+          آفرین، پاسخ درست بود.
         </Alert>
       )}
     </Box>
