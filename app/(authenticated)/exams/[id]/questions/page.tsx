@@ -55,6 +55,8 @@ import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
+import { ExamQuestionsToolbar } from '@/components/exams/exam-questions/ExamQuestionsToolbar';
+import { ExamQuestionBankPane } from '@/components/exams/exam-questions/ExamQuestionBankPane';
 import QuestionBankDrawer from '@/components/questions/QuestionBankDrawer';
 import QuestionDisplay from '@/components/questions/QuestionDisplay';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
@@ -672,55 +674,16 @@ function ExamQuestionsContent() {
   }
 
   const questionBankSidebar = (
-    <Paper
-      sx={{
-        p: isMobile ? 3 : 0,
-        height: isMobile ? 'fit-content' : 'calc(100vh - 140px)',
-        position: isMobile ? 'relative' : 'sticky',
-        top: isMobile ? 0 : 24,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      <Stack spacing={3}>
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            افزودن سوال
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            از بانک سوالات انتخاب کنید یا سوال جدید بسازید. با باز شدن پنل بانک، سوالات با جزئیات و آمار نمایش داده می‌شوند.
-          </Typography>
-        </Box>
-        {!isMobile ? (
-          <QuestionBankDrawer
-            variant="embedded"
-            onAddQuestion={handleAddQuestion}
-            closeOnAdd={false}
-            defaultPoints={defaultPoints}
-          />
-        ) : (
-          <>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setMobileDrawerOpen(true)}
-              fullWidth
-            >
-              افزودن از بانک سوالات
-            </Button>
-            <QuestionBankDrawer
-              open={bankDrawerOpen}
-              onClose={() => setBankDrawerOpen(false)}
-              onAddQuestion={handleAddQuestion}
-              closeOnAdd={closeBankOnAdd}
-              defaultPoints={defaultPoints}
-            />
-          </>
-        )}
-        <CreateCustomQuestion examId={examId ?? undefined} />
-      </Stack>
-    </Paper>
+    <ExamQuestionBankPane
+      examId={examId ?? undefined}
+      isMobile={isMobile}
+      defaultPoints={defaultPoints}
+      bankDrawerOpen={bankDrawerOpen}
+      onOpenBank={() => setMobileDrawerOpen(true)}
+      onCloseBank={() => setBankDrawerOpen(false)}
+      onAddQuestion={handleAddQuestion}
+      closeOnAdd={closeBankOnAdd}
+    />
   );
 
   return (
@@ -732,38 +695,14 @@ function ExamQuestionsContent() {
           { label: 'مدیریت سوالات' }
         ]} />
 
-        {/* Header */}
-        <Box>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-            <Button
-              startIcon={<ArrowRightIcon />}
-              onClick={() => router.push(`/exams/${examId}`)}
-              variant="outlined"
-            >
-              بازگشت
-            </Button>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h4" gutterBottom>
-                مدیریت سوالات آزمون
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {examWithQuestions.title}
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-
-        {isMobile && (
-            <Box>
-              <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => setMobileDrawerOpen(true)}
-              >
-                افزودن سوال
-              </Button>
-            </Box>
-        )}
+        <ExamQuestionsToolbar
+          title={examWithQuestions.title}
+          questionCount={questions.length}
+          totalPoints={totalPoints}
+          onBack={() => router.push(`/exams/${examId}`)}
+          onOpenBank={() => setMobileDrawerOpen(true)}
+          showMobileBankToggle={isMobile}
+        />
 
         {/* Mobile Drawer */}
         {isMobile && (

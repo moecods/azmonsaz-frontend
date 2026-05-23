@@ -180,7 +180,7 @@ export function QuestionAnswerInput({
     const options = (Array.isArray(p.options) ? p.options : (type === 'true_false' ? ['درست', 'نادرست'] : [])) as string[];
     const selectedIndex = value != null ? Number(value) : null;
     return (
-      <FormControl component="fieldset" sx={{ width: '100%' }}>
+      <FormControl component="fieldset" sx={{ width: '100%' }} aria-label="گزینه‌های پاسخ">
         <RadioGroup value={selectedIndex != null ? String(selectedIndex) : ''}>
           <Box
             key={`mc-${perRow}-${labelStyle}`}

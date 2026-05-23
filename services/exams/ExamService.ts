@@ -294,6 +294,15 @@ export class ExamService {
     return this.apiClient.get<ExamResultDetail>(`/exams/${id}/my-result`);
   }
 
+  async requestAiReview(
+    examId: number,
+    examQuestionId: number
+  ): Promise<ApiResponse<{ explanation: string; feedback?: string }>> {
+    return this.apiClient.post<{ explanation: string; feedback?: string }>(
+      `/exams/${examId}/my-result/ai-review/${examQuestionId}`
+    );
+  }
+
   /**
    * Search users by phone number or national ID (for adding exam participants).
    * Backend route: GET /users/search

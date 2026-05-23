@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
   Alert,
@@ -37,7 +38,12 @@ import { QuestionTypeSelector } from './create-question/QuestionTypeSelector';
 import { getQuestionTypeDefaults } from '@/lib/question-types/type-defaults';
 import type { QuestionTypeId } from '@/lib/question-types/constants';
 import { QuestionPreview, type PreviewAnswer } from './create-question/QuestionPreview';
-import { QuestionTextInput, BLANK_PLACEHOLDER } from './create-question/QuestionTextInput';
+import { BLANK_PLACEHOLDER } from './create-question/QuestionTextInput';
+
+const QuestionTextInput = dynamic(
+  () => import('./create-question/QuestionTextInput').then((m) => m.QuestionTextInput),
+  { ssr: false, loading: () => null }
+);
 import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
 import { flattenFormErrors, focusFirstFormError } from '@/lib/form-errors';
 import { FormValidationAlerts } from '@/components/forms/FormValidationAlerts';

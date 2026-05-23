@@ -40,9 +40,8 @@ import {
   useRemoveUserFromGroup,
   useImportUsersToGroup,
 } from '@/hooks/useGroups';
-import { useQuery } from '@tanstack/react-query';
-import { userService } from '@/services';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useUserSearch } from '@/hooks/useUserSearch';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -81,18 +80,7 @@ export default function GroupsPage() {
   const importUsersMutation = useImportUsersToGroup();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
-  const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ['users', 'search', debouncedSearchQuery],
-    queryFn: async () => {
-      if (!debouncedSearchQuery || debouncedSearchQuery.length < 3) return null;
-      const response = await userService.searchUsers({ query: debouncedSearchQuery, type: 'both' });
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to search users');
-      }
-      return { data: response.data || [] };
-    },
-    enabled: !!debouncedSearchQuery && debouncedSearchQuery.length >= 3,
-  });
+  const { data: searchResults, isLoading: isSearching } = useUserSearch(debouncedSearchQuery);
 
   const handleOpenCreate = () => {
     setGroupName('');

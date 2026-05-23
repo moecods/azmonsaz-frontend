@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Lint
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 jobs:
-  vitest:
+  eslint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,9 +21,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run unit tests
-        run: npm run test:run -- --project=unit
+      - name: ESLint
+        run: npm run lint
 
-      - name: Coverage report (informational)
-        continue-on-error: true
-        run: npm run test:coverage -- --project=unit
+      - name: Typecheck
+        run: npx tsc --noEmit

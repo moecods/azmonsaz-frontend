@@ -260,3 +260,17 @@ components/
 - **Component Tests**: برای کامپوننت‌ها
 - **Integration Tests**: برای صفحات و features
 
+## 7. Accessibility (a11y)
+
+### Take / result exams
+- Option rows: `aria-label` on radio/checkbox inputs (`QuestionAnswerInput`).
+- Exam timer: use `role="timer"` and `aria-live="polite"` when displaying countdown.
+- Question navigation: move focus to question stem heading on index change (`tabIndex={-1}` + `ref.focus()`).
+
+### Forms
+- All inputs must have visible `<label>` or `aria-label`.
+- Validation errors: link fields with `aria-describedby` to error text (`FormValidationAlerts`).
+
+### Color
+- Do not rely on color alone for correct/incorrect — use borders, chips, or icons (see `QuestionView` result mode).
+

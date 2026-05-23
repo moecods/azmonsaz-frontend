@@ -15,7 +15,7 @@ import {
   Step,
   StepLabel,
 } from "@mui/material";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, useWatch } from "react-hook-form";
 import { ExamFormData } from "@/lib/validation";
 import { BasicInfoStep, ExamSettingsStep, SchedulingStep } from "./ExamFormSteps";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -38,9 +38,12 @@ export function ExamFormWizard({
 }: ExamFormWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
-  const { handleSubmit, watch, trigger } = form;
+  const { handleSubmit, control, trigger } = form;
 
-  const formData = watch();
+  const type = useWatch({ control, name: "type" });
+  const durationMinutes = useWatch({ control, name: "duration_minutes" });
+  const gradingMode = useWatch({ control, name: "grading_mode" });
+  const scheduleType = useWatch({ control, name: "schedule_type" });
 
   const stepFields: (keyof ExamFormData)[][] = [
     ["title", "type"],
@@ -70,12 +73,12 @@ export function ExamFormWizard({
 
   const previewChips = useMemo(() => {
     const chips: string[] = [];
-    if (formData.type) chips.push(formData.type === "online" ? "آنلاین" : "آفلاین");
-    if (formData.duration_minutes) chips.push(`${formData.duration_minutes} دقیقه`);
-    if (formData.grading_mode) chips.push(formData.grading_mode);
-    if (formData.schedule_type) chips.push(formData.schedule_type);
+    if (type) chips.push(type === "online" ? "آنلاین" : "آفلاین");
+    if (durationMinutes) chips.push(`${durationMinutes} دقیقه`);
+    if (gradingMode) chips.push(gradingMode);
+    if (scheduleType) chips.push(scheduleType);
     return chips;
-  }, [formData]);
+  }, [type, durationMinutes, gradingMode, scheduleType]);
 
   return (
     <Card>

@@ -72,30 +72,25 @@ npm run dev
 
 ```
 azmonsaz-frontend/
-├── app/                          # Next.js App Router pages
-│   ├── admin/                    # Admin panel pages
-│   ├── exams/                    # Exam-related pages
-│   │   └── create/              # Exam creation page
-│   ├── questions/               # Question bank management
-│   ├── partners/                # Partner management
-│   ├── providers/               # React Query provider
-│   ├── layout.tsx               # Root layout
-│   ├── page.tsx                 # Home page
-│   └── LocaleSwitcher.tsx       # Language switcher
-├── components/                   # Reusable components
-│   ├── ExamQuestionList.tsx     # Exam question management
-│   ├── PDFDownload.tsx          # PDF download functionality
-│   └── QuestionSelector.tsx     # Question selection interface
-├── lib/                         # Utility libraries
-│   ├── api.ts                   # API client
-│   ├── query-client.ts          # React Query configuration
-│   └── validation.ts            # Zod validation schemas
-├── theme/                       # MUI theme configuration
-│   └── ThemeRegistry.tsx        # Theme provider with RTL support
-├── types/                       # TypeScript type definitions
-│   └── index.ts                 # Core application types
-└── public/                      # Static assets
+├── app/                          # Next.js App Router
+│   ├── (authenticated)/          # Auth-required routes (exams, questions, profile, …)
+│   ├── (public)/                 # Login, register, participate
+│   └── layout.tsx
+├── components/                   # UI and domain components
+│   ├── questions/                  # QuestionDisplay, QuestionView, forms, primitives
+│   ├── exams/                    # ExamFormWizard, steps
+│   ├── layout/                   # Shell, sidebar, navigation
+│   └── ui/                       # Shared UI primitives
+├── hooks/                        # React Query hooks (useExams, useQuestions, …)
+├── services/                     # API clients per domain
+├── lib/                          # validation.ts, question-types/, query-client.ts
+├── theme/                        # MUI theme + ColorModeProvider
+├── tests/                        # Vitest unit tests
+├── cypress/                      # E2E tests
+└── docs/                         # Architecture, UI standards, testing
 ```
+
+Documentation index: [azmonsaz-docs](../azmonsaz-docs/README.md).
 
 ## Key Components
 
@@ -152,6 +147,25 @@ The application includes comprehensive RTL support for Persian/Farsi:
 - **Component Adaptation**: All MUI components adapt to RTL layout
 
 ## Development
+
+### Production
+
+See [docs/PRODUCTION_SETUP.md](docs/PRODUCTION_SETUP.md).
+
+### CI (GitHub Actions)
+
+On push/PR to `main`/`master`:
+
+- **Unit tests** — Vitest (`npm run test:run -- --project=unit`)
+- **Lint** — ESLint + `tsc --noEmit`
+- **E2E** — Cypress (separate workflow; requires build)
+- **Coverage** — informational Vitest coverage report on PRs
+
+PRs use [.github/pull_request_template.md](.github/pull_request_template.md).
+
+### Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ### Available Scripts
 

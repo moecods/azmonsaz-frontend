@@ -21,9 +21,9 @@ import {
   Snackbar,
 } from '@mui/material';
 import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo } from '@/hooks/useExams';
+import { TakeExamProvider, useTakeExamContext } from '@/hooks/exams/useTakeExam';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { QuestionAnswerInput } from '@/components/questions/QuestionAnswerInput';
-import { RichLabel } from '@/components/editor';
+import QuestionView from '@/components/questions/QuestionView';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SaveIcon from '@mui/icons-material/Save';
 import SendIcon from '@mui/icons-material/Send';
@@ -44,12 +44,29 @@ interface Question {
 
 export default function TakeExamPage() {
   const params = useParams();
-  const router = useRouter();
   const examId = params?.id ? parseInt(params.id as string) : null;
-  
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  return (
+    <TakeExamProvider examId={examId}>
+      <TakeExamPageContent examId={examId} />
+    </TakeExamProvider>
+  );
+}
+
+function TakeExamPageContent({ examId }: { examId: number | null }) {
+  const router = useRouter();
+  const {
+    questions,
+    setQuestions,
+    answers,
+    setAnswer,
+    setAnswersMap,
+    currentIndex,
+    currentQuestion,
+    goToIndex,
+    goNext,
+    goPrevious,
+  } = useTakeExamContext();
   const [examStarted, setExamStarted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -108,7 +125,7 @@ export default function TakeExamPage() {
       setQuestions(mapApiQuestionsToState(data.questions));
     }
     if (data.answers && typeof data.answers === 'object') {
-      setAnswers(data.answers as Record<number, unknown>);
+      setAnswersMap(data.answers as Record<number, unknown>);
     }
     if (data.remaining_seconds != null && typeof data.remaining_seconds === 'number') {
       setTimeRemaining(data.remaining_seconds);
@@ -117,7 +134,7 @@ export default function TakeExamPage() {
       if (typeof dm === 'number') setTimeRemaining(dm * 60);
     }
     setExamStarted(true);
-  }, [mapApiQuestionsToState, examInfo]);
+  }, [mapApiQuestionsToState, examInfo, setQuestions, setAnswersMap]);
 
   const handleStartExam = useCallback(async () => {
     if (!examId) {
@@ -257,7 +274,7 @@ export default function TakeExamPage() {
   useEffect(() => () => flushPendingSave(), [flushPendingSave]);
 
   const handleAnswerChange = useCallback((questionId: number, answer: any) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+    setAnswer(questionId, answer);
 
     if (!examId) return;
     pendingSaveRef.current = { questionId, answer };
@@ -273,19 +290,19 @@ export default function TakeExamPage() {
         });
       }
     }, SAVE_DEBOUNCE_MS);
-  }, [examId, saveAnswerMutation]);
+  }, [examId, saveAnswerMutation, setAnswer]);
 
   const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentIndex < questions.length - 1) {
       flushPendingSave();
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      goNext();
     }
   };
 
   const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
+    if (currentIndex > 0) {
       flushPendingSave();
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      goPrevious();
     }
   };
 
@@ -618,8 +635,7 @@ export default function TakeExamPage() {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
   return (
     <ProtectedRoute>
@@ -631,12 +647,12 @@ export default function TakeExamPage() {
               <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
                 <Box>
                   <Typography variant="h6" gutterBottom>
-                    سوال {currentQuestionIndex + 1} از {questions.length}
+                    سوال {currentIndex + 1} از {questions.length}
                   </Typography>
                   <LinearProgress variant="determinate" value={progress} sx={{ width: 200, mt: 1 }} />
                 </Box>
                 {timeRemaining !== null && (
-                  <Box textAlign="center">
+                  <Box textAlign="center" aria-live="polite" aria-atomic="true" role="timer">
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <AccessTimeIcon color={timeRemaining < 300 ? 'error' : 'action'} />
                       <Typography
@@ -657,12 +673,7 @@ export default function TakeExamPage() {
             <Card>
               <CardContent>
                 <Stack spacing={3}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, width: '100%' }}>
-                    <RichLabel
-                      html={currentQuestion.payload.question_text}
-                      fontSize="1.25rem"
-                      sx={{ flex: 1, minWidth: 0, fontWeight: 600 }}
-                    />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
                     <Chip
                       icon={
                         saveAnswerMutation.isPending ? (
@@ -687,10 +698,11 @@ export default function TakeExamPage() {
                     />
                   </Box>
 
-                  <QuestionAnswerInput
-                    payload={currentQuestion.payload}
-                    value={answers[currentQuestion.id]}
-                    onChange={(v) => handleAnswerChange(currentQuestion.id, v)}
+                  <QuestionView
+                    mode="take"
+                    source={currentQuestion.payload as unknown as Record<string, unknown>}
+                    answerValue={answers[currentQuestion.id]}
+                    onAnswerChange={(v) => handleAnswerChange(currentQuestion.id, v)}
                   />
                 </Stack>
               </CardContent>
@@ -702,13 +714,13 @@ export default function TakeExamPage() {
             <Button
               variant="outlined"
               onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
+              disabled={currentIndex === 0}
             >
               قبلی
             </Button>
 
             <Stack direction="row" spacing={2}>
-              {currentQuestionIndex < questions.length - 1 ? (
+              {currentIndex < questions.length - 1 ? (
                 <Button variant="contained" onClick={handleNext}>
                   بعدی
                 </Button>
@@ -736,11 +748,12 @@ export default function TakeExamPage() {
                 {questions.map((q, index) => (
                   <Button
                     key={q.id}
-                    variant={index === currentQuestionIndex ? 'contained' : 'outlined'}
+                    variant={index === currentIndex ? 'contained' : 'outlined'}
                     size="small"
                     onClick={() => {
                       flushPendingSave();
-                      setCurrentQuestionIndex(index);
+                      flushPendingSave();
+                      goToIndex(index);
                     }}
                     sx={{ minWidth: 40 }}
                   >

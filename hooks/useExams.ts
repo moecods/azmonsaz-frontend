@@ -398,103 +398,14 @@ export function useRegisterForExamPublic() {
   });
 }
 
-export function useStartExam() {
-  const queryClient = useQueryClient();
+export {
+  useStartExam,
+  useExamQuestions,
+  useSaveAnswer,
+  useSubmitExam,
+} from "./exams/useExamTaking";
 
-  return useMutation({
-    mutationFn: async (examId: number) => {
-      const response = await examService.startExam(examId);
-      if (!response.success) {
-        throw new ApiError(
-          response.message || 'Failed to start exam',
-          undefined,
-          (response as any).errors
-        );
-      }
-      return response.data;
-    },
-    onSuccess: (_, examId) => {
-      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
-      queryClient.invalidateQueries({ queryKey: ['exam', 'info', examId] });
-      // Invalidate questions query so it will refetch after exam starts
-      queryClient.invalidateQueries({ queryKey: ['exam', 'questions', examId] });
-    },
-  });
-}
-
-export function useExamQuestions(examId: number | null) {
-  return useQuery({
-    queryKey: ['exam', 'questions', examId],
-    queryFn: async () => {
-      if (!examId) return null;
-      const response = await examService.getExamQuestions(examId);
-      if (!response.success) {
-        throw new ApiError(
-          response.message || 'Failed to fetch exam questions',
-          undefined,
-          (response as any).errors
-        );
-      }
-      return response.data;
-    },
-    enabled: !!examId,
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-}
-
-export function useSaveAnswer() {
-  return useMutation({
-    mutationFn: async ({ examId, data }: { examId: number; data: { exam_question_id: number; answer: any } }) => {
-      const response = await examService.saveAnswer(examId, data);
-      if (!response.success) {
-        throw new ApiError(
-          response.message || 'Failed to save answer',
-          undefined,
-          (response as any).errors
-        );
-      }
-      return response.data;
-    },
-  });
-}
-
-export function useSubmitExam() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (examId: number) => {
-      const response = await examService.submitExam(examId);
-      if (!response.success) {
-        throw new ApiError(
-          response.message || 'Failed to submit exam',
-          undefined,
-          (response as any).errors
-        );
-      }
-      return response.data;
-    },
-    onSuccess: (_, examId) => {
-      queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });
-      queryClient.invalidateQueries({ queryKey: ['exam', 'info', examId] });
-    },
-  });
-}
-
-export function useMyExamResult(id: number | null) {
-  return useQuery({
-    queryKey: ['exam', 'my-result', id],
-    queryFn: async () => {
-      if (!id) return null;
-      const response = await examService.getMyExamResult(id);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch exam result');
-      }
-      return response.data;
-    },
-    enabled: !!id,
-  });
-}
+export { useMyExamResult, useExamAiReview } from "./exams/useExamResult";
 
 export function useSearchUsers(examId: number | null, params: SearchUsersParams, enabled: boolean = true) {
   return useQuery({

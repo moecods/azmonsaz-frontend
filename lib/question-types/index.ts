@@ -31,3 +31,5 @@ export {
   questionTypeBorderSx,
   questionTypeAccentSx,
 } from './type-appearance';
+export type { QuestionViewMode, QuestionViewOptions } from './view-options';
+export { DEFAULT_VIEW_OPTIONS, mergeViewOptions } from './view-options';
