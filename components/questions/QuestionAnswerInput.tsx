@@ -11,9 +11,14 @@ import {
   Checkbox,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material';
 import { getQuestionTypeKind } from '@/lib/question-types';
+import { mergeDisplaySettings, getOptionLabel } from '@/lib/question-types/display-settings';
 import { RichLabel } from '@/components/editor';
+import OrderingAnswerInput from './answer/OrderingAnswerInput';
+import MatchingAnswerInput, { type MatchValue } from './answer/MatchingAnswerInput';
+import BlankStemRenderer from './answer/BlankStemRenderer';
 
 function itemText(item: string | { text: string }): string {
   return typeof item === 'string' ? item : item?.text ?? '';
@@ -115,6 +120,7 @@ export interface QuestionPayload {
   right_items?: (string | { text: string })[];
   matches?: { left_index: number; right_index: number }[];
   blanks?: { position: number; correct_answer: string }[];
+  display_settings?: Record<string, unknown>;
 }
 
 /**
@@ -166,6 +172,9 @@ export function QuestionAnswerInput({
   const p = normalizePayloadForDisplay(payload);
   const kind = getQuestionTypeKind(p.type);
   const type = p.type;
+  const displaySettings = mergeDisplaySettings(p.display_settings);
+  const perRow = displaySettings.optionsPerRow ?? 1;
+  const labelStyle = displaySettings.optionLabelStyle ?? 'latin';
 
   if (kind === 'options_single' || type === 'true_false') {
     const options = (Array.isArray(p.options) ? p.options : (type === 'true_false' ? ['درست', 'نادرست'] : [])) as string[];
@@ -173,6 +182,14 @@ export function QuestionAnswerInput({
     return (
       <FormControl component="fieldset" sx={{ width: '100%' }}>
         <RadioGroup value={selectedIndex != null ? String(selectedIndex) : ''}>
+          <Box
+            key={`mc-${perRow}-${labelStyle}`}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))`,
+              gap: 1,
+            }}
+          >
           {options.map((option, index) => (
             <OptionRow
               key={index}
@@ -189,9 +206,21 @@ export function QuestionAnswerInput({
                 />
               }
             >
-              <RichLabel html={option} />
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flex: 1, minWidth: 0 }}>
+                {labelStyle !== 'none' && (
+                  <Typography component="span" sx={{ fontWeight: 600, flexShrink: 0, lineHeight: 1.5 }}>
+                    {getOptionLabel(index, labelStyle)}
+                  </Typography>
+                )}
+                <RichLabel
+                  html={option}
+                  block={false}
+                  sx={{ flex: 1, minWidth: 0, display: 'inline' }}
+                />
+              </Box>
             </OptionRow>
           ))}
+          </Box>
         </RadioGroup>
       </FormControl>
     );
@@ -214,7 +243,14 @@ export function QuestionAnswerInput({
     return (
       <FormControl component="fieldset" sx={{ width: '100%' }}>
         <FormLabel sx={{ mb: 1, fontSize: '0.875rem' }}>انتخاب چند گزینه</FormLabel>
-        <Stack>
+        <Box
+          key={`ms-${perRow}-${labelStyle}`}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))`,
+            gap: 1,
+          }}
+        >
           {options.map((option, index) => (
             <OptionRow
               key={index}
@@ -230,10 +266,21 @@ export function QuestionAnswerInput({
                 />
               }
             >
-              <RichLabel html={option} />
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flex: 1, minWidth: 0 }}>
+                {labelStyle !== 'none' && (
+                  <Typography component="span" sx={{ fontWeight: 600, flexShrink: 0, lineHeight: 1.5 }}>
+                    {getOptionLabel(index, labelStyle)}
+                  </Typography>
+                )}
+                <RichLabel
+                  html={option}
+                  block={false}
+                  sx={{ flex: 1, minWidth: 0, display: 'inline' }}
+                />
+              </Box>
             </OptionRow>
           ))}
-        </Stack>
+        </Box>
       </FormControl>
     );
   }
@@ -254,98 +301,47 @@ export function QuestionAnswerInput({
 
   if (kind === 'ordering') {
     const items = p.items ?? [];
-    const order = (value as number[] | undefined) ?? [];
     return (
-      <Stack spacing={1}>
-        <FormLabel>ترتیب را انتخاب کنید (هر مورد با شماره ترتیب)</FormLabel>
-        {items.map((item, idx) => (
-          <Stack key={idx} direction="row" alignItems="center" spacing={2}>
-            <FormLabel sx={{ minWidth: 80 }}>مورد {idx + 1}:</FormLabel>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <RadioGroup
-                row
-                value={order[idx] != null ? String(order[idx]) : ''}
-                onChange={(e) => {
-                  const newOrder = [...order];
-                  newOrder[idx] = parseInt(e.target.value, 10);
-                  onChange(newOrder);
-                }}
-              >
-                {items.map((_, i) => (
-                  <FormControlLabel
-                    key={i}
-                    value={String(i)}
-                    control={<Radio size="small" disabled={disabled} />}
-                    label={i + 1}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-            <RichLabel html={itemText(item)} />
-          </Stack>
-        ))}
-      </Stack>
+      <OrderingAnswerInput
+        items={items}
+        value={value as number[] | undefined}
+        onChange={(order) => onChange(order)}
+        disabled={disabled}
+        displaySettings={displaySettings}
+      />
     );
   }
 
   if (kind === 'matching') {
     const left = p.left_items ?? [];
     const right = p.right_items ?? [];
-    const matches = (value as { left_index: number; right_index: number }[] | undefined) ?? left.map((_, i) => ({ left_index: i, right_index: 0 }));
+    const matches =
+      (value as MatchValue[] | undefined) ??
+      left.map((_, i) => ({ left_index: i, right_index: 0 }));
     return (
-      <Stack spacing={2}>
-        <FormLabel>هر مورد چپ را به مورد راست تطبیق دهید</FormLabel>
-        {left.map((leftItem, leftIdx) => (
-          <Stack key={leftIdx} direction="row" alignItems="center" spacing={2}>
-            <FormLabel sx={{ minWidth: 120 }}><RichLabel html={itemText(leftItem)} /></FormLabel>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <RadioGroup
-                value={String(matches[leftIdx]?.right_index ?? 0)}
-                onChange={(e) => {
-                  const newMatches = matches.map((m, i) =>
-                    i === leftIdx ? { ...m, right_index: parseInt(e.target.value, 10) } : m
-                  );
-                  onChange(newMatches);
-                }}
-              >
-                {right.map((r, rightIdx) => (
-                  <FormControlLabel
-                    key={rightIdx}
-                    value={String(rightIdx)}
-                    control={<Radio size="small" disabled={disabled} />}
-                    label={<RichLabel html={itemText(r)} />}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-          </Stack>
-        ))}
-      </Stack>
+      <MatchingAnswerInput
+        leftItems={left}
+        rightItems={right}
+        value={matches}
+        onChange={(m) => onChange(m as PreviewAnswerValue)}
+        disabled={disabled}
+        displaySettings={displaySettings}
+      />
     );
   }
 
   if (kind === 'blanks') {
     const blanks = p.blanks ?? [];
-    const answers = (Array.isArray(value) ? value : value != null ? [value] : []) as string[];
+    const answers = (Array.isArray(value) ? value : value != null ? [String(value)] : []) as string[];
+    const stem = p.question_text ?? '';
     return (
-      <Stack spacing={2}>
-        <FormLabel>پاسخ هر جای خالی را وارد کنید</FormLabel>
-        {blanks.map((_, idx) => (
-          <TextField
-            key={idx}
-            size="small"
-            fullWidth
-            disabled={disabled}
-            label={`جای خالی ${idx + 1}`}
-            value={answers[idx] ?? ''}
-            onChange={(e) => {
-              const next = [...answers];
-              next[idx] = e.target.value;
-              onChange(next);
-            }}
-          />
-        ))}
-      </Stack>
+      <BlankStemRenderer
+        stemHtml={stem}
+        blankCount={blanks.length}
+        values={answers}
+        onChange={(next) => onChange(next)}
+        disabled={disabled}
+      />
     );
   }
 

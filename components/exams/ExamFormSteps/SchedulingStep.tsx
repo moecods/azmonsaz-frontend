@@ -1,24 +1,44 @@
 "use client";
 
-import React, { useMemo, useEffect } from 'react';
-import { Stack, Typography, Alert } from '@mui/material';
-import { Controller, UseFormReturn, useWatch } from 'react-hook-form';
-import { ExamFormData } from '@/lib/validation';
-import { PersianDatePicker } from '@/components/exams/PersianDatePicker';
-import { PersianTimePicker } from '@/components/exams/PersianTimePicker';
-import { FormNumberField } from '@/components/forms';
+import React, { useMemo, useEffect } from "react";
+import {
+  Stack,
+  Typography,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { Controller, UseFormReturn, useWatch } from "react-hook-form";
+import { ExamFormData } from "@/lib/validation";
+import { PersianDatePicker } from "@/components/exams/PersianDatePicker";
+import { PersianTimePicker } from "@/components/exams/PersianTimePicker";
+import { FormNumberField } from "@/components/forms";
 
 interface SchedulingStepProps {
   form: UseFormReturn<ExamFormData>;
 }
 
-export const SchedulingStep = React.memo(function SchedulingStep({ form }: SchedulingStepProps) {
+const SCHEDULE_LABELS: Record<string, string> = {
+  none: "بدون زمان‌بندی (پیش‌نویس / چاپ)",
+  fixed_window: "بازه ثابت (تاریخ + شروع و پایان)",
+  duration_only: "فقط مدت — شروع با ورود دانش‌آموز",
+  registration_deadline: "مهلت ثبت‌نام + بازه",
+  flexible_until: "در دسترس از / تا مهلت",
+};
+
+export const SchedulingStep = React.memo(function SchedulingStep({
+  form,
+}: SchedulingStepProps) {
   const { control, formState: { errors }, setValue } = form;
 
-  const examDate = useWatch({ control, name: 'exam_date' });
-  const startTime = useWatch({ control, name: 'start_time' });
-  const endTime = useWatch({ control, name: 'end_time' });
-  const durationMinutes = useWatch({ control, name: 'duration_minutes' });
+  const scheduleType = useWatch({ control, name: "schedule_type" }) ?? "fixed_window";
+  const examDate = useWatch({ control, name: "exam_date" });
+  const startTime = useWatch({ control, name: "start_time" });
+  const endTime = useWatch({ control, name: "end_time" });
+  const durationMinutes = useWatch({ control, name: "duration_minutes" });
 
   const calculatedDuration = useMemo(() => {
     if (examDate && startTime && endTime) {
@@ -27,86 +47,165 @@ export const SchedulingStep = React.memo(function SchedulingStep({ form }: Sched
       const startDate = new Date(startDateTime);
       const endDate = new Date(endDateTime);
       if (endDate > startDate) {
-        const durationMs = endDate.getTime() - startDate.getTime();
-        return Math.floor(durationMs / (1000 * 60));
+        return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60));
       }
     }
     return null;
   }, [examDate, startTime, endTime]);
 
-  // وقتی ساعت شروع و پایان پر شده و مدت زمان خالی است، خودکار مقداردهی کن
   useEffect(() => {
-    if (calculatedDuration !== null && (durationMinutes === undefined || durationMinutes === null || durationMinutes === 0)) {
-      setValue('duration_minutes', calculatedDuration, { shouldValidate: true });
+    if (
+      scheduleType === "fixed_window" &&
+      calculatedDuration !== null &&
+      (durationMinutes === undefined || durationMinutes === null || durationMinutes === 0)
+    ) {
+      setValue("duration_minutes", calculatedDuration, { shouldValidate: true });
     }
-  }, [calculatedDuration, durationMinutes, setValue]);
+  }, [calculatedDuration, durationMinutes, setValue, scheduleType]);
 
   return (
     <Stack spacing={3}>
-      <Alert severity="info" sx={{ mb: 1 }}>
-        زمان‌بندی آزمون اختیاری است. در صورت تعیین، شرکت‌کنندگان فقط در بازه زمانی مشخص شده می‌توانند در آزمون شرکت کنند.
-      </Alert>
+      <Controller
+        name="schedule_type"
+        control={control}
+        render={({ field }) => (
+          <FormControl fullWidth>
+            <InputLabel>نوع زمان‌بندی</InputLabel>
+            <Select {...field} label="نوع زمان‌بندی" value={field.value ?? "fixed_window"}>
+              {Object.entries(SCHEDULE_LABELS).map(([value, label]) => (
+                <MenuItem key={value} value={value}>
+                  {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      />
 
-      <Stack spacing={3}>
-        <Controller
-          name="exam_date"
-          control={control}
-          render={({ field }) => (
-            <PersianDatePicker
-              label="تاریخ برگزاری آزمون"
-              value={field.value ?? null}
-              onChange={field.onChange}
-              error={!!errors.exam_date}
-              errorMessage={errors.exam_date?.message}
-            />
-          )}
-        />
+      {scheduleType === "none" && (
+        <Alert severity="info">آزمون بدون محدودیت زمانی آنلاین ذخیره می‌شود.</Alert>
+      )}
 
-        <Stack direction="row" spacing={2}>
-          <Controller
-            name="start_time"
-            control={control}
-            render={({ field }) => (
-              <PersianTimePicker
-                label="ساعت شروع"
-                value={field.value ?? null}
-                onChange={field.onChange}
-                error={!!errors.start_time}
-                errorMessage={errors.start_time?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="end_time"
-            control={control}
-            render={({ field }) => (
-              <PersianTimePicker
-                label="ساعت پایان"
-                value={field.value ?? null}
-                onChange={field.onChange}
-                error={!!errors.end_time}
-                errorMessage={errors.end_time?.message}
-              />
-            )}
-          />
-        </Stack>
-
+      {scheduleType === "duration_only" && (
         <FormNumberField
           name="duration_minutes"
           control={control}
-          label="مدت زمان آزمون (دقیقه)"
+          label="مدت آزمون (دقیقه)"
           min={1}
-          helperText="اگر ساعت شروع و پایان پر شده باشد، از اختلاف آن‌ها خودکار پر می‌شود؛ در غیر این صورت اختیاری است."
+          helperText="زمان شروع هنگام ورود شرکت‌کننده به آزمون ثبت می‌شود."
         />
+      )}
 
-        {calculatedDuration !== null && durationMinutes != null && durationMinutes > calculatedDuration && (
+      {(scheduleType === "fixed_window" || scheduleType === "registration_deadline") && (
+        <Stack spacing={3}>
+          <Controller
+            name="exam_date"
+            control={control}
+            render={({ field }) => (
+              <PersianDatePicker
+                label="تاریخ برگزاری"
+                value={field.value ?? null}
+                onChange={field.onChange}
+                error={!!errors.exam_date}
+                errorMessage={errors.exam_date?.message}
+              />
+            )}
+          />
+          <Stack direction="row" spacing={2}>
+            <Controller
+              name="start_time"
+              control={control}
+              render={({ field }) => (
+                <PersianTimePicker
+                  label="ساعت شروع"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  error={!!errors.start_time}
+                  errorMessage={errors.start_time?.message}
+                />
+              )}
+            />
+            <Controller
+              name="end_time"
+              control={control}
+              render={({ field }) => (
+                <PersianTimePicker
+                  label="ساعت پایان"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  error={!!errors.end_time}
+                  errorMessage={errors.end_time?.message}
+                />
+              )}
+            />
+          </Stack>
+          <FormNumberField
+            name="duration_minutes"
+            control={control}
+            label="مدت زمان آزمون (دقیقه)"
+            min={1}
+          />
+        </Stack>
+      )}
+
+      {scheduleType === "registration_deadline" && (
+        <Controller
+          name="register_until"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              value={field.value ?? ""}
+              label="مهلت ثبت‌نام (ISO datetime)"
+              fullWidth
+              helperText="مثال: 2026-05-25T23:59:00"
+            />
+          )}
+        />
+      )}
+
+      {scheduleType === "flexible_until" && (
+        <Stack spacing={2}>
+          <Controller
+            name="available_from"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                value={field.value ?? ""}
+                label="در دسترس از"
+                fullWidth
+              />
+            )}
+          />
+          <Controller
+            name="due_by"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                value={field.value ?? ""}
+                label="مهلت انجام تا"
+                fullWidth
+              />
+            )}
+          />
+          <FormNumberField
+            name="duration_minutes"
+            control={control}
+            label="مدت هر تلاش (دقیقه)"
+            min={1}
+          />
+        </Stack>
+      )}
+
+      {calculatedDuration !== null &&
+        durationMinutes != null &&
+        durationMinutes > calculatedDuration && (
           <Typography variant="body2" color="warning.main">
-            مدت زمان تعیین شده ({durationMinutes} دقیقه) بیشتر از بازه زمانی شروع و پایان ({calculatedDuration} دقیقه) است. لطفاً مدت زمان را کاهش دهید.
+            مدت ({durationMinutes} دقیقه) بیشتر از بازه شروع–پایان ({calculatedDuration} دقیقه) است.
           </Typography>
         )}
-      </Stack>
     </Stack>
   );
 });
-

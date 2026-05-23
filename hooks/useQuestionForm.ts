@@ -31,6 +31,10 @@ const DEFAULT_VALUES: QuestionFormData = {
   right_items: [],
   matches: [],
   blanks: [],
+  correct_answers: [],
+  manual_grading: false,
+  matching_mode: 'one_to_one',
+  display_settings: {},
 };
 
 export interface UseQuestionFormOptions {

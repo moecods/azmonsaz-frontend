@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   Box,
   Button,
@@ -11,11 +11,17 @@ import {
   Typography,
   Divider,
   Chip,
-} from '@mui/material';
-import { UseFormReturn } from 'react-hook-form';
-import { ExamFormData } from '@/lib/validation';
-import { BasicInfoStep, ExamSettingsStep, SchedulingStep } from './ExamFormSteps';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+  Stepper,
+  Step,
+  StepLabel,
+} from "@mui/material";
+import { UseFormReturn } from "react-hook-form";
+import { ExamFormData } from "@/lib/validation";
+import { BasicInfoStep, ExamSettingsStep, SchedulingStep } from "./ExamFormSteps";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { focusFirstFormError } from "@/lib/form-errors";
+
+const STEPS = ["اطلاعات پایه", "تنظیمات و نمره‌دهی", "زمان‌بندی"];
 
 interface ExamFormWizardProps {
   form: UseFormReturn<ExamFormData>;
@@ -24,217 +30,149 @@ interface ExamFormWizardProps {
   existingExam?: boolean;
 }
 
-export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: ExamFormWizardProps) {
+export function ExamFormWizard({
+  form,
+  onSubmit,
+  isSubmitting,
+  existingExam,
+}: ExamFormWizardProps) {
+  const [activeStep, setActiveStep] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
-  const { handleSubmit, watch } = form;
+  const { handleSubmit, watch, trigger } = form;
 
-  const title = watch('title');
-  const description = watch('description');
-  const subject = watch('subject');
-  const type = watch('type');
-  const duration_minutes = watch('duration_minutes');
-  const passing_score = watch('passing_score');
-  const instructions = watch('instructions');
-  const tags = watch('tags');
-  const exam_date = watch('exam_date');
-  const start_time = watch('start_time');
-  const end_time = watch('end_time');
+  const formData = watch();
 
-  const formData = useMemo(() => ({
-    title,
-    description,
-    subject,
-    type,
-    duration_minutes,
-    passing_score,
-    instructions,
-    tags,
-    exam_date,
-    start_time,
-    end_time,
-  }), [title, description, subject, type, duration_minutes, passing_score, instructions, tags, exam_date, start_time, end_time]);
+  const stepFields: (keyof ExamFormData)[][] = [
+    ["title", "type"],
+    ["passing_score", "grading_mode", "grading_config", "instructions", "tags"],
+    [
+      "schedule_type",
+      "exam_date",
+      "start_time",
+      "end_time",
+      "duration_minutes",
+      "available_from",
+      "due_by",
+      "register_until",
+    ],
+  ];
+
+  const handleNext = async () => {
+    const ok = await trigger(stepFields[activeStep]);
+    if (!ok) {
+      focusFirstFormError(form.formState.errors);
+      return;
+    }
+    setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
+  };
+
+  const handleBack = () => setActiveStep((s) => Math.max(s - 1, 0));
+
+  const previewChips = useMemo(() => {
+    const chips: string[] = [];
+    if (formData.type) chips.push(formData.type === "online" ? "آنلاین" : "آفلاین");
+    if (formData.duration_minutes) chips.push(`${formData.duration_minutes} دقیقه`);
+    if (formData.grading_mode) chips.push(formData.grading_mode);
+    if (formData.schedule_type) chips.push(formData.schedule_type);
+    return chips;
+  }, [formData]);
 
   return (
     <Card>
       <CardContent>
-        <Stack spacing={4}>
-          {/* Form Sections */}
-          <Stack spacing={4}>
-            {/* Basic Information Section */}
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-                اطلاعات پایه
-              </Typography>
-              <BasicInfoStep form={form} />
-            </Box>
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+          {STEPS.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-            <Divider />
+        <Paper variant="outlined" sx={{ p: 3, mb: 3, minHeight: 280 }}>
+          {activeStep === 0 && <BasicInfoStep form={form} />}
+          {activeStep === 1 && <ExamSettingsStep form={form} />}
+          {activeStep === 2 && <SchedulingStep form={form} />}
+        </Paper>
 
-            {/* Exam Settings Section */}
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-                تنظیمات آزمون
-              </Typography>
-              <ExamSettingsStep form={form} />
-          </Box>
-
-            <Divider />
-
-            {/* Scheduling Section */}
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-                زمان‌بندی (اختیاری)
-              </Typography>
-              <SchedulingStep form={form} />
-            </Box>
-          </Stack>
-
-          {/* Preview Section */}
-          {formData.title && (
-            <Box>
-              <Divider sx={{ my: 3 }} />
-              <Button
-                variant="outlined"
-                startIcon={<VisibilityIcon />}
-                onClick={() => setShowPreview(!showPreview)}
-                fullWidth
-                sx={{ mb: showPreview ? 2 : 0 }}
-              >
-                {showPreview ? 'مخفی کردن پیش‌نمایش' : 'پیش‌نمایش آزمون'}
-              </Button>
-              {showPreview && (
-                <Paper sx={{ p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
-                  <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                    پیش‌نمایش آزمون
-                  </Typography>
-                  <Stack spacing={2.5}>
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                        عنوان
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {formData.title}
-                      </Typography>
-                    </Box>
-                    {formData.description && (
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          توضیحات
-                        </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {formData.description}
-                        </Typography>
-                      </Box>
-                    )}
-                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                    {formData.subject && (
-                        <Chip 
-                          label={`موضوع: ${formData.subject}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                      {formData.type && (
-                        <Chip 
-                          label={`نوع: ${formData.type === 'online' ? 'آنلاین' : 'آفلاین'}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                      {formData.duration_minutes && (
-                        <Chip 
-                          label={`مدت زمان: ${formData.duration_minutes} دقیقه`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                      {formData.passing_score && (
-                        <Chip 
-                          label={`نمره قبولی: ${formData.passing_score}%`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                      {formData.exam_date && (
-                        <Chip 
-                          label={`تاریخ: ${formData.exam_date}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                      {formData.start_time && formData.end_time && (
-                        <Chip 
-                          label={`زمان: ${formData.start_time} - ${formData.end_time}`} 
-                          size="small" 
-                          variant="outlined"
-                        />
-                      )}
-                    </Stack>
-                    {formData.instructions && (
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          دستورالعمل
-                        </Typography>
-                        <Box
-                          dangerouslySetInnerHTML={{
-                            __html: formData.instructions
-                              .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                              .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ''),
-                          }}
-                        />
-                      </Box>
-                    )}
-                    {formData.tags && formData.tags.length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          تگ‌ها
-                        </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                          {formData.tags.map((tag, index) => (
-                            <Chip key={index} label={tag} size="small" />
-                          ))}
-                        </Stack>
-                      </Box>
-                    )}
-                  </Stack>
-                </Paper>
-              )}
-            </Box>
-          )}
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* Action Buttons */}
-          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 2 }}>
-            {!existingExam && (
-              <>
-                <Button
-                  variant="outlined"
-                  onClick={handleSubmit((data) => onSubmit(data, false))}
-                  disabled={isSubmitting}
-                  size="large"
-                >
-                  {isSubmitting ? 'در حال ایجاد...' : 'ایجاد آزمون'}
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit((data) => onSubmit(data, true))}
-                  disabled={isSubmitting}
-                  size="large"
-                >
-                  {isSubmitting ? 'در حال ایجاد...' : 'ایجاد و افزودن سوال'}
-                </Button>
-              </>
+        {formData.title && (
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<VisibilityIcon />}
+              onClick={() => setShowPreview(!showPreview)}
+              fullWidth
+            >
+              {showPreview ? "مخفی کردن پیش‌نمایش" : "پیش‌نمایش آزمون"}
+            </Button>
+            {showPreview && (
+              <Paper sx={{ p: 2, mt: 2, bgcolor: "grey.50" }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {formData.title}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1, gap: 0.5 }}>
+                  {previewChips.map((c) => (
+                    <Chip key={c} label={c} size="small" variant="outlined" />
+                  ))}
+                </Stack>
+              </Paper>
             )}
-            {existingExam && (
-              <Button
-                variant="contained"
-                onClick={handleSubmit((data) => onSubmit(data, false))}
-                disabled={isSubmitting}
-                size="large"
-              >
-                {isSubmitting ? 'در حال ذخیره...' : 'به‌روزرسانی آزمون'}
+          </Box>
+        )}
+
+        <Divider sx={{ my: 2 }} />
+
+        <Stack
+          direction="row"
+          spacing={2}
+          justifyContent="space-between"
+          sx={{
+            position: "sticky",
+            bottom: 0,
+            py: 2,
+            bgcolor: "background.paper",
+            borderTop: 1,
+            borderColor: "divider",
+            zIndex: 1,
+          }}
+        >
+          <Button disabled={activeStep === 0} onClick={handleBack}>
+            قبلی
+          </Button>
+          <Stack direction="row" spacing={2}>
+            {activeStep < STEPS.length - 1 ? (
+              <Button variant="contained" onClick={handleNext}>
+                بعدی
               </Button>
+            ) : (
+              <>
+                {!existingExam && (
+                  <>
+                    <Button
+                      variant="outlined"
+                      onClick={handleSubmit((data) => onSubmit(data, false))}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "در حال ایجاد..." : "ایجاد آزمون"}
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmit((data) => onSubmit(data, true))}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "در حال ایجاد..." : "ایجاد و افزودن سوال"}
+                    </Button>
+                  </>
+                )}
+                {existingExam && (
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit((data) => onSubmit(data, false))}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "در حال ذخیره..." : "به‌روزرسانی آزمون"}
+                  </Button>
+                )}
+              </>
             )}
           </Stack>
         </Stack>
@@ -242,4 +180,3 @@ export function ExamFormWizard({ form, onSubmit, isSubmitting, existingExam }: E
     </Card>
   );
 }
-

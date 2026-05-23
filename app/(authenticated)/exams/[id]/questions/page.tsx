@@ -27,6 +27,7 @@ import {
   DialogActions,
   Snackbar,
   TextField,
+  Collapse,
 } from '@mui/material';
 import {
   DndContext,
@@ -55,6 +56,7 @@ import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import Breadcrumb from '@/components/Breadcrumb';
 import QuestionBankDrawer from '@/components/questions/QuestionBankDrawer';
+import QuestionDisplay from '@/components/questions/QuestionDisplay';
 import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
 import { RichLabel, htmlToPlainText } from '@/components/editor';
 import { ExamQuestion, Question } from '@/types';
@@ -93,6 +95,7 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
 }: SortableQuestionItemProps) {
   const points = (question.payload?.points as number) ?? defaultPoints;
   const [pointsValue, setPointsValue] = useState<string>(String(points));
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setPointsValue(String(points));
@@ -213,11 +216,24 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                     />
                   </Tooltip>
                 </Stack>
-                <RichLabel
-                  html={questionText}
-                  fontSize="1rem"
-                  sx={{ fontWeight: 500 }}
-                />
+                <Box
+                  onClick={() => setExpanded((e) => !e)}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <RichLabel
+                    html={questionText}
+                    fontSize="1rem"
+                    sx={{ fontWeight: 500 }}
+                  />
+                </Box>
+                <Collapse in={expanded}>
+                  <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                    <QuestionDisplay
+                      source={(question.payload ?? question.question ?? {}) as Record<string, unknown>}
+                      mode="manage"
+                    />
+                  </Box>
+                </Collapse>
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5}>
@@ -301,6 +317,8 @@ function ExamQuestionsContent() {
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [bankDrawerOpen, setBankDrawerOpen] = useState(false);
+  const [closeBankOnAdd, setCloseBankOnAdd] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<ExamQuestion | null>(null);
@@ -656,12 +674,13 @@ function ExamQuestionsContent() {
   const questionBankSidebar = (
     <Paper
       sx={{
-        p: 3,
-        height: 'fit-content',
+        p: isMobile ? 3 : 0,
+        height: isMobile ? 'fit-content' : 'calc(100vh - 140px)',
         position: isMobile ? 'relative' : 'sticky',
         top: isMobile ? 0 : 24,
-        maxHeight: isMobile ? 'none' : 'calc(100vh - 120px)',
-        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       <Stack spacing={3}>
@@ -673,27 +692,33 @@ function ExamQuestionsContent() {
             از بانک سوالات انتخاب کنید یا سوال جدید بسازید. با باز شدن پنل بانک، سوالات با جزئیات و آمار نمایش داده می‌شوند.
           </Typography>
         </Box>
-        <Divider />
-        <Stack spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setBankDrawerOpen(true);
-              if (isMobile) setMobileDrawerOpen(true);
-            }}
-            fullWidth
-          >
-            افزودن از بانک سوالات
-          </Button>
+        {!isMobile ? (
           <QuestionBankDrawer
-            open={bankDrawerOpen}
-            onClose={() => setBankDrawerOpen(false)}
+            variant="embedded"
             onAddQuestion={handleAddQuestion}
+            closeOnAdd={false}
             defaultPoints={defaultPoints}
           />
-          <CreateCustomQuestion examId={examId ?? undefined} />
-        </Stack>
+        ) : (
+          <>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setMobileDrawerOpen(true)}
+              fullWidth
+            >
+              افزودن از بانک سوالات
+            </Button>
+            <QuestionBankDrawer
+              open={bankDrawerOpen}
+              onClose={() => setBankDrawerOpen(false)}
+              onAddQuestion={handleAddQuestion}
+              closeOnAdd={closeBankOnAdd}
+              defaultPoints={defaultPoints}
+            />
+          </>
+        )}
+        <CreateCustomQuestion examId={examId ?? undefined} />
       </Stack>
     </Paper>
   );
@@ -764,7 +789,7 @@ function ExamQuestionsContent() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '300px 1fr',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(320px, 40%) 1fr',
             gap: 3,
           }}
         >

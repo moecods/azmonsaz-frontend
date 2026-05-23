@@ -8,11 +8,8 @@ import Navbar from '@/components/Navbar';
 import { isAuthenticatedShellPath } from '@/lib/authenticated-layout';
 
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
-  const theme = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [paddingTop, setPaddingTop] = useState('0'); // Default to showing navbar padding
-  const [shouldShowNavbar, setShouldShowNavbar] = useState(false); // Default to showing navbar
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  const [shouldShowNavbar, setShouldShowNavbar] = useState(false);
   const pathname = usePathname();
   const isLandingPage = pathname === '/';
 
@@ -56,36 +53,49 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
    */
   const navbarConfig = useMemo(() => {
     if (!mounted) {
-      return { show: true, padding: '64px' };
+      return { show: true };
     }
 
-    const isUserLayoutMobile = isMobile && isAuthenticated && isUserLayoutPage;
+    // Authenticated shell owns the navbar (desktop grid + mobile bottom nav).
+    const shellOwnsNavbar = isAuthenticated && isUserLayoutPage;
 
-    const show = !isLandingPage && !isUserLayoutMobile && !isNoNavbarPage;
+    const show = !isLandingPage && !isNoNavbarPage && !shellOwnsNavbar;
 
-    return {
-      show,
-      padding: show ? '64px' : '0',
-    };
-  }, [mounted, isMobile, isAuthenticated, isUserLayoutPage, isLandingPage, isNoNavbarPage]);
+    return { show };
+  }, [mounted, isAuthenticated, isUserLayoutPage, isLandingPage, isNoNavbarPage]);
 
-  // Update state when config changes
   useEffect(() => {
     setShouldShowNavbar(navbarConfig.show);
-    setPaddingTop(navbarConfig.padding);
   }, [navbarConfig]);
 
   return (
-    <>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        width: '100%',
+        overflow: 'hidden',
+      }}
+    >
       {shouldShowNavbar && <Navbar />}
       <Box
         component="main"
-        sx={{ pt: paddingTop }}
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          minWidth: 0,
+          width: '100%',
+          maxWidth: '100vw',
+          overflow: 'hidden',
+        }}
         suppressHydrationWarning
       >
         {children}
       </Box>
-    </>
+    </Box>
   );
 }
 

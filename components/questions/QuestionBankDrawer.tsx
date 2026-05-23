@@ -23,19 +23,21 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { getQuestionTypeLabel, getQuestionTypeKind } from '@/lib/question-types';
+import { questionTypeBorderSx } from '@/lib/question-types/type-appearance';
+import { QuestionTypeChip } from '@/components/questions/QuestionTypeChip';
 import { useQuestions, useQuestionCategories } from '@/hooks';
-import { RichLabel } from '@/components/editor';
+import QuestionDisplay from '@/components/questions/QuestionDisplay';
 import { Question, ExamQuestion, Difficulty, PaginatedResponse } from '@/types';
-
-function optionText(opt: string | { text?: string }): string {
-  return typeof opt === 'string' ? opt : (opt?.text ?? '');
-}
+import { DIFFICULTY_CONFIG } from '@/constants/question';
 
 interface QuestionBankDrawerProps {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
   onAddQuestion: (question: ExamQuestion) => void;
+  /** When false, drawer stays open after add (split-pane / desktop bank). */
+  closeOnAdd?: boolean;
+  /** embedded = inline panel (desktop split); drawer = overlay */
+  variant?: "drawer" | "embedded";
   defaultPoints?: number;
   /** Optional: search term and filters controlled by parent */
   initialSearch?: string;
@@ -44,9 +46,11 @@ interface QuestionBankDrawerProps {
 }
 
 export default function QuestionBankDrawer({
-  open,
-  onClose,
+  open = true,
+  onClose = () => {},
   onAddQuestion,
+  closeOnAdd = true,
+  variant = "drawer",
   defaultPoints = 10,
   initialSearch = '',
   initialCategory = '',
@@ -88,26 +92,19 @@ export default function QuestionBankDrawer({
       updated_at: new Date().toISOString(),
     };
     onAddQuestion(examQuestion);
-    onClose();
+    if (closeOnAdd) onClose();
   };
 
-  return (
-    <Drawer
-      anchor={isMobile ? 'bottom' : 'right'}
-      open={open}
-      onClose={onClose}
-      variant="temporary"
-      PaperProps={{
-        sx: {
-          width: isMobile ? '100%' : 420,
-          maxWidth: '100%',
-          maxHeight: isMobile ? '92vh' : '100%',
-          borderTopLeftRadius: isMobile ? 16 : 0,
-          borderTopRightRadius: isMobile ? 16 : 0,
-        },
-      }}
-    >
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+  const panel = (
+      <Box
+        sx={{
+          height: variant === "embedded" ? "100%" : "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          minHeight: variant === "embedded" ? 400 : undefined,
+        }}
+      >
         {/* Header */}
         <Stack
           direction="row"
@@ -116,9 +113,11 @@ export default function QuestionBankDrawer({
           sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}
         >
           <Typography variant="h6">بانک سوالات</Typography>
-          <IconButton onClick={onClose} size="small" aria-label="بستن">
-            <CloseIcon />
-          </IconButton>
+          {variant === "drawer" && (
+            <IconButton onClick={onClose} size="small" aria-label="بستن">
+              <CloseIcon />
+            </IconButton>
+          )}
         </Stack>
 
         {/* Stats (bank list) */}
@@ -188,136 +187,31 @@ export default function QuestionBankDrawer({
           ) : (
             <Stack spacing={2}>
               {questions.map((question) => {
-                const q = question as unknown as Record<string, unknown>;
-                const questionText = question.text || (q.question_text as string) || (q.title as string) || 'بدون متن';
                 const questionType = question.type || 'multiple_choice';
-                const kind = getQuestionTypeKind(questionType);
                 const questionDifficulty = (question.difficulty || 'medium') as Difficulty;
-                const questionCategory = question.category ?? (q.category as { name?: string } | undefined);
-                const optionsArr = question.options ?? [];
-                const options = Array.isArray(optionsArr) ? optionsArr : [];
-                const correctAnswer = question.correct_answer ?? null;
-
-                const isCorrectOption = (index: number): boolean => {
-                  if (questionType === 'multiple_select' && Array.isArray(correctAnswer)) return correctAnswer.includes(index);
-                  if (questionType === 'true_false' || questionType === 'multiple_choice') return correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
-                  return false;
-                };
+                const questionCategory = question.category;
+                const diffCfg = DIFFICULTY_CONFIG[questionDifficulty];
 
                 return (
-                  <Card key={question.id} variant="outlined" sx={{ overflow: 'visible' }}>
+                  <Card
+                    key={question.id}
+                    variant="outlined"
+                    sx={(t) => ({
+                      overflow: 'visible',
+                      ...questionTypeBorderSx(t, questionType),
+                    })}
+                  >
                     <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                      <Box sx={{ mb: 1.5 }}>
-                        <RichLabel
-                          html={questionText}
-                          fontSize="1rem"
-                          sx={{ fontWeight: 500 }}
-                        />
-                      </Box>
-
-                      {(kind === 'options_single' || kind === 'options_multiple' || questionType === 'true_false') && options.length > 0 && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>گزینه‌ها:</Typography>
-                          <Stack spacing={0.75}>
-                            {options.map((opt: string | { text?: string }, idx: number) => (
-                              <Box
-                                key={idx}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: 1,
-                                  p: 1,
-                                  borderRadius: 1,
-                                  bgcolor: isCorrectOption(idx) ? 'success.light' : 'action.hover',
-                                  border: isCorrectOption(idx) ? '1px solid' : '1px solid transparent',
-                                  borderColor: 'success.main',
-                                }}
-                              >
-                                <Typography component="span" sx={{ fontWeight: 600, minWidth: 20 }}>
-                                  {String.fromCharCode(65 + idx)}.
-                                </Typography>
-                                <RichLabel
-                                  html={optionText(opt)}
-                                  fontSize="0.875rem"
-                                  sx={{ fontWeight: isCorrectOption(idx) ? 600 : 400 }}
-                                />
-                                {isCorrectOption(idx) && <Chip label="پاسخ صحیح" color="success" size="small" />}
-                              </Box>
-                            ))}
-                          </Stack>
-                        </Box>
-                      )}
-
-                      {kind === 'text' && questionType === 'short_answer' && correctAnswer != null && String(correctAnswer).trim() !== '' && (
-                        <Box sx={{ mb: 1.5, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
-                          <Typography variant="caption" color="text.secondary">پاسخ صحیح:</Typography>
-                          <Typography variant="body2" fontWeight={500}>{String(correctAnswer)}</Typography>
-                        </Box>
-                      )}
-
-                      {kind === 'text' && questionType === 'essay' && (
-                        <Typography variant="caption" color="text.secondary">سوال تشریحی — تصحیح دستی</Typography>
-                      )}
-
-                      {kind === 'ordering' && Array.isArray((q.items as unknown[])) && (q.items as unknown[]).length > 0 && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>ترتیب صحیح:</Typography>
-                          <Stack spacing={0.5}>
-                            {((q.correct_order as number[]) ?? []).map((orderIdx: number, i: number) => {
-                              const items = (q.items as Array<string | { text?: string }>) ?? [];
-                              const item = items[orderIdx];
-                              const itemHtml = item != null ? optionText(item as string | { text?: string }) : `مورد ${orderIdx + 1}`;
-                              return (
-                                <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                                  <Typography component="span" variant="body2">{i + 1}.</Typography>
-                                  <RichLabel html={itemHtml} fontSize="0.875rem" />
-                                </Box>
-                              );
-                            })}
-                          </Stack>
-                        </Box>
-                      )}
-
-                      {kind === 'matching' && Array.isArray(q.left_items) && Array.isArray(q.right_items) && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>تطبیق صحیح:</Typography>
-                          <Stack spacing={0.5}>
-                            {((q.matches as { left_index: number; right_index: number }[]) ?? (q.left_items as unknown[]).map((_: unknown, i: number) => ({ left_index: i, right_index: 0 }))).map((m, i) => {
-                              const leftItems = (q.left_items as Array<string | { text?: string }>) ?? [];
-                              const rightItems = (q.right_items as Array<string | { text?: string }>) ?? [];
-                              return (
-                                <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                                  <RichLabel html={optionText(leftItems[m.left_index] ?? '')} fontSize="0.875rem" />
-                                  <Typography component="span" variant="body2">←</Typography>
-                                  <RichLabel html={optionText(rightItems[m.right_index] ?? '')} fontSize="0.875rem" />
-                                </Box>
-                              );
-                            })}
-                          </Stack>
-                        </Box>
-                      )}
-
-                      {kind === 'blanks' && Array.isArray(q.blanks) && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>پاسخ جای خالی‌ها:</Typography>
-                          <Stack spacing={0.5}>
-                            {((q.blanks as { position: number; correct_answer: string }[]) ?? []).map((b, i) => (
-                              <Typography key={i} variant="body2">{i + 1}. {b.correct_answer || '—'}</Typography>
-                            ))}
-                          </Stack>
-                        </Box>
-                      )}
+                      <QuestionDisplay source={question} mode="bank" compact />
 
                       <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ mt: 1.5 }}>
-                        <Chip
-                          label={questionDifficulty === 'easy' ? 'آسان' : questionDifficulty === 'medium' ? 'متوسط' : 'سخت'}
-                          size="small"
-                          color={questionDifficulty === 'easy' ? 'success' : questionDifficulty === 'medium' ? 'warning' : 'error'}
-                        />
+                        {diffCfg && (
+                          <Chip label={diffCfg.label} size="small" color={diffCfg.color} />
+                        )}
                         {questionCategory?.name && (
                           <Chip label={questionCategory.name} size="small" variant="outlined" />
                         )}
-                        <Chip label={getQuestionTypeLabel(questionType)} size="small" variant="outlined" />
+                        <QuestionTypeChip type={questionType} />
                         <Chip label={`بارم: ${defaultPoints}`} size="small" variant="outlined" />
                       </Stack>
                       <Button
@@ -338,6 +232,29 @@ export default function QuestionBankDrawer({
           )}
         </Box>
       </Box>
+  );
+
+  if (variant === "embedded") {
+    return panel;
+  }
+
+  return (
+    <Drawer
+      anchor={isMobile ? "bottom" : "right"}
+      open={open}
+      onClose={onClose}
+      variant="temporary"
+      PaperProps={{
+        sx: {
+          width: isMobile ? "100%" : 420,
+          maxWidth: "100%",
+          maxHeight: isMobile ? "92vh" : "100%",
+          borderTopLeftRadius: isMobile ? 16 : 0,
+          borderTopRightRadius: isMobile ? 16 : 0,
+        },
+      }}
+    >
+      {panel}
     </Drawer>
   );
 }

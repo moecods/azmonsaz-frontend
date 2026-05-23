@@ -23,7 +23,6 @@ import {
 } from '@mui/material';
 import { useExamWithParticipants } from '@/hooks/useExams';
 import { useAuth } from '@/hooks';
-import UserLayout from '@/components/layout/UserLayout';
 import Breadcrumb from '@/components/Breadcrumb';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -222,25 +221,18 @@ export default function ExamGradingPage() {
 
   if (isLoading) {
     return (
-      <UserLayout>
-        <Box display="flex" justifyContent="center" p={3}>
-          <CircularProgress />
-        </Box>
-      </UserLayout>
+      <Box display="flex" justifyContent="center" p={3}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (!examData) {
-    return (
-      <UserLayout>
-        <Alert severity="error">آزمون یافت نشد.</Alert>
-      </UserLayout>
-    );
+    return <Alert severity="error">آزمون یافت نشد.</Alert>;
   }
 
   return (
-    <UserLayout>
-      <Stack spacing={4}>
+    <Stack spacing={4}>
         <Breadcrumb
           items={[
             { label: 'مدیریت آزمون‌ها', href: '/exams' },
@@ -461,6 +453,5 @@ export default function ExamGradingPage() {
           </Grid>
         </Grid>
       </Stack>
-    </UserLayout>
   );
 }

@@ -64,17 +64,21 @@ function CreateExamContent() {
     resolver: zodResolver(examSchema),
     defaultValues: {
       title: "",
-      description: "",
-      subject: "",
       type: "online",
       questions: [],
       duration_minutes: null,
       passing_score: null,
+      grading_mode: "numeric_percent",
+      grading_config: null,
+      schedule_type: "fixed_window",
       instructions: "",
       tags: [],
       exam_date: null,
       start_time: null,
       end_time: null,
+      available_from: null,
+      due_by: null,
+      register_until: null,
     },
   });
 
@@ -102,8 +106,6 @@ function CreateExamContent() {
   useEffect(() => {
     if (existingExam) {
       setValue("title", existingExam.title);
-      setValue("description", existingExam.description || "");
-      setValue("subject", existingExam.subject || "");
       setValue("type", existingExam.type || "online");
 
       const metaFields = loadExamMetaToForm(existingExam);
@@ -136,8 +138,6 @@ function CreateExamContent() {
   const onSubmit = async (data: ExamFormData, redirectToQuestions = false) => {
     const baseData = {
       title: data.title,
-      description: data.description,
-      subject: data.subject,
       type: data.type,
       duration_minutes: data.duration_minutes ?? undefined,
       passing_score: data.passing_score ?? undefined,

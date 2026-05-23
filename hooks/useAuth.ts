@@ -240,6 +240,40 @@ export function useHasAuthTokenHydrated(): boolean {
  * Main authentication hook that combines all auth functionality
  * @returns Object with authentication state and methods
  */
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const response = await authService.uploadAvatar(file);
+      if (!response.success || !response.data) {
+        throw new ApiError(response.message || "Failed to upload avatar", undefined);
+      }
+      return response.data;
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(queryKeys.me(), user);
+    },
+  });
+}
+
+export function useDeleteAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await authService.deleteAvatar();
+      if (!response.success || !response.data) {
+        throw new ApiError(response.message || "Failed to delete avatar", undefined);
+      }
+      return response.data;
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(queryKeys.me(), user);
+    },
+  });
+}
+
 export function useAuth() {
   const queryClient = useQueryClient();
   // useMe automatically checks for token before making request

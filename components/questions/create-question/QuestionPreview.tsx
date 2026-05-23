@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   Divider,
   IconButton,
   Stack,
@@ -21,8 +20,11 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 import { QuestionAnswerInput } from '@/components/questions/QuestionAnswerInput';
 import type { QuestionPayload } from '@/components/questions/QuestionAnswerInput';
+import QuestionDisplay from '@/components/questions/QuestionDisplay';
 import { RichTextRenderer } from '@/components/editor/RichTextRenderer';
-import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
+import { formValuesToBankSource } from '@/lib/question-types/preview-answer';
+import type { DisplaySettings } from '@/lib/question-types/display-settings';
+import type { QuestionFormData } from '@/lib/validation';
 
 const BLANK_PLACEHOLDER = '_____';
 
@@ -37,28 +39,38 @@ export type PreviewAnswer =
 export interface QuestionPreviewProps {
   questionText: string;
   questionType: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  formValues: QuestionFormData;
   previewPayload: QuestionPayload | null;
   previewAnswer: PreviewAnswer;
   onPreviewAnswerChange: (value: PreviewAnswer) => void;
-  /** Optional category label shown next to type. */
   categoryName?: string | null;
+  displaySettings?: DisplaySettings | Record<string, unknown>;
 }
 
 export function QuestionPreview({
   questionText,
   questionType,
-  difficulty,
+  formValues,
   previewPayload,
   previewAnswer,
   onPreviewAnswerChange,
   categoryName,
+  displaySettings,
 }: QuestionPreviewProps) {
   const [visible, setVisible] = useState(true);
 
-  const typeLabel = QUESTION_TYPE_LABELS[questionType] ?? questionType;
-  const diff = difficulty ? DIFFICULTY_CONFIG[difficulty] : null;
   const hasContent = Boolean(questionText) && Boolean(previewPayload);
+  const bankSource = formValuesToBankSource(formValues, categoryName);
+
+  const payloadWithSettings: QuestionPayload | null = previewPayload
+    ? {
+        ...previewPayload,
+        display_settings: {
+          ...(previewPayload.display_settings ?? {}),
+          ...(displaySettings ?? {}),
+        },
+      }
+    : null;
 
   return (
     <Card variant="outlined" sx={{ position: 'relative', overflow: 'visible', width: '100%' }}>
@@ -95,23 +107,20 @@ export function QuestionPreview({
             </Alert>
           ) : (
             <Stack spacing={2.5}>
-              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                <Chip
-                  size="small"
-                  label={typeLabel}
-                  sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 500 }}
-                />
-                {diff && <Chip size="small" label={diff.label} color={diff.color} variant="outlined" />}
-                {categoryName && (
-                  <Chip size="small" label={categoryName} variant="outlined" />
-                )}
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                نمایش در بانک (با پاسخ کلیدی)
+              </Typography>
+              <QuestionDisplay source={bankSource} mode="bank" compact showAnswerKey />
+
+              <Divider light />
+
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  نمایش دانش‌آموز در آزمون
+                </Typography>
                 {previewAnswer != null && (
                   <Tooltip title="پاک کردن پاسخ پیش‌نمایش">
-                    <IconButton
-                      size="small"
-                      onClick={() => onPreviewAnswerChange(null)}
-                      sx={{ ml: 'auto' }}
-                    >
+                    <IconButton size="small" onClick={() => onPreviewAnswerChange(null)}>
                       <RefreshIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -139,15 +148,12 @@ export function QuestionPreview({
                 )}
               </Box>
 
-              {questionType !== 'fill_in_the_blank' && previewPayload && (
-                <>
-                  <Divider light />
-                  <QuestionAnswerInput
-                    payload={previewPayload}
-                    value={previewAnswer as number | number[] | string | null | undefined}
-                    onChange={(v) => onPreviewAnswerChange(v)}
-                  />
-                </>
+              {questionType !== 'fill_in_the_blank' && payloadWithSettings && (
+                <QuestionAnswerInput
+                  payload={payloadWithSettings}
+                  value={previewAnswer as number | number[] | string | null | undefined}
+                  onChange={(v) => onPreviewAnswerChange(v)}
+                />
               )}
             </Stack>
           )}

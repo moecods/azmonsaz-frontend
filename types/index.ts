@@ -15,6 +15,7 @@ export interface User {
   name: string;
   phone_number: string;
   email?: string | null;
+  avatar_url?: string | null;
   roles: string[];
   permissions: string[];
   is_active: boolean;
@@ -28,6 +29,7 @@ export interface AuthUser {
   name: string;
   phone_number: string;
   email?: string | null;
+  avatar_url?: string | null;
   roles: string[];
   permissions: string[];
   is_active: boolean;
@@ -206,6 +208,7 @@ export interface CreateQuestionRequest {
   category_id: number;
   tags: string[];
   difficulty: Difficulty;
+  display_settings?: QuestionDisplaySettings | Record<string, unknown>;
 }
 
 export interface UpdateQuestionRequest {
@@ -216,6 +219,7 @@ export interface UpdateQuestionRequest {
   category_id?: number;
   tags?: string[];
   difficulty?: Difficulty;
+  display_settings?: QuestionDisplaySettings | Record<string, unknown>;
 }
 
 export interface ApiResponse<T> {

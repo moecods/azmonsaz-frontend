@@ -1,19 +1,29 @@
 "use client";
 
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
-import { Controller } from 'react-hook-form';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import type { TypeFormProps } from './types';
+import { Box, Button, Stack, TextField, Typography } from "@mui/material";
+import { Controller } from "react-hook-form";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import type { TypeFormProps } from "./types";
+import { getArrayFieldError } from "./form-error-utils";
 
-export function TrueFalseForm({ control, setValue, questionOptions }: TypeFormProps) {
+export function TrueFalseForm({ control, errors, setValue, questionOptions }: TypeFormProps) {
+  const optionsError = getArrayFieldError(errors as never, "options");
+
   return (
-    <Box>
-      <Typography variant="subtitle1" sx={{ mb: 2 }}>گزینه صحیح را انتخاب کنید</Typography>
+    <Box id="field-options">
+      <Typography variant="subtitle1" sx={{ mb: 2 }}>
+        گزینه صحیح را انتخاب کنید
+      </Typography>
+      {optionsError && (
+        <Typography variant="caption" color="error" display="block" sx={{ mb: 1 }}>
+          {optionsError}
+        </Typography>
+      )}
       <Stack spacing={2}>
         {[0, 1].map((index) => (
           <Stack key={index} direction="row" spacing={2} alignItems="center">
             <TextField
-              value={questionOptions?.[index]?.text ?? (index === 0 ? 'صحیح' : 'غلط')}
+              value={questionOptions?.[index]?.text ?? (index === 0 ? "صحیح" : "غلط")}
               label={`گزینه ${index + 1}`}
               fullWidth
               disabled
@@ -24,16 +34,16 @@ export function TrueFalseForm({ control, setValue, questionOptions }: TypeFormPr
               control={control}
               render={({ field: f }) => (
                 <Button
-                  variant={f.value ? 'contained' : 'outlined'}
-                  color={f.value ? 'success' : 'inherit'}
+                  variant={f.value ? "contained" : "outlined"}
+                  color={f.value ? "success" : "inherit"}
                   onClick={() => {
-                    setValue('options.0.is_correct', index === 0);
-                    setValue('options.1.is_correct', index === 1);
+                    setValue("options.0.is_correct", index === 0);
+                    setValue("options.1.is_correct", index === 1);
                   }}
                   sx={{ minWidth: 100 }}
                   startIcon={f.value ? <CheckCircleIcon /> : null}
                 >
-                  {f.value ? 'صحیح' : 'غلط'}
+                  {f.value ? "صحیح" : "غلط"}
                 </Button>
               )}
             />

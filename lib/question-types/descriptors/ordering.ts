@@ -1,7 +1,7 @@
 import type { QuestionTypeDescriptor } from './types';
 import type { QuestionFormData } from '@/lib/validation';
 import type { QuestionCategoryRef } from './types';
-import { baseExamPayload } from './shared';
+import { baseBankFields, baseExamPayload } from './shared';
 
 export const orderingDescriptor: QuestionTypeDescriptor = {
   buildExamPayload(data: QuestionFormData, categories: QuestionCategoryRef[]): Record<string, unknown> {
@@ -14,11 +14,7 @@ export const orderingDescriptor: QuestionTypeDescriptor = {
   buildBankPayload(data: QuestionFormData): Record<string, unknown> {
     const items = data.items ?? [];
     return {
-      text: data.text,
-      type: data.type,
-      category_id: data.category_id,
-      tags: data.tags ?? [],
-      difficulty: data.difficulty,
+      ...baseBankFields(data),
       items: items.map((item, i) => ({ text: item.text, order: i })),
       correct_order: data.correct_order ?? items.map((_, i) => i),
     };

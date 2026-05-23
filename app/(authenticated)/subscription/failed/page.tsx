@@ -3,16 +3,13 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
 import CancelIcon from '@mui/icons-material/Cancel';
-import UserLayout from '@/components/layout/UserLayout';
-
 export default function SubscriptionFailedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error') || 'پرداخت ناموفق بود';
 
   return (
-    <UserLayout>
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <Card sx={{ maxWidth: 400 }}>
           <CardContent>
             <Stack spacing={3} alignItems="center">
@@ -32,7 +29,6 @@ export default function SubscriptionFailedPage() {
             </Stack>
           </CardContent>
         </Card>
-      </Box>
-    </UserLayout>
+    </Box>
   );
 }

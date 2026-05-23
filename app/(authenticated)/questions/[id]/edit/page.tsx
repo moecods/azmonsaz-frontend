@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PageLoading } from '@/components/feedback';
 import CreateQuestionContent from '@/components/questions/CreateQuestionContent';
+import { Box, Alert } from '@mui/material';
 
 export default function EditQuestionPage() {
   const params = useParams();
@@ -13,9 +13,9 @@ export default function EditQuestionPage() {
   if (!id || isNaN(id)) {
     return (
       <ProtectedRoute requiredPermission="manage questions">
-        <UserLayout>
-          <PageLoading />
-        </UserLayout>
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">شناسه سوال نامعتبر است.</Alert>
+        </Box>
       </ProtectedRoute>
     );
   }

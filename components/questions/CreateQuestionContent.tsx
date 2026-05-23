@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Alert,
-  AlertTitle,
   Box,
   Button,
   Card,
@@ -30,13 +29,18 @@ import { useQuestionCategories, useQuestion } from '@/hooks';
 import { getDescriptor } from '@/lib/question-types';
 import type { QuestionFormData } from '@/lib/validation';
 import Breadcrumb from '@/components/Breadcrumb';
-import UserLayout from '@/components/layout/UserLayout';
 import { useQuestionForm } from '@/hooks/useQuestionForm';
 import { useQuestionSubmit } from '@/hooks/useQuestionSubmit';
 import { TypeFormRenderer } from './create-question/type-forms';
+import DisplaySettingsPanel from './create-question/DisplaySettingsPanel';
+import { QuestionTypeSelector } from './create-question/QuestionTypeSelector';
+import { getQuestionTypeDefaults } from '@/lib/question-types/type-defaults';
+import type { QuestionTypeId } from '@/lib/question-types/constants';
 import { QuestionPreview, type PreviewAnswer } from './create-question/QuestionPreview';
 import { QuestionTextInput, BLANK_PLACEHOLDER } from './create-question/QuestionTextInput';
 import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
+import { flattenFormErrors, focusFirstFormError } from '@/lib/form-errors';
+import { FormValidationAlerts } from '@/components/forms/FormValidationAlerts';
 
 interface CreateQuestionContentProps {
   examId?: number;
@@ -45,26 +49,6 @@ interface CreateQuestionContentProps {
   /** When editing an exam question (not bank), pass the exam_question id and its payload */
   examQuestionId?: number;
   examQuestionPayload?: Record<string, unknown>;
-}
-
-function flattenErrors(errors: Record<string, unknown>): string[] {
-  const messages: string[] = [];
-  const visit = (obj: Record<string, unknown>) => {
-    for (const value of Object.values(obj)) {
-      if (
-        value &&
-        typeof value === 'object' &&
-        'message' in value &&
-        typeof (value as { message: unknown }).message === 'string'
-      ) {
-        messages.push((value as { message: string }).message);
-      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-        visit(value as Record<string, unknown>);
-      }
-    }
-  };
-  visit(errors);
-  return messages;
 }
 
 export default function CreateQuestionContent({
@@ -100,7 +84,7 @@ export default function CreateQuestionContent({
     isEditMode,
   });
 
-  const { control, handleSubmit, formState: { errors }, watch, setValue } = form;
+  const { control, handleSubmit, formState: { errors }, watch, setValue, setFocus, reset } = form;
 
   const {
     submit,
@@ -130,13 +114,33 @@ export default function CreateQuestionContent({
   const right_items = watch('right_items');
   const matches = watch('matches');
   const blanks = watch('blanks');
+  const displaySettings = watch('display_settings') ?? {};
 
-  const previewPayload = formValues?.text
-    ? (getDescriptor(questionType).buildExamPayload(
-        formValues as QuestionFormData,
-        categories,
-      ) as unknown as import('@/components/questions/QuestionAnswerInput').QuestionPayload)
-    : null;
+  const previewPayload = useMemo(
+    () =>
+      formValues?.text
+        ? (getDescriptor(questionType).buildExamPayload(
+            { ...formValues, display_settings: displaySettings } as QuestionFormData,
+            categories,
+          ) as unknown as import('@/components/questions/QuestionAnswerInput').QuestionPayload)
+        : null,
+    [formValues, questionType, categories, displaySettings],
+  );
+
+  const handleQuestionTypeChange = (nextType: QuestionTypeId) => {
+    const defaults = getQuestionTypeDefaults(nextType);
+    const current = form.getValues();
+    reset({
+      ...current,
+      type: nextType,
+      ...defaults,
+      text: current.text || defaults.text || '',
+      category_id: current.category_id,
+      difficulty: current.difficulty,
+      tags: current.tags,
+    });
+    setPreviewAnswer(null);
+  };
 
   const categoryName = useMemo(
     () => categories.find((c) => c.id === categoryId)?.name ?? null,
@@ -205,8 +209,7 @@ export default function CreateQuestionContent({
   const isLoadingExisting = isEditMode && !isExamQuestionEdit && !questionData;
 
   return (
-    <UserLayout>
-      <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
         <Stack spacing={3}>
           <Breadcrumb
             items={
@@ -244,16 +247,11 @@ export default function CreateQuestionContent({
             </Alert>
           )}
 
-          {validationAlert && validationAlert.length > 0 && (
-            <Alert severity="warning" onClose={() => setValidationAlert(null)}>
-              <AlertTitle>لطفاً خطاهای زیر را برطرف کنید</AlertTitle>
-              <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                {validationAlert.map((msg, i) => (
-                  <li key={i}>{msg}</li>
-                ))}
-              </Box>
-            </Alert>
-          )}
+          <FormValidationAlerts
+            messages={validationAlert}
+            onClose={() => setValidationAlert(null)}
+            variant="top"
+          />
 
           {mutationError instanceof Error && (
             <Alert severity="error">{mutationError.message}</Alert>
@@ -265,36 +263,27 @@ export default function CreateQuestionContent({
                 setValidationAlert(null);
                 submit(data);
               },
-              (errs) => setValidationAlert(flattenErrors(errs as Record<string, unknown>)),
+              (errs) => {
+                const messages = flattenFormErrors(errs as Record<string, unknown>);
+                setValidationAlert(messages);
+                focusFirstFormError(errs, setFocus);
+              },
             )}
           >
             <Stack spacing={3}>
                   {/* Section: Basic info */}
                   <SectionCard
+                    id="section-basic"
                     icon={<TuneIcon color="primary" />}
                     title="اطلاعات پایه"
                     subtitle="نوع سوال، سطح دشواری و دسته‌بندی"
                   >
                     <Stack spacing={2.5}>
+                      <QuestionTypeSelector
+                        value={questionType}
+                        onChange={handleQuestionTypeChange}
+                      />
                       <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                          <Controller
-                            name="type"
-                            control={control}
-                            render={({ field }) => (
-                              <FormControl fullWidth>
-                                <InputLabel>نوع سوال</InputLabel>
-                                <Select {...field} label="نوع سوال">
-                                  {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => (
-                                    <MenuItem key={value} value={value}>
-                                      {label}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            )}
-                          />
-                        </Grid>
                         <Grid size={{ xs: 12, sm: 6 }}>
                           <Controller
                             name="difficulty"
@@ -352,6 +341,7 @@ export default function CreateQuestionContent({
 
                   {/* Section: Question content */}
                   <SectionCard
+                    id="section-text"
                     icon={<EditNoteIcon color="primary" />}
                     title="متن سوال"
                     subtitle="می‌توانید از فرمول ریاضی، تصویر، جدول و قالب‌بندی متن استفاده کنید"
@@ -365,6 +355,7 @@ export default function CreateQuestionContent({
 
                   {/* Section: Type-specific answer config */}
                   <SectionCard
+                    id="section-answers"
                     icon={<RuleFolderIcon color="primary" />}
                     title="پاسخ‌ها"
                     subtitle="پاسخ صحیح و گزینه‌های مرتبط با نوع سوال را مشخص کنید"
@@ -374,6 +365,19 @@ export default function CreateQuestionContent({
                       questionType={questionType}
                       onAddOption={handleAddOption}
                       onRemoveOption={handleRemoveOption}
+                    />
+                  </SectionCard>
+
+                  <SectionCard
+                    id="section-display"
+                    icon={<TuneIcon color="primary" />}
+                    title="نمایش سوال"
+                    subtitle="چیدمان گزینه‌ها، برچسب‌ها و حالت تطبیق"
+                  >
+                    <DisplaySettingsPanel
+                      questionType={questionType}
+                      value={displaySettings}
+                      onChange={(s) => setValue('display_settings', s, { shouldDirty: true })}
                     />
                   </SectionCard>
 
@@ -389,15 +393,23 @@ export default function CreateQuestionContent({
                     <QuestionPreview
                       questionText={questionText}
                       questionType={questionType}
-                      difficulty={difficulty}
+                      formValues={formValues as QuestionFormData}
                       previewPayload={previewPayload}
                       previewAnswer={previewAnswer}
                       onPreviewAnswerChange={setPreviewAnswer}
                       categoryName={categoryName}
+                      displaySettings={displaySettings}
                     />
                   </Box>
 
                   <Divider />
+
+                  <FormValidationAlerts
+                    messages={validationAlert}
+                    onClose={() => setValidationAlert(null)}
+                    variant="sticky"
+                  />
+
                   <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
@@ -430,24 +442,25 @@ export default function CreateQuestionContent({
             </Stack>
           </form>
         </Stack>
-      </Container>
-    </UserLayout>
+    </Container>
   );
 }
 
 function SectionCard({
+  id,
   icon,
   title,
   subtitle,
   children,
 }: {
+  id?: string;
   icon?: React.ReactNode;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card variant="outlined">
+    <Card variant="outlined" id={id}>
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={1.5} alignItems="flex-start">

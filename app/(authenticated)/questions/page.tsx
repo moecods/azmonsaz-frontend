@@ -6,6 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useQuestionManagement } from '@/hooks';
 import { QuestionFilters, QuestionList } from '@/components/questions';
 import Breadcrumb from '@/components/Breadcrumb';
+import ShellContentLoader from '@/components/layout/ShellContentLoader';
 import {useState} from "react";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -29,6 +30,7 @@ export default function QuestionsPage() {
   } = useQuestionManagement();
 
   return (
+    <ShellContentLoader loading={isLoading && questions.length === 0}>
     <Stack spacing={3}>
       {/* Breadcrumb */}
       <Breadcrumb items={[{ label: 'بانک سوالات' }]} />
@@ -88,5 +90,6 @@ export default function QuestionsPage() {
         onDelete={handleDelete}
       />
     </Stack>
+    </ShellContentLoader>
   );
 }

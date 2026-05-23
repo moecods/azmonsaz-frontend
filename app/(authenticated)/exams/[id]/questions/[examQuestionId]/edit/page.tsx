@@ -1,11 +1,11 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PageLoading } from '@/components/feedback';
 import CreateQuestionContent from '@/components/questions/CreateQuestionContent';
 import { useExam } from '@/hooks/useExams';
+import { Box, Alert } from '@mui/material';
 
 export default function EditExamQuestionPage() {
   const params = useParams();
@@ -16,25 +16,21 @@ export default function EditExamQuestionPage() {
 
   if (examId == null || examQuestionId == null) {
     return (
-      <UserLayout>
-        <div style={{ padding: 24 }}>شناسه آزمون یا سوال نامعتبر است.</div>
-      </UserLayout>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">شناسه آزمون یا سوال نامعتبر است.</Alert>
+      </Box>
     );
   }
 
   if (isLoading) {
-    return (
-      <UserLayout>
-        <PageLoading />
-      </UserLayout>
-    );
+    return <PageLoading />;
   }
 
   if (error || !exam) {
     return (
-      <UserLayout>
-        <div style={{ padding: 24 }}>خطا در بارگذاری آزمون.</div>
-      </UserLayout>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">خطا در بارگذاری آزمون.</Alert>
+      </Box>
     );
   }
 
@@ -43,9 +39,9 @@ export default function EditExamQuestionPage() {
 
   if (!examQuestion) {
     return (
-      <UserLayout>
-        <div style={{ padding: 24 }}>سوال یافت نشد.</div>
-      </UserLayout>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">سوال یافت نشد.</Alert>
+      </Box>
     );
   }
 

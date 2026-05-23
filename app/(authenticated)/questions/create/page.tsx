@@ -2,7 +2,6 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import UserLayout from '@/components/layout/UserLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PageLoading } from '@/components/feedback';
 import CreateQuestionContent from '@/components/questions/CreateQuestionContent';
@@ -30,13 +29,7 @@ export default function CreateQuestionPage() {
 
   return (
     <ProtectedRoute requiredPermission={requiredPermission}>
-      <Suspense
-        fallback={
-          <UserLayout>
-            <PageLoading />
-          </UserLayout>
-        }
-      >
+      <Suspense fallback={<PageLoading />}>
         <CreateQuestionPageContent />
       </Suspense>
     </ProtectedRoute>

@@ -13,7 +13,9 @@ export const questionOptionSchema = z.object({
 
 const blankSchema = z.object({
   position: z.number(),
-  correct_answer: z.string().min(1, 'پاسخ جای خالی الزامی است'),
+  correct_answer: z.string().optional(),
+  correct_answers: z.array(z.string()).optional(),
+  grading: z.enum(['auto', 'manual']).optional(),
 });
 
 const leftRightItemSchema = z.object({
@@ -22,7 +24,8 @@ const leftRightItemSchema = z.object({
 
 const matchSchema = z.object({
   left_index: z.number(),
-  right_index: z.number(),
+  right_index: z.number().optional(),
+  right_indices: z.array(z.number()).optional(),
 });
 
 const orderingItemSchema = z.object({
@@ -51,6 +54,10 @@ export const questionSchema = z.object({
   matches: z.array(matchSchema).optional(),
   items: z.array(orderingItemSchema).optional(),
   correct_order: z.array(z.number()).optional(),
+  correct_answers: z.array(z.string()).optional(),
+  manual_grading: z.boolean().optional(),
+  matching_mode: z.enum(['one_to_one', 'one_to_many']).optional(),
+  display_settings: z.record(z.unknown()).optional(),
 }).superRefine((data, ctx) => {
   const kind = getQuestionTypeKind(data.type);
   const t = data.type;
@@ -64,8 +71,15 @@ export const questionSchema = z.object({
       return;
     }
     if (t === 'short_answer') {
-      if (typeof data.correct_answer !== 'string' || (data.correct_answer as string).trim() === '') {
-        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'پاسخ صحیح را وارد کنید' });
+      const answers = data.correct_answers ?? [];
+      const legacy =
+        typeof data.correct_answer === 'string' ? (data.correct_answer as string).trim() : '';
+      if (!data.manual_grading && answers.length === 0 && legacy === '') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['correct_answers'],
+          message: 'حداقل یک پاسخ قابل قبول وارد کنید یا تصحیح دستی را فعال کنید',
+        });
       }
       return;
     }
@@ -105,6 +119,17 @@ export const questionSchema = z.object({
     if (blanks.length < 1) {
       ctx.addIssue({ code: 'custom', path: ['blanks'], message: 'حداقل یک جای خالی لازم است' });
     }
+    blanks.forEach((b, i) => {
+      const answers = b.correct_answers ?? (b.correct_answer ? [b.correct_answer] : []);
+      const manual = b.grading === 'manual' || answers.length === 0;
+      if (!manual && answers.every((a) => !a.trim())) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['blanks', i, 'correct_answers'],
+          message: 'پاسخ قابل قبول یا تصحیح دستی را مشخص کنید',
+        });
+      }
+    });
     return;
   }
 
@@ -145,22 +170,25 @@ export const examQuestionSchema = z.object({
 
 export const examSchema = z.object({
   title: z.string().min(1, 'Exam title is required'),
-  description: z.string().optional(),
-  subject: z.string().optional(),
   type: z.enum(['online', 'offline'], {
     errorMap: () => ({ message: 'نوع آزمون باید آنلاین یا آفلاین باشد' })
   }).default('online'),
   questions: z.array(examQuestionSchema).optional(),
-  // Meta fields
   duration_minutes: z.number().int().positive('مدت زمان باید عدد مثبت باشد').optional().nullable(),
   passing_score: z.number().int().min(0, 'نمره قبولی باید بین 0 تا 100 باشد').max(100, 'نمره قبولی باید بین 0 تا 100 باشد').optional().nullable(),
+  grading_mode: z.enum(['numeric_percent', 'numeric_scale', 'descriptive', 'banded']).default('numeric_percent'),
+  grading_config: z.record(z.unknown()).optional().nullable(),
   instructions: z.string().max(5000, 'دستورالعمل نمی‌تواند بیشتر از ۵۰۰۰ کاراکتر باشد').optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
-  // Scheduling fields
+  schedule_type: z.enum(['none', 'fixed_window', 'duration_only', 'registration_deadline', 'flexible_until']).default('fixed_window'),
   exam_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'فرمت تاریخ معتبر نیست (YYYY-MM-DD)').optional().nullable(),
   start_time: z.string().regex(/^\d{2}:\d{2}$/, 'فرمت زمان معتبر نیست (HH:mm)').optional().nullable(),
   end_time: z.string().regex(/^\d{2}:\d{2}$/, 'فرمت زمان معتبر نیست (HH:mm)').optional().nullable(),
+  available_from: z.string().optional().nullable(),
+  due_by: z.string().optional().nullable(),
+  register_until: z.string().optional().nullable(),
 }).refine((data) => {
+  if (data.schedule_type !== 'fixed_window') return true;
   // If exam_date, start_time, and end_time are provided, validate time order
   if (data.exam_date && data.start_time && data.end_time) {
     const startDateTime = `${data.exam_date}T${data.start_time}:00`;

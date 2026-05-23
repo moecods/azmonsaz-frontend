@@ -1,9 +1,8 @@
 "use client";
 
-import { Box, Typography, Chip } from '@mui/material';
-import { isEssay, getQuestionTypeLabel } from '@/lib/question-types';
+import { Box, Typography } from '@mui/material';
 import { getExamDurationMinutes, getExamPassingScore, getExamInstructions, getExamPointsPerQuestion } from '@/lib/exam-utils';
-import { RichLabel } from '@/components/editor';
+import QuestionPrintBlock from '@/components/questions/QuestionPrintBlock';
 import type { Exam } from '@/types';
 
 interface ExamWithPayload extends Exam {
@@ -136,143 +135,16 @@ export default function DefaultTemplate({ exam }: DefaultTemplateProps) {
 
         {(exam.exam_questions || []).map((examQuestion, index) => {
           const payload = examQuestion.payload || {};
-          const questionText = payload.question_text || 'سوال';
-          const questionType = payload.type || 'multiple_choice';
-          const isEssayType = isEssay(questionType);
-          const typeLabel = getQuestionTypeLabel(questionType);
           const questionNumber = index + 1;
           const points = payload.points ?? pointsPerQuestion ?? 2;
 
           return (
-            <Box
+            <QuestionPrintBlock
               key={examQuestion.id}
-              className="question"
-              sx={{
-                mb: 3.75,
-                padding: 2.5,
-                border: isEssayType ? '2px solid #FF9800' : '2px solid #E0E0E0',
-                borderRadius: '8px',
-                background: isEssayType ? '#FAFAFA' : '#FAFAFA',
-                pageBreakInside: 'avoid',
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'start',
-                  gap: 1.25,
-                  mb: 1.875,
-                }}
-              >
-                <Box
-                  sx={{
-                    background: isEssayType ? '#FF9800' : '#2196F3',
-                    color: 'white',
-                    width: '35px',
-                    height: '35px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '18px',
-                    flexShrink: 0,
-                  }}
-                >
-                  {questionNumber}
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <RichLabel
-                    html={questionText}
-                    fontSize="16px"
-                    sx={{ fontWeight: 500, color: '#212121' }}
-                  />
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.6, flexWrap: 'wrap' }}>
-                    <Chip
-                      label={typeLabel}
-                      size="small"
-                      sx={{
-                        background: '#FF9800',
-                        color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        height: 'auto',
-                      }}
-                    />
-                    <Chip
-                      label={`بارم: ${points}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '12px', height: 'auto' }}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-
-              {isEssayType ? (
-                <Box
-                  sx={{
-                    minHeight: '100px',
-                    mt: 1.875,
-                  }}
-                />
-              ) : (
-                payload.options && Array.isArray(payload.options) && (
-                  <Box
-                    sx={{
-                      mt: 1.875,
-                      pr: 2.5,
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 1.5,
-                    }}
-                  >
-                    {payload.options.map((option: any, optionIndex: number) => {
-                      const optionText = typeof option === 'string' ? option : (option.text || option);
-                      return (
-                        <Box
-                          key={optionIndex}
-                          sx={{
-                            padding: 1.25,
-                            background: 'white',
-                            border: '1px solid #E0E0E0',
-                            borderRadius: '5px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.25,
-                            minWidth: '180px',
-                            flex: '1 1 calc(50% - 12px)',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              background: '#4CAF50',
-                              color: 'white',
-                              width: '25px',
-                              height: '25px',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 'bold',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {String.fromCharCode(65 + optionIndex)}
-                          </Box>
-                          <RichLabel
-                            html={optionText}
-                            fontSize="14px"
-                            sx={{ flex: 1 }}
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                )
-              )}
-            </Box>
+              questionNumber={questionNumber}
+              source={payload as Record<string, unknown>}
+              points={points as number}
+            />
           );
         })}
       </Box>

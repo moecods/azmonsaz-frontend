@@ -9,7 +9,6 @@ import {
   useTheme,
   useMediaQuery,
   Box,
-  Avatar,
   Menu,
   MenuItem,
   Typography,
@@ -24,6 +23,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '@/hooks';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 interface MobileBottomNavProps {
   onMenuClick: () => void;
@@ -168,18 +168,17 @@ export default function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
         <BottomNavigationAction
           label="پروفایل"
           icon={
-            <Avatar
+            <UserAvatar
+              name={user?.name}
+              avatarUrl={user?.avatar_url}
               onClick={handleAvatarClick}
               sx={{
                 width: 24,
                 height: 24,
-                bgcolor: 'primary.main',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
+                fontSize: "0.75rem",
+                cursor: "pointer",
               }}
-            >
-              {user ? getInitials(user.name) : ''}
-            </Avatar>
+            />
           }
           onClick={handleAvatarClick}
         />

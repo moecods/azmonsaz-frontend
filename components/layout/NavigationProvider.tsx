@@ -9,7 +9,7 @@ import {
   ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
-import { Box, CircularProgress, Skeleton, Stack } from "@mui/material";
+import { Box, LinearProgress } from "@mui/material";
 
 const StartNavigationContext = createContext<(() => void) | null>(null);
 
@@ -18,22 +18,9 @@ export function useStartNavigation() {
   return start ?? (() => {});
 }
 
-function NavigationSkeleton() {
-  return (
-    <Stack spacing={2} aria-busy aria-label="در حال بارگذاری صفحه">
-      <Skeleton variant="text" width="40%" height={36} />
-      <Skeleton variant="text" width="60%" height={24} />
-      <Skeleton variant="rounded" height={140} />
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={28} />
-      </Box>
-    </Stack>
-  );
-}
-
 /**
- * Replaces stale page content with a skeleton as soon as navigation starts
- * (sidebar click or internal link), instead of waiting for API + route.
+ * Route-transition feedback: top progress bar only.
+ * Page content stays mounted; use route loading.tsx + per-page query skeletons for data.
  */
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -84,7 +71,19 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   return (
     <StartNavigationContext.Provider value={startNavigation}>
       <Box sx={{ position: "relative", minHeight: 200 }}>
-        {isNavigating ? <NavigationSkeleton /> : children}
+        {isNavigating && (
+          <LinearProgress
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 2,
+            }}
+            aria-label="در حال بارگذاری صفحه"
+          />
+        )}
+        {children}
       </Box>
     </StartNavigationContext.Provider>
   );

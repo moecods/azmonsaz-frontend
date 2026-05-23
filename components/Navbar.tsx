@@ -12,9 +12,15 @@ import NavbarLogo from "./navbar/NavbarLogo";
 import NavbarActions from "./navbar/NavbarActions";
 
 
-export default function Navbar() {
+interface NavbarProps {
+  /** In authenticated grid shell: in-flow bar (not fixed). */
+  variant?: "default" | "shell";
+}
+
+export default function Navbar({ variant = "default" }: NavbarProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const isShell = variant === "shell";
 
   useEffect(() => {
     setMounted(true);
@@ -28,15 +34,16 @@ export default function Navbar() {
 
   return (
     <AppBar
-      position="fixed"
+      position={isShell ? "static" : "fixed"}
       color="transparent"
       elevation={0}
       sx={{
         borderBottom: 1,
         borderColor: "divider",
-        borderRadius: '0px',
-        bgcolor: 'background.paper',
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        borderRadius: "0px",
+        bgcolor: "background.paper",
+        zIndex: isShell ? 1 : (theme) => theme.zIndex.drawer + 1,
+        width: "100%",
       }}
     >
       <Toolbar>

@@ -117,21 +117,21 @@ export function RichLabel({
       compact={compact}
       className={className}
       sx={{
-        display: 'block',
+        display: block ? 'block' : 'inline',
         minWidth: 0,
-        flex: 1,
+        flex: block ? 1 : undefined,
         maxWidth: '100%',
         height: 'auto',
         maxHeight: 'none',
         fontSize,
+        verticalAlign: block ? undefined : 'baseline',
         '& > :first-child': { marginTop: 0 },
         '& > :last-child': { marginBottom: 0 },
         ...(compact
           ? {
-              /* Match editor.css `.rich-text-content.compact` — use `em`, not theme spacing (mt: 0.35 ≈ 3px). */
-              '& p': { margin: 0 },
-              '& p + p': { marginTop: '0.35em' },
-              '& ul, & ol': { marginBlock: '0.25em' },
+              '& p': { margin: 0, display: block ? 'block' : 'inline' },
+              '& p + p': { marginTop: block ? '0.35em' : 0 },
+              '& ul, & ol': { marginBlock: block ? '0.25em' : 0, display: block ? 'block' : 'inline' },
             }
           : {}),
         ...sx,

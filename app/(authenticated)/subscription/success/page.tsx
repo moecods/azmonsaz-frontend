@@ -4,8 +4,6 @@ import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import UserLayout from '@/components/layout/UserLayout';
-
 export default function SubscriptionSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,8 +17,7 @@ export default function SubscriptionSuccessPage() {
   }, []);
 
   return (
-    <UserLayout>
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <Card sx={{ maxWidth: 400 }}>
           <CardContent>
             <Stack spacing={3} alignItems="center">
@@ -35,7 +32,6 @@ export default function SubscriptionSuccessPage() {
             </Stack>
           </CardContent>
         </Card>
-      </Box>
-    </UserLayout>
+    </Box>
   );
 }

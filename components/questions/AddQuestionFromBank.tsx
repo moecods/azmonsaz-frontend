@@ -20,7 +20,8 @@ import {
   Typography,
   CircularProgress,
 } from '@mui/material';
-import { getQuestionTypeLabel } from '@/lib/question-types';
+import { questionTypeBorderSx } from '@/lib/question-types/type-appearance';
+import { QuestionTypeChip } from '@/components/questions/QuestionTypeChip';
 import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, Difficulty, PaginatedResponse } from '@/types';
 import { RichLabel } from '@/components/editor';
@@ -196,7 +197,11 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
 
 
                       return (
-                        <Card key={question.id} variant="outlined">
+                        <Card
+                          key={question.id}
+                          variant="outlined"
+                          sx={(t) => questionTypeBorderSx(t, questionType)}
+                        >
                           <CardContent>
                             <RichLabel html={String(questionText)} fontSize="1rem" sx={{ mb: 1 }} />
                             
@@ -251,11 +256,7 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                               {questionCategory?.name && (
                                 <Chip label={questionCategory.name} size="small" variant="outlined" />
                               )}
-                              <Chip 
-                                label={getQuestionTypeLabel(questionType)} 
-                                size="small" 
-                                variant="outlined"
-                              />
+                              <QuestionTypeChip type={questionType} />
                             </Stack>
                             <Button
                               size="small"

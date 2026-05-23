@@ -63,6 +63,23 @@ export class AuthService {
   }
 
   /**
+   * Upload or replace the current user's profile avatar.
+   */
+  async uploadAvatar(file: File): Promise<ApiResponse<AuthUser>> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.apiClient.upload<AuthUser>('/me/avatar', formData);
+  }
+
+  /**
+   * Remove the current user's profile avatar.
+   */
+  async deleteAvatar(): Promise<ApiResponse<AuthUser>> {
+    return this.apiClient.delete<AuthUser>('/me/avatar');
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {

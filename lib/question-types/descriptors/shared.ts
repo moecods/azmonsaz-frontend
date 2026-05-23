@@ -17,7 +17,27 @@ export function baseExamPayload(
     const cat = categories.find((c) => c.id === data.category_id);
     if (cat) base.category = cat.name;
   }
+  const displaySettings = {
+    ...((data.display_settings as Record<string, unknown>) ?? {}),
+  };
+  if (data.matching_mode) {
+    base.matching_mode = data.matching_mode;
+    displaySettings.matchingMode = data.matching_mode;
+  }
+  base.display_settings = displaySettings;
   return base;
+}
+
+/** Common bank API fields including display layout settings. */
+export function baseBankFields(data: QuestionFormData): Record<string, unknown> {
+  return {
+    text: data.text,
+    type: data.type,
+    category_id: data.category_id,
+    tags: data.tags ?? [],
+    difficulty: data.difficulty,
+    display_settings: data.display_settings ?? {},
+  };
 }
 
 export function getOptionsCorrectAnswer(

@@ -1,367 +1,60 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import {
-  Box,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  Divider,
-  Avatar,
-  Chip,
-  Stack,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import SchoolIcon from '@mui/icons-material/School';
-import QuizIcon from '@mui/icons-material/Quiz';
-import PersonIcon from '@mui/icons-material/Person';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import GroupIcon from '@mui/icons-material/Group';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-import { useAuth } from '@/hooks';
-import { useStartNavigation } from '@/components/layout/NavigationProvider';
-import { hasPermission, type Permission } from '@/lib/permissions';
-
-const DRAWER_WIDTH = 280;
+import { Box, Drawer } from "@mui/material";
+import SidebarContent from "@/components/layout/SidebarContent";
+import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
 
 interface UserSidebarProps {
   open: boolean;
   onClose: () => void;
-  variant?: 'permanent' | 'temporary';
+  variant?: "permanent" | "temporary";
 }
 
-interface MenuItem {
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-  roles?: string[]; // Deprecated: use permission instead
-  permission?: Permission;
-}
-
-const menuItems: MenuItem[] = [
-  {
-    label: 'داشبورد',
-    icon: <DashboardIcon />,
-    path: '/dashboard',
-  },
-  {
-    label: 'آزمون‌های من',
-    icon: <SchoolIcon />,
-    path: '/exams/available',
-  },
-  {
-    label: 'مدیریت آزمون‌ها',
-    icon: <ListAltIcon />,
-    path: '/exams',
-    permission: 'view exams',
-  },
-  {
-    label: 'ایجاد آزمون',
-    icon: <SchoolIcon />,
-    path: '/exams/create',
-    permission: 'create exams',
-  },
-  {
-    label: 'بانک سوالات',
-    icon: <QuizIcon />,
-    path: '/questions',
-    permission: 'manage questions',
-  },
-  {
-    label: 'مدیریت گروه‌ها',
-    icon: <GroupIcon />,
-    path: '/groups',
-    permission: 'create exams',
-  },
-  {
-    label: 'پروفایل',
-    icon: <PersonIcon />,
-    path: '/profile',
-  },
-  {
-    label: 'اشتراک Pro',
-    icon: <WorkspacePremiumIcon />,
-    path: '/subscription',
-  },
-  {
-    label: 'پشتیبانی و آموزش',
-    icon: <HelpOutlineIcon />,
-    path: '/support',
-  },
-  {
-    label: 'پنل مدیریت',
-    icon: <AdminPanelSettingsIcon />,
-    path: '/admin',
-    permission: 'manage users',
-  },
-];
-
-function UserSidebar({ open, onClose, variant = 'temporary' }: UserSidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const startNavigation = useStartNavigation();
-  const { user } = useAuth();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  useEffect(() => {
-    menuItems.forEach((item) => {
-      try {
-        router.prefetch(item.path);
-      } catch {
-        /* ignore */
-      }
-    });
-  }, [router]);
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'مدیر';
-      case 'content_manager':
-        return 'مدیر محتوا';
-      case 'creator':
-        return 'سازنده';
-      default:
-        return role;
-    }
-  };
-
-  const getRoleColor = (role: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (role) {
-      case 'admin':
-        return 'error';
-      case 'content_manager':
-        return 'primary';
-      case 'creator':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
-  const filteredMenuItems = menuItems.filter((item) => {
-    // Check permission first (preferred method)
-    if (item.permission) {
-      return hasPermission(user?.permissions, item.permission);
-    }
-    // Fallback to roles for backward compatibility
-    if (item.roles) {
-      return item.roles.some((role) => user?.roles?.includes(role));
-    }
-    return true;
-  });
-
-  /**
-   * Calculate active state for menu items
-   * Simplified logic: exact match or pathname starts with path + '/'
-   */
-  const activeStates = useMemo(() => {
-    if (!pathname) return new Map<string, boolean>();
-
-    const states = new Map<string, boolean>();
-
-    // Find exact matches first
-    const exactMatch = filteredMenuItems.find((item) => pathname === item.path);
-    
-    if (exactMatch) {
-      // Only the exact match is active
-      filteredMenuItems.forEach(item => {
-        states.set(item.path, item.path === exactMatch.path);
-      });
-    } else {
-      // Find the most specific matching path
-      const matchingPaths = filteredMenuItems
-        .filter((item) => {
-          if (pathname === item.path) return true;
-          return pathname.startsWith(item.path + '/');
-        })
-        .sort((a, b) => b.path.length - a.path.length);
-      
-      const mostSpecific = matchingPaths[0];
-      
-      filteredMenuItems.forEach(item => {
-        states.set(item.path, item.path === mostSpecific?.path);
-      });
-    }
-    
-    return states;
-  }, [pathname, filteredMenuItems]);
-
-  const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* User Profile Section */}
-      <Box
-        sx={{
-          p: 3,
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
-        }}
-      >
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar
-            sx={{
-              bgcolor: 'primary.light',
-              width: 56,
-              height: 56,
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-            }}
-          >
-            {user?.name ? getInitials(user.name) : 'U'}
-          </Avatar>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight="bold" noWrap>
-              {user?.name || 'کاربر'}
-            </Typography>
-            {user?.email && (
-              <Typography variant="caption" sx={{ opacity: 0.9 }} noWrap>
-                {user.email}
-              </Typography>
-            )}
-            {user?.roles && user.roles.length > 0 && (
-              <Stack direction="row" spacing={0.5} sx={{ mt: 1 }} flexWrap="wrap">
-                {user.roles.map((role) => (
-                  <Chip
-                    key={role}
-                    label={getRoleLabel(role)}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.65rem',
-                      bgcolor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'inherit',
-                    }}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Box>
-        </Stack>
-      </Box>
-
-      <Divider />
-
-      {/* Navigation Menu */}
-      <List sx={{ flexGrow: 1, pt: 2 }}>
-        {filteredMenuItems.map((item, index) => {
-          const isActive = activeStates.get(item.path) || false;
-          
-          return (
-            <ListItem key={`${item.path}-${index}`} disablePadding>
-              <ListItemButton
-                component={Link}
-                href={item.path}
-                prefetch
-                onClick={() => {
-                  startNavigation();
-                  if (isMobile) {
-                    onClose();
-                  }
-                }}
-                selected={isActive}
-                data-cy={`nav-${item.path.slice(1).replace(/\//g, '-')}`}
-                sx={{
-                  mx: 1,
-                  mb: 0.5,
-                  borderRadius: 1,
-                  '&.Mui-selected': {
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'primary.contrastText',
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: isActive ? 'primary.contrastText' : 'text.secondary',
-                    minWidth: 40,
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontWeight: isActive ? 'bold' : 'normal',
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+/** Desktop: in-grid panel (no fixed positioning). */
+export function DesktopSidebar() {
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        borderRight: 1,
+        borderColor: "divider",
+        overflow: "hidden",
+        bgcolor: "background.paper",
+      }}
+    >
+      <SidebarContent />
     </Box>
   );
+}
 
-  if (variant === 'permanent') {
-    const TOOLBAR_HEIGHT = 64; // Navbar height
-    
-    return (
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: DRAWER_WIDTH,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH,
-            boxSizing: 'border-box',
-            borderRight: 1,
-            borderColor: 'divider',
-            zIndex: 100, // Ensure sidebar stays above loading indicators
-            pt: `${TOOLBAR_HEIGHT}px`, // Padding top to start below navbar
-          },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
-    );
+export default function UserSidebar({
+  open,
+  onClose,
+  variant = "temporary",
+}: UserSidebarProps) {
+  if (variant === "permanent") {
+    return <DesktopSidebar />;
   }
 
   return (
     <Drawer
       variant="temporary"
+      anchor="left"
       open={open}
       onClose={onClose}
-      ModalProps={{
-        keepMounted: true, // Better open performance on mobile
-      }}
+      ModalProps={{ keepMounted: true }}
       sx={{
-        '& .MuiDrawer-paper': {
-          width: DRAWER_WIDTH,
-          boxSizing: 'border-box',
-          zIndex: 1200, // MUI Drawer default z-index, ensure it's above loading overlays
+        display: { xs: "block", md: "none" },
+        "& .MuiDrawer-paper": {
+          width: SIDEBAR_WIDTH,
+          boxSizing: "border-box",
         },
       }}
     >
-      {drawerContent}
+      <SidebarContent onNavigate={onClose} />
     </Drawer>
   );
 }
-
-export default UserSidebar;
-

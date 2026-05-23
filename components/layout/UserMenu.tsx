@@ -6,7 +6,6 @@ import {
   Button,
   Menu,
   MenuItem,
-  Avatar,
   Typography,
   Divider,
   Box,
@@ -22,8 +21,12 @@ import SchoolIcon from '@mui/icons-material/School';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks';
+import { useColorMode } from '@/theme/ColorModeProvider';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function UserMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -31,6 +34,7 @@ export default function UserMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { mode, toggleColorMode } = useColorMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -72,15 +76,6 @@ export default function UserMenu() {
     ] : []),
   ];
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin':
@@ -121,16 +116,11 @@ export default function UserMenu() {
         aria-expanded={open ? 'true' : undefined}
         data-cy="user-menu-button"
       >
-        <Avatar
-          sx={{
-            width: 32,
-            height: 32,
-            bgcolor: 'primary.main',
-            fontSize: '0.875rem',
-          }}
-        >
-          {getInitials(user.name)}
-        </Avatar>
+        <UserAvatar
+          name={user.name}
+          avatarUrl={user.avatar_url}
+          sx={{ width: 32, height: 32, fontSize: "0.875rem" }}
+        />
       </IconButton>
       ) : (
         <Button
@@ -152,16 +142,11 @@ export default function UserMenu() {
             <Typography variant="body2" fontWeight="medium" noWrap>
               {user.name}
             </Typography>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                bgcolor: 'primary.main',
-                fontSize: '0.875rem',
-              }}
-            >
-              {getInitials(user.name)}
-            </Avatar>
+            <UserAvatar
+              name={user.name}
+              avatarUrl={user.avatar_url}
+              sx={{ width: 32, height: 32, fontSize: "0.875rem" }}
+            />
           </Stack>
         </Button>
       )}
@@ -216,6 +201,18 @@ export default function UserMenu() {
         <MenuItem onClick={() => handleNavigation('/profile')}>
           <PersonIcon sx={{ mr: 2, fontSize: 20 }} />
           پروفایل
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            toggleColorMode();
+          }}
+        >
+          {mode === "light" ? (
+            <DarkModeIcon sx={{ mr: 2, fontSize: 20 }} />
+          ) : (
+            <LightModeIcon sx={{ mr: 2, fontSize: 20 }} />
+          )}
+          {mode === "light" ? "حالت تاریک" : "حالت روشن"}
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }} data-cy="logout-button">

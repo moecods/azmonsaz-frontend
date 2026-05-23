@@ -1,7 +1,7 @@
 import type { QuestionTypeDescriptor } from './types';
 import type { QuestionFormData } from '@/lib/validation';
 import type { QuestionCategoryRef } from './types';
-import { baseExamPayload } from './shared';
+import { baseBankFields, baseExamPayload } from './shared';
 
 export const fillInTheBlankDescriptor: QuestionTypeDescriptor = {
   buildExamPayload(data: QuestionFormData, categories: QuestionCategoryRef[]): Record<string, unknown> {
@@ -11,12 +11,16 @@ export const fillInTheBlankDescriptor: QuestionTypeDescriptor = {
   },
   buildBankPayload(data: QuestionFormData): Record<string, unknown> {
     return {
-      text: data.text,
-      type: data.type,
-      category_id: data.category_id,
-      tags: data.tags ?? [],
-      difficulty: data.difficulty,
-      blanks: data.blanks ?? [],
+      ...baseBankFields(data),
+      blanks: (data.blanks ?? []).map((b) => ({
+        position: b.position,
+        correct_answers:
+          (b as { correct_answers?: string[] }).correct_answers ??
+          ((b as { correct_answer?: string }).correct_answer
+            ? [(b as { correct_answer: string }).correct_answer]
+            : []),
+        grading: (b as { grading?: string }).grading ?? "auto",
+      })),
     };
   },
 };

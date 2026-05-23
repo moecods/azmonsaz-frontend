@@ -3,7 +3,8 @@
 import React, { useMemo, useCallback } from 'react';
 
 import { Card, CardContent, Stack, Chip, IconButton, Typography } from '@mui/material';
-import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
+import { DIFFICULTY_CONFIG } from '@/constants/question';
+import { QuestionTypeChip } from '@/components/questions/QuestionTypeChip';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Table, TableColumn } from '@/components/ui';
@@ -97,13 +98,7 @@ export const QuestionTable: React.FC<QuestionTableProps> = React.memo(({
     {
       id: 'type',
       label: 'نوع',
-      render: (value: string) => (
-        <Chip
-          label={QUESTION_TYPE_LABELS[value] || value}
-          size="small"
-          color="primary"
-        />
-      ),
+      render: (value: string) => <QuestionTypeChip type={value} />,
     },
     {
       id: 'category',

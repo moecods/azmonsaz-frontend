@@ -45,6 +45,11 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
   const matches = (payload.matches as QuestionFormData['matches']) ?? [];
   const blanks = (payload.blanks as QuestionFormData['blanks']) ?? [];
 
+  const optionsObj =
+    optionsRaw && typeof optionsRaw === 'object' && !Array.isArray(optionsRaw)
+      ? (optionsRaw as Record<string, unknown>)
+      : null;
+
   return {
     text: questionText,
     type: qType as QuestionFormData['type'],
@@ -59,6 +64,11 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
     right_items,
     matches,
     blanks,
+    display_settings: (payload.display_settings as QuestionFormData['display_settings']) ?? {},
+    matching_mode:
+      (payload.matching_mode as QuestionFormData['matching_mode']) ??
+      (optionsObj?.matching_mode as QuestionFormData['matching_mode']) ??
+      'one_to_one',
   };
 }
 
@@ -75,6 +85,11 @@ export function questionToFormData(question: Question): QuestionFormData {
   const rightItems = resolveRightItems(question, q, qType);
   const matches = resolveMatches(question, q, qType);
 
+  const optsNested =
+    q.options && typeof q.options === 'object' && !Array.isArray(q.options)
+      ? (q.options as Record<string, unknown>)
+      : null;
+
   return {
     text: question.text,
     type: question.type,
@@ -89,6 +104,11 @@ export function questionToFormData(question: Question): QuestionFormData {
     right_items: rightItems,
     blanks,
     matches: matches,
+    display_settings: question.display_settings ?? (q.display_settings as QuestionFormData['display_settings']) ?? {},
+    matching_mode:
+      (q.matching_mode as QuestionFormData['matching_mode']) ??
+      (optsNested?.matching_mode as QuestionFormData['matching_mode']) ??
+      'one_to_one',
   };
 }
 

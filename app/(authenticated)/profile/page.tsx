@@ -34,6 +34,8 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import HistoryIcon from '@mui/icons-material/History';
 import { useAuth, useAvailableExams, useExams, useUpdateUser } from '@/hooks';
 import Breadcrumb from '@/components/Breadcrumb';
+import AvatarUpload from '@/components/profile/AvatarUpload';
+import ShellContentLoader from '@/components/layout/ShellContentLoader';
 import { useMemo } from 'react';
 import { handleError } from '@/lib/error-handler';
 
@@ -71,8 +73,15 @@ export default function ProfilePage() {
   const [editMode, setEditMode] = useState(false);
 
   // Fetch statistics
-  const { data: examsData } = useExams({ per_page: 100 });
-  const { data: availableExamsData } = useAvailableExams();
+  const { data: examsData, isLoading: examsLoading, isFetching: examsFetching } = useExams({ per_page: 100 });
+  const {
+    data: availableExamsData,
+    isLoading: availableExamsLoading,
+    isFetching: availableExamsFetching,
+  } = useAvailableExams();
+
+  const statsLoading = examsLoading || availableExamsLoading;
+  const statsFetching = examsFetching || availableExamsFetching;
 
   const stats = useMemo(() => {
     const exams = examsData?.data || [];
@@ -185,7 +194,7 @@ export default function ProfilePage() {
     : 0;
 
   return (
-    <>
+    <ShellContentLoader loading={statsLoading} fetching={!statsLoading && statsFetching}>
       <Stack spacing={4}>
         <Breadcrumb items={[{ label: 'پروفایل' }]} />
         
@@ -201,19 +210,9 @@ export default function ProfilePage() {
         {/* Profile Header Card */}
         <Card>
           <CardContent>
-            <Stack direction="row" spacing={3} alignItems="center">
-              <Avatar
-                sx={{
-                  width: 100,
-                  height: 100,
-                  bgcolor: 'primary.main',
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                }}
-              >
-                {getInitials(user.name)}
-              </Avatar>
-              <Box sx={{ flexGrow: 1 }}>
+            <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+              <AvatarUpload />
+              <Box sx={{ flexGrow: 1, minWidth: 200 }}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Typography variant="h5" fontWeight="bold">
                     {user.name}
@@ -434,7 +433,7 @@ export default function ProfilePage() {
           </TabPanel>
         </Card>
       </Stack>
-    </>
+    </ShellContentLoader>
   );
 }
 
