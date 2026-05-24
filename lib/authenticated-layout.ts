@@ -10,7 +10,6 @@ export const AUTHENTICATED_SHELL_PREFIXES = [
   '/groups',
   '/admin',
   '/subscription',
-  '/support',
   '/partners',
 ] as const;
 

@@ -7,9 +7,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupService, ApiError } from '@/services';
 import type { Group, CreateGroupRequest, UpdateGroupRequest } from '@/services/groups/GroupService';
 
-export function useGroups() {
+export function useGroups(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['groups'],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const response = await groupService.getGroups();
       if (!response.success) {
@@ -161,6 +162,42 @@ export function useImportUsersToGroup() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['group', variables.groupId] });
+    },
+  });
+}
+
+export function useUploadGroupAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ groupId, file }: { groupId: number; file: File }) => {
+      const response = await groupService.uploadAvatar(groupId, file);
+      if (!response.success) {
+        throw new ApiError(response.message || "Failed to upload group image", undefined);
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["group", variables.groupId] });
+    },
+  });
+}
+
+export function useDeleteGroupAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (groupId: number) => {
+      const response = await groupService.deleteAvatar(groupId);
+      if (!response.success) {
+        throw new ApiError(response.message || "Failed to remove group image", undefined);
+      }
+      return response.data;
+    },
+    onSuccess: (_, groupId) => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
     },
   });
 }

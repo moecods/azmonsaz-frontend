@@ -3,11 +3,8 @@
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   IconButton,
-  LinearProgress,
   Stack,
   Tooltip,
   Typography,
@@ -15,10 +12,13 @@ import {
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import BlockIcon from "@mui/icons-material/Block";
-import { questionTypeBorderSx } from "@/lib/question-types/type-appearance";
 import { QuestionBankItemDisplay } from "@/components/questions/QuestionBankItemDisplay";
 import { QuestionBankCardMeta } from "@/components/exams/exam-questions/QuestionBankCardMeta";
 import { InfiniteScrollSentinel } from "@/components/shared/InfiniteScrollSentinel";
+import {
+  QuestionBankCard,
+  QuestionBankEmptyState,
+} from "@/components/questions/question-bank";
 import type { QuestionBankViewMode } from "@/lib/question-bank-view";
 import type { Question } from "@/types";
 
@@ -61,7 +61,7 @@ export function QuestionBankList({
 }: QuestionBankListProps) {
   if (isInitialLoading) {
     return (
-      <Stack alignItems="center" justifyContent="center" py={6} spacing={2}>
+      <Stack alignItems="center" justifyContent="center" py={8} spacing={2}>
         <CircularProgress aria-label="در حال بارگذاری سوالات" />
         <Typography variant="body2" color="text.secondary">
           در حال بارگذاری سوالات…
@@ -74,6 +74,7 @@ export function QuestionBankList({
     return (
       <Alert
         severity="error"
+        sx={{ borderRadius: 2 }}
         action={
           onRetry ? (
             <Typography
@@ -94,115 +95,94 @@ export function QuestionBankList({
 
   if (questions.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" textAlign="center" py={6}>
-        سوالی یافت نشد. فیلترها را تغییر دهید یا عبارت جستجو را ویرایش کنید.
-      </Typography>
+      <QuestionBankEmptyState
+        title="سوالی با این فیلترها نیست"
+        description="عبارت جستجو یا دسته‌بندی را تغییر دهید. سوالات قبلاً اضافه‌شده با برچسب «در آزمون» مشخص می‌شوند."
+      />
     );
   }
 
   return (
-    <Stack spacing={2}>
-      {isRefetching && <LinearProgress aria-label="در حال به‌روزرسانی لیست" />}
-
+    <Stack spacing={1.5}>
       {questions.map((question) => {
         const questionType = question.type || "multiple_choice";
         const alreadyInExam = inExamQuestionIds.has(question.id);
         const inCartNow = inCart(question.id);
 
         return (
-          <Card
+          <QuestionBankCard
             key={question.id}
-            variant="outlined"
-            sx={(t) => ({
-              overflow: "visible",
-              opacity: alreadyInExam ? 0.72 : 1,
-              ...questionTypeBorderSx(t, questionType),
-              ...(inCartNow && !alreadyInExam
-                ? { bgcolor: "action.selected", borderColor: "primary.light" }
-                : {}),
-            })}
-          >
-            <CardContent
-              sx={{
-                position: "relative",
-                "&:last-child": { pb: 2 },
-                py: 1.5,
-                pe: { xs: 7, sm: 2 },
-                ps: { xs: 1.5, sm: 2 },
-              }}
-            >
+            questionType={questionType}
+            selected={inCartNow && !alreadyInExam}
+            muted={alreadyInExam}
+            meta={
               <QuestionBankCardMeta
                 question={question}
                 viewMode={viewMode}
                 alreadyInExam={alreadyInExam}
               />
-              <QuestionBankItemDisplay
-                source={question}
-                viewMode={viewMode}
-                compact
-                suppressStemMeta
-              />
-
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 8,
-                  insetInlineEnd: 8,
-                  zIndex: 1,
-                }}
-              >
-                {alreadyInExam ? (
-                  <Tooltip title="این سوال قبلاً در آزمون است">
-                    <span>
-                      <IconButton
-                        size="medium"
-                        disabled
-                        aria-label="در آزمون"
-                        sx={{
-                          bgcolor: "background.paper",
-                          boxShadow: 1,
-                          "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
-                        }}
-                      >
-                        <BlockIcon />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                ) : (
-                  <Tooltip title={inCartNow ? "حذف از سبد" : "افزودن به آزمون"}>
+            }
+            actions={
+              alreadyInExam ? (
+                <Tooltip title="این سوال قبلاً در آزمون است">
+                  <span>
                     <IconButton
                       size="medium"
-                      color={inCartNow ? "primary" : "default"}
-                      aria-label={inCartNow ? "حذف از سبد" : "افزودن به آزمون"}
-                      aria-pressed={inCartNow}
-                      disabled={disabled}
-                      onClick={() => onToggleCart(question)}
+                      disabled
+                      aria-label="در آزمون"
                       sx={{
-                        minWidth: 44,
-                        minHeight: 44,
                         bgcolor: "background.paper",
                         boxShadow: 1,
-                        "&:hover": { bgcolor: "background.paper", boxShadow: 2 },
+                        "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
                       }}
                     >
-                      {inCartNow ? <CheckCircleIcon /> : <AddShoppingCartIcon />}
+                      <BlockIcon />
                     </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Tooltip title={inCartNow ? "حذف از سبد" : "افزودن به سبد"}>
+                  <IconButton
+                    size="medium"
+                    color={inCartNow ? "primary" : "default"}
+                    aria-label={inCartNow ? "حذف از سبد" : "افزودن به سبد"}
+                    aria-pressed={inCartNow}
+                    disabled={disabled}
+                    onClick={() => onToggleCart(question)}
+                    sx={{
+                      minWidth: 44,
+                      minHeight: 44,
+                      bgcolor: "background.paper",
+                      boxShadow: 1,
+                      "&:hover": { bgcolor: "background.paper", boxShadow: 2 },
+                    }}
+                  >
+                    {inCartNow ? <CheckCircleIcon /> : <AddShoppingCartIcon />}
+                  </IconButton>
+                </Tooltip>
+              )
+            }
+          >
+            <QuestionBankItemDisplay
+              source={question}
+              viewMode={viewMode}
+              compact
+              suppressStemMeta
+            />
+          </QuestionBankCard>
         );
       })}
 
       {onLoadMore && (
-        <InfiniteScrollSentinel
-          hasMore={hasNextPage}
-          isFetchingMore={isFetchingNextPage}
-          onLoadMore={onLoadMore}
-          loadedCount={loadedCount}
-          totalCount={totalCount}
-        />
+        <Box sx={{ pt: 1 }}>
+          <InfiniteScrollSentinel
+            hasMore={hasNextPage}
+            isFetchingMore={isFetchingNextPage}
+            onLoadMore={onLoadMore}
+            loadedCount={loadedCount}
+            totalCount={totalCount}
+          />
+        </Box>
       )}
     </Stack>
   );

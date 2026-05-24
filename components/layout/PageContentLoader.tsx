@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, CircularProgress, LinearProgress } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
+import { useMainProgress } from "@/components/layout/MainProgressProvider";
 
 interface PageContentLoaderProps {
   /** True when there is no cached data yet (first load). */
@@ -12,12 +13,15 @@ interface PageContentLoaderProps {
 
 /**
  * Shows loading only in the main content area — sidebar stays interactive.
+ * Background fetches use the sticky bar at the top of main (below navbar).
  */
 export default function PageContentLoader({
   isLoading,
   isFetching = false,
   children,
 }: PageContentLoaderProps) {
+  useMainProgress(isFetching ? { active: true } : null);
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={240} p={3}>
@@ -26,15 +30,5 @@ export default function PageContentLoader({
     );
   }
 
-  return (
-    <>
-      {isFetching && (
-        <LinearProgress
-          sx={{ mb: 2, borderRadius: 1 }}
-          aria-label="در حال بارگذاری"
-        />
-      )}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

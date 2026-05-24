@@ -6,22 +6,38 @@
 import { ApiClient } from '../api/ApiClient';
 import { ApiResponse } from '@/types';
 
+export interface GroupTeacher {
+  id: number;
+  name: string;
+  phone_number?: string | null;
+  avatar_url?: string | null;
+  can_attach_to_exams?: boolean;
+}
+
+export interface GroupMember {
+  id: number;
+  name: string;
+  phone_number: string;
+  national_id?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+}
+
 export interface Group {
   id: number;
   name: string;
-  description?: string;
+  description?: string | null;
   created_by: number;
   creator?: {
     id: number;
     name: string;
-  };
-  users?: Array<{
-    id: number;
-    name: string;
-    phone_number: string;
-    national_id?: string;
-  }>;
+  } | null;
+  avatar_url?: string | null;
+  teachers?: GroupTeacher[];
+  users?: GroupMember[];
+  member_preview?: GroupMember[];
   users_count?: number;
+  exams_count?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -106,6 +122,16 @@ export class GroupService {
   /**
    * Import users from Excel file to a group
    */
+  async uploadAvatar(groupId: number, file: File): Promise<ApiResponse<Group>> {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return this.apiClient.upload<Group>(`/groups/${groupId}/avatar`, formData);
+  }
+
+  async deleteAvatar(groupId: number): Promise<ApiResponse<Group>> {
+    return this.apiClient.delete<Group>(`/groups/${groupId}/avatar`);
+  }
+
   async importUsers(groupId: number, file: File): Promise<ApiResponse<{
     group: Group;
     imported: number;

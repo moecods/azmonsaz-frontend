@@ -94,16 +94,23 @@ export default function NotificationList({
                   secondary={
                     <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
                       {item.data?.message && item.data?.title && (
-                        <Typography variant="body2" color="text.secondary" noWrap>
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="text.secondary"
+                          noWrap
+                          sx={{ display: 'block' }}
+                        >
                           {item.data.message}
                         </Typography>
                       )}
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         {formatRelativeTime(item.created_at)}
                       </Typography>
                     </Box>
                   }
                   primaryTypographyProps={{ fontWeight: item.read_at ? 'normal' : 'medium' }}
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
               </ListItemButton>
             </ListItem>

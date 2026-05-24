@@ -193,15 +193,19 @@ export function useCreatorDashboard() {
   });
 }
 
-export function useExams(params?: {
-  per_page?: number;
-  status?: 'published' | 'draft';
-  type?: 'online' | 'offline';
-  search?: string;
-  page?: number;
-}) {
+export function useExams(
+  params?: {
+    per_page?: number;
+    status?: 'published' | 'draft';
+    type?: 'online' | 'offline';
+    search?: string;
+    page?: number;
+  },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['exams', 'list', params],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const response = await examService.getExams(params);
       if (!response.success) {

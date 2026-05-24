@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, CircularProgress, LinearProgress } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
+import { useMainProgress } from "@/components/layout/MainProgressProvider";
 
 interface ShellContentLoaderProps {
   loading?: boolean;
@@ -16,6 +17,8 @@ export default function ShellContentLoader({
   fetching = false,
   children,
 }: ShellContentLoaderProps) {
+  useMainProgress(fetching ? { active: true } : null);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={280} p={3}>
@@ -24,12 +27,5 @@ export default function ShellContentLoader({
     );
   }
 
-  return (
-    <>
-      {fetching && (
-        <LinearProgress sx={{ mb: 2, borderRadius: 1 }} aria-label="در حال بارگذاری" />
-      )}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

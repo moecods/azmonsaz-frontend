@@ -22,8 +22,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import GroupIcon from "@mui/icons-material/Group";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+// import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import { useAuth } from "@/hooks";
 import { useStartNavigation } from "@/components/layout/NavigationProvider";
 import { hasPermission, type Permission } from "@/lib/permissions";
@@ -45,8 +44,7 @@ export const sidebarMenuItems: SidebarMenuItem[] = [
   { label: "بانک سوالات", icon: <QuizIcon />, path: "/questions", permission: "manage questions" },
   { label: "مدیریت گروه‌ها", icon: <GroupIcon />, path: "/groups", permission: "create exams" },
   { label: "پروفایل", icon: <PersonIcon />, path: "/profile" },
-  { label: "اشتراک Pro", icon: <WorkspacePremiumIcon />, path: "/subscription" },
-  { label: "پشتیبانی و آموزش", icon: <HelpOutlineIcon />, path: "/support" },
+  // { label: "اشتراک Pro", icon: <WorkspacePremiumIcon />, path: "/subscription" },
   { label: "پنل مدیریت", icon: <AdminPanelSettingsIcon />, path: "/admin", permission: "manage users" },
 ];
 

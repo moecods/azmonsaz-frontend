@@ -1,220 +1,180 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from "react";
+import { Alert, Box, Chip, CircularProgress, Stack } from "@mui/material";
+import SchoolIcon from "@mui/icons-material/School";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import EventIcon from "@mui/icons-material/Event";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import { useAvailableExams } from "@/hooks/useExams";
+import Breadcrumb from "@/components/Breadcrumb";
+import { MyExamCard } from "@/components/exams/my-exams/MyExamCard";
+import { MyExamsFiltersPanel } from "@/components/exams/my-exams/MyExamsFiltersPanel";
+import { MyExamsFocusCard } from "@/components/exams/my-exams/MyExamsFocusCard";
 import {
-  Box, Button, Card, CardContent, Chip, Stack, Typography, Alert, CircularProgress,
-} from '@mui/material';
-import { useAvailableExams } from '@/hooks/useExams';
-import ShellContentLoader from '@/components/layout/ShellContentLoader';
-import type { AvailableExam } from '@/services/exams/ExamService';
-import SchoolIcon from '@mui/icons-material/School';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
-import Breadcrumb from '@/components/Breadcrumb';
-import { getExamDurationMinutes } from '@/lib/exam-utils';
-import { useMemo } from 'react';
+  QuestionBankLayout,
+  QuestionBankPageHeader,
+  QuestionBankEmptyState,
+} from "@/components/questions/question-bank";
+import { useMainProgress } from "@/components/layout/MainProgressProvider";
+import {
+  computeMyExamsStats,
+  filterMyExams,
+  getMyExamsFocus,
+  normalizeAvailableExams,
+  sortMyExams,
+  type MyExamsListFilters,
+} from "@/lib/my-exams-utils";
+
+const DEFAULT_FILTERS: MyExamsListFilters = {
+  search: "",
+  status: "all",
+};
 
 export default function AvailableExamsPage() {
-  const router = useRouter();
+  const [filters, setFilters] = useState<MyExamsListFilters>(DEFAULT_FILTERS);
   const { data, isLoading, isFetching, error } = useAvailableExams();
 
-  const examsData = data?.data;
-  const exams: AvailableExam[] = useMemo(() => {
-    if (!examsData) return [];
-    if (Array.isArray(examsData)) return examsData;
-    return Object.values(examsData) as AvailableExam[];
-  }, [examsData]);
-  const getDisplayStatus = (exam: AvailableExam): string => {
-    if (exam.status === 'completed') return 'completed';
-    if (exam.status === 'absent') return 'absent';
-    if (exam.status === 'started' || exam.status === 'registered') {
-      if (exam.exam_end_at) {
-        try {
-          const endAt = new Date(exam.exam_end_at);
-          if (new Date() > endAt) return 'time_ended';
-        } catch (e) {
-          console.error("Invalid date format", e);
-        }
-      }
-    }
-    return exam.status;
-  };
+  const allExams = useMemo(() => normalizeAvailableExams(data), [data]);
+  const stats = useMemo(() => computeMyExamsStats(allExams), [allExams]);
+  const focus = useMemo(() => getMyExamsFocus(allExams), [allExams]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'time_ended': return 'error';
-      case 'absent': return 'error';
-      case 'started': return 'warning';
-      case 'registered': return 'info';
-      default: return 'default';
-    }
-  };
+  const filteredExams = useMemo(() => {
+    const list = filterMyExams(allExams, filters);
+    return sortMyExams(list);
+  }, [allExams, filters]);
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'completed': return 'تکمیل شده';
-      case 'time_ended': return 'زمان به پایان رسیده';
-      case 'absent': return 'غیبت در امتحان';
-      case 'started': return 'در حال انجام';
-      case 'registered': return 'ثبت‌نام شده';
-      default: return status;
-    }
-  };
+  const showFocus =
+    focus &&
+    (filters.status === "all" || filters.status === "action") &&
+    !filters.search.trim();
 
-  const renderExamDateTime = (exam: AvailableExam) => {
-    let dateStr = '';
-    let startStr = '';
-    let endStr = '';
+  useMainProgress(isFetching && !isLoading ? { active: true } : null);
 
-    try {
-      if (exam.exam_start_at) {
-        const startAt = new Date(exam.exam_start_at);
-        dateStr = startAt.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
-        startStr = startAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-      }
-      if (exam.exam_end_at) {
-        const endAt = new Date(exam.exam_end_at);
-        endStr = endAt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-      }
-    } catch (e) {
-      return null;
-    }
-
-    if (!dateStr && !startStr && !endStr) return null;
-
+  if (error) {
     return (
-      <Stack spacing={0.5}>
-        {dateStr && (
-          <Stack direction="row" spacing={1} alignItems="center">
-            <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            <Typography variant="body2" color="text.secondary">روز آزمون: {dateStr}</Typography>
-          </Stack>
-        )}
-        <Stack direction="row" spacing={2}>
-          {startStr && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">شروع: {startStr}</Typography>
-            </Stack>
-          )}
-          {endStr && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">پایان: {endStr}</Typography>
-            </Stack>
-          )}
-        </Stack>
-      </Stack>
+      <Alert severity="error">
+        {error instanceof Error ? error.message : "خطا در بارگذاری آزمون‌ها"}
+      </Alert>
     );
-  };
-
-  const handleStartExam = (examId: number, displayStatus: string) => {
-    if (displayStatus === 'completed') {
-      router.push(`/exams/${examId}/result`);
-    } else if (displayStatus === 'absent' || displayStatus === 'time_ended') {
-      router.push(`/exams/${examId}/result`);
-    } else {
-      router.push(`/exams/take/${examId}`);
-    }
-  };
+  }
 
   return (
-    <ShellContentLoader loading={isLoading} fetching={!isLoading && isFetching}>
-      <Stack spacing={{ xs: 2, md: 4 }}>
-        <Breadcrumb items={[{ label: 'آزمون‌های من' }]} />
-        <Box>
-          <Typography variant="h4" gutterBottom>آزمون‌های من</Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>لیست آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید</Typography>
-        </Box>
+    <Stack spacing={2}>
+      <Breadcrumb items={[{ label: "آزمون‌های من" }]} />
 
-        {error ? (
-          <Alert severity="error">{error instanceof Error ? error.message : 'خطا در بارگذاری آزمون‌ها'}</Alert>
-        ) : exams.length === 0 ? (
-          <Card>
-            <CardContent>
-              <Box textAlign="center" py={4}>
-                <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">هیچ آزمونی یافت نشد</Typography>
-              </Box>
-            </CardContent>
-          </Card>
+      <QuestionBankLayout
+        header={
+          <QuestionBankPageHeader
+            title="آزمون‌های من"
+            subtitle="آزمون‌هایی که در آن‌ها ثبت‌نام کرده‌اید — شروع، ادامه یا مشاهده نتیجه"
+            icon={<SchoolIcon />}
+            stats={
+              <>
+                <Chip
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  icon={<SchoolIcon />}
+                  label={`${stats.total.toLocaleString("fa-IR")} آزمون`}
+                />
+                {stats.needsAction > 0 && (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    icon={<PlayCircleOutlineIcon />}
+                    label={`${stats.needsAction.toLocaleString("fa-IR")} نیاز به اقدام`}
+                  />
+                )}
+                {stats.upcoming > 0 && (
+                  <Chip
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    icon={<EventIcon />}
+                    label={`${stats.upcoming.toLocaleString("fa-IR")} پیشِ رو`}
+                  />
+                )}
+                {stats.completed > 0 && (
+                  <Chip
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    icon={<CheckCircleIcon />}
+                    label={`${stats.completed.toLocaleString("fa-IR")} تکمیل`}
+                  />
+                )}
+                {stats.awaiting > 0 && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    icon={<HourglassEmptyIcon />}
+                    label={`${stats.awaiting.toLocaleString("fa-IR")} انتظار نتیجه`}
+                  />
+                )}
+              </>
+            }
+          />
+        }
+        filters={
+          <MyExamsFiltersPanel
+            filters={filters}
+            onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+            resultCount={filteredExams.length}
+            totalCount={allExams.length}
+            stats={{
+              needsAction: stats.needsAction,
+              upcoming: stats.upcoming,
+              completed: stats.completed,
+              awaiting: stats.awaiting,
+            }}
+          />
+        }
+      >
+        {isLoading ? (
+          <Stack alignItems="center" py={8}>
+            <CircularProgress />
+          </Stack>
+        ) : allExams.length === 0 ? (
+          <QuestionBankEmptyState
+            title="هنوز در آزمونی ثبت‌نام نکرده‌اید"
+            description="پس از ثبت‌نام توسط معلم یا از طریق لینک آزمون، اینجا نمایش داده می‌شود."
+          />
+        ) : filteredExams.length === 0 ? (
+          <QuestionBankEmptyState
+            title="آزمونی با این فیلتر نیست"
+            description="دسته‌بندی یا جستجو را تغییر دهید."
+            action={{
+              label: "پاک کردن فیلترها",
+              onClick: () => setFilters(DEFAULT_FILTERS),
+            }}
+          />
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 3 }}>
-            {exams.map((exam) => {
-              const displayStatus = getDisplayStatus(exam);
-              const isDisabled = displayStatus === 'absent' || displayStatus === 'time_ended';
+          <Stack spacing={2}>
+            {showFocus && <MyExamsFocusCard focus={focus} />}
 
-              return (
-                <Card
-                  key={exam.id} // اصلاح شده: استفاده از ID به جای index
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}
-                >
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Stack spacing={2} sx={{ flexGrow: 1 }}>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <SchoolIcon color="primary" />
-                        <Typography variant="h6" sx={{ flexGrow: 1 }}>{exam.title}</Typography>
-                        <Chip label={getStatusLabel(displayStatus)} color={getStatusColor(displayStatus)} size="small" />
-                      </Stack>
-
-                      {exam.creator && (
-                        <Typography variant="body2" color="text.secondary">ایجادکننده: {exam.creator.name}</Typography>
-                      )}
-
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        <Chip label={exam.type === 'online' ? 'آنلاین' : 'آفلاین'} size="small" variant="outlined" />
-                        {getExamDurationMinutes(exam) != null && (
-                          <Chip icon={<AccessTimeIcon />} label={`${getExamDurationMinutes(exam)} دقیقه`} size="small" variant="outlined" />
-                        )}
-                        {exam.has_grader_notes && (
-                          <Chip
-                            icon={<RecordVoiceOverIcon sx={{ color: 'warning.main' }} />}
-                            label="یادداشت معلم"
-                            size="small"
-                            color="warning"
-                            variant="outlined"
-                            sx={{
-                              borderColor: 'warning.main',
-                              color: 'warning.dark',
-                              bgcolor: 'warning.50',
-                            }}
-                          />
-                        )}
-                      </Stack>
-
-                      {renderExamDateTime(exam)}
-                    </Stack>
-
-                    <Button
-                      variant={displayStatus === 'completed' ? 'outlined' : 'contained'}
-                      fullWidth
-                      disabled={isDisabled} // اصلاح شده: غیرفعال کردن دکمه برای آزمون‌های تمام شده
-                      startIcon={displayStatus === 'completed' ? <CheckCircleIcon /> : <PlayArrowIcon />}
-                      onClick={() => handleStartExam(exam.id, displayStatus)}
-                      sx={{ mt: 2 }}
-                    >
-                      {displayStatus === 'completed'
-                        ? exam.can_view_result === false
-                          ? 'وضعیت نتیجه'
-                          : 'مشاهده نتایج'
-                        : displayStatus === 'started'
-                          ? 'ادامه آزمون'
-                          : isDisabled
-                            ? 'غیرقابل دسترسی'
-                            : 'شروع آزمون'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  xl: "repeat(3, 1fr)",
+                },
+                gap: 2,
+              }}
+            >
+              {filteredExams
+                .filter((e) => !showFocus || e.id !== focus.exam.id)
+                .map((exam) => (
+                  <MyExamCard key={exam.id} exam={exam} />
+                ))}
+            </Box>
+          </Stack>
         )}
-      </Stack>
-    </ShellContentLoader>
+      </QuestionBankLayout>
+    </Stack>
   );
 }

@@ -4,16 +4,14 @@ import { useCallback, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Alert,
-  Box,
   Button,
   Chip,
-  Container,
-  Stack,
-  Typography,
   CircularProgress,
+  Stack,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import Breadcrumb from "@/components/Breadcrumb";
 import {
   QuestionBankFilters,
@@ -38,6 +36,12 @@ import type { Question } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { Toast } from "@/components/feedback/Alert/Alert";
+import {
+  QuestionBankLayout,
+  QuestionBankPageHeader,
+  QuestionBankToolbar,
+} from "@/components/questions/question-bank";
+import { useMainProgress } from "@/components/layout/MainProgressProvider";
 
 export default function ExamQuestionsFromBankPage() {
   const params = useParams();
@@ -167,9 +171,7 @@ export default function ExamQuestionsFromBankPage() {
       }
 
       if (result.successCount > 0 && result.failedIds.length > 0) {
-        cart.removeMany(
-          cart.ids.filter((id) => !result.failedIds.includes(id))
-        );
+        cart.removeMany(cart.ids.filter((id) => !result.failedIds.includes(id)));
       }
 
       if (result.successCount > 0 && result.failedIds.length > 0) {
@@ -194,22 +196,28 @@ export default function ExamQuestionsFromBankPage() {
     }
   }, [examId, examData, cart, inExamQuestionIds, queryClient, router]);
 
+  useMainProgress(
+    !questionsLoading && (questionsRefetching || isFetchingNextPage)
+      ? { active: true }
+      : null
+  );
+
   if (examLoading || !cart.hydrated) {
     return (
-      <Container maxWidth="lg" sx={{ py: 6, display: "flex", justifyContent: "center" }}>
+      <Stack alignItems="center" justifyContent="center" sx={{ py: 10 }}>
         <CircularProgress />
-      </Container>
+      </Stack>
     );
   }
 
   if (examError || !examData || !examId) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Stack spacing={2} sx={{ py: 4 }}>
         <Alert severity="error">بارگذاری آزمون ناموفق بود.</Alert>
-        <Button startIcon={<ArrowBackIcon />} sx={{ mt: 2 }} onClick={() => router.push("/exams")}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push("/exams")}>
           بازگشت
         </Button>
-      </Container>
+      </Stack>
     );
   }
 
@@ -217,82 +225,81 @@ export default function ExamQuestionsFromBankPage() {
 
   return (
     <>
-      <Container
-        maxWidth="lg"
-        sx={{
-          py: 4,
-          pb: cartVisible
-            ? `${EXAM_QUESTION_CART_BAR_RESERVE_PX + 24}px`
-            : 4,
-        }}
-      >
-        <Stack spacing={3}>
-          <Breadcrumb
-            items={[
-              { label: "مدیریت آزمون‌ها", href: "/exams" },
-              { label: examData.title, href: `/exams/${examId}` },
-              { label: "مدیریت سوالات", href: `/exams/${examId}/questions` },
-              { label: "انتخاب از بانک" },
-            ]}
-          />
+      <Stack spacing={2}>
+        <Breadcrumb
+          items={[
+            { label: "مدیریت آزمون‌ها", href: "/exams" },
+            { label: examData.title, href: `/exams/${examId}` },
+            { label: "مدیریت سوالات", href: `/exams/${examId}/questions` },
+            { label: "انتخاب از بانک" },
+          ]}
+        />
 
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems={{ xs: "stretch", sm: "center" }}
-            justifyContent="space-between"
-          >
-            <Box>
-              <Typography variant="h4" gutterBottom>
-                انتخاب از بانک سوالات
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {examData.title}
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-              {hydrated && (
-                <QuestionBankViewToggle value={viewMode} onChange={setViewMode} />
-              )}
-              <Chip
-                label={`${examQuestionCount.toLocaleString("fa-IR")} سوال در آزمون`}
-                size="small"
-                color="primary"
-                variant="outlined"
+        <QuestionBankLayout
+          bottomReservePx={cartVisible ? EXAM_QUESTION_CART_BAR_RESERVE_PX + 24 : 0}
+          header={
+            <QuestionBankPageHeader
+              title="انتخاب از بانک"
+              subtitle={examData.title}
+              icon={<LibraryAddIcon />}
+              stats={
+                <>
+                  <Chip
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    label={`${examQuestionCount.toLocaleString("fa-IR")} سوال در آزمون`}
+                  />
+                  {cart.count > 0 && (
+                    <Chip
+                      size="small"
+                      color="secondary"
+                      icon={<ShoppingCartOutlinedIcon />}
+                      label={`${cart.count.toLocaleString("fa-IR")} در سبد`}
+                    />
+                  )}
+                </>
+              }
+              actions={
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ArrowBackIcon />}
+                  onClick={() => router.push(`/exams/${examId}/questions`)}
+                >
+                  بازگشت
+                </Button>
+              }
+            />
+          }
+          filters={
+            <QuestionBankFilters
+              filters={filters}
+              onChange={handleFilterChange}
+              categories={categories}
+              loadedCount={loadedCount}
+              totalCount={totalQuestionCount}
+              isRefetching={questionsRefetching}
+            />
+          }
+          toolbar={
+            hydrated ? (
+              <QuestionBankToolbar
+                hint="روی آیکون سبد کنار هر سوال بزنید، سپس از نوار پایین همه را یکجا به آزمون اضافه کنید. بارم را بعداً در لیست سوالات تنظیم کنید."
+                viewToggle={
+                  <QuestionBankViewToggle value={viewMode} onChange={setViewMode} size="small" />
+                }
               />
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => router.push(`/exams/${examId}/questions`)}
-              >
-                بازگشت به سوالات آزمون
-              </Button>
-            </Stack>
-          </Stack>
-
-          <Alert severity="info" icon={<LibraryBooksIcon />}>
-            با آیکون سبد کنار هر سوال، آن را به سبد اضافه کنید. سپس از نوار پایین صفحه، همه را
-            یکجا به آزمون اضافه کنید. بارم هر سوال را بعداً در لیست سوالات آزمون تنظیم کنید.
-          </Alert>
-
-          <QuestionBankFilters
-            filters={filters}
-            onChange={handleFilterChange}
-            categories={categories}
-            loadedCount={loadedCount}
-            totalCount={totalQuestionCount}
-          />
-
+            ) : undefined
+          }
+        >
           <QuestionBankList
             questions={questions}
             isInitialLoading={questionsLoading}
             isRefetching={questionsRefetching}
             isError={questionsError}
             errorMessage={
-              questionsErrorDetail instanceof Error
-                ? questionsErrorDetail.message
-                : undefined
+              questionsErrorDetail instanceof Error ? questionsErrorDetail.message : undefined
             }
             onRetry={() => refetchQuestions()}
             viewMode={viewMode}
@@ -306,8 +313,8 @@ export default function ExamQuestionsFromBankPage() {
             loadedCount={loadedCount}
             totalCount={totalQuestionCount}
           />
-        </Stack>
-      </Container>
+        </QuestionBankLayout>
+      </Stack>
 
       <ExamQuestionCartBar
         visible={cartVisible}

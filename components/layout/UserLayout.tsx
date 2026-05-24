@@ -7,7 +7,7 @@ import UserSidebar from "./UserSidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
-import { NavigationProvider } from "@/components/layout/NavigationProvider";
+import { MainProgressProvider } from "@/components/layout/MainProgressProvider";
 import {
   MOBILE_BOTTOM_NAV_HEIGHT,
   SHELL_CONTENT_PADDING,
@@ -51,22 +51,27 @@ export default function UserLayout({ children }: UserLayoutProps) {
           WebkitOverflowScrolling: "touch",
           boxSizing: "border-box",
           pb: `${MOBILE_BOTTOM_NAV_HEIGHT}px`,
+          display: "flex",
+          flexDirection: "column",
           ...(isTakeExam ? takeExamMainSx : {}),
         }}
       >
-        <Box
-          sx={{
-            width: "100%",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-            minHeight: isTakeExam ? "100%" : undefined,
-            ...(isTakeExam ? { px: 0, py: 0 } : SHELL_CONTENT_PADDING),
-          }}
-        >
-          <ImpersonationBanner />
-          {!isTakeExam && <StartedExamsAlert />}
-          <NavigationProvider>{children}</NavigationProvider>
-        </Box>
+        <MainProgressProvider>
+          <Box
+            sx={{
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              minHeight: isTakeExam ? "100%" : undefined,
+              flex: 1,
+              ...(isTakeExam ? { px: 0, py: 0 } : SHELL_CONTENT_PADDING),
+            }}
+          >
+            <ImpersonationBanner />
+            {!isTakeExam && <StartedExamsAlert />}
+            {children}
+          </Box>
+        </MainProgressProvider>
       </Box>
 
       <UserSidebar open={mobileOpen} onClose={handleDrawerToggle} variant="temporary" />

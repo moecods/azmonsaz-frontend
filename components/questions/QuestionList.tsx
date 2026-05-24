@@ -1,27 +1,26 @@
 "use client";
 
-import React, { useCallback } from 'react';
-
+import React, { useCallback } from "react";
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   IconButton,
-  LinearProgress,
   Stack,
   Tooltip,
   Typography,
-} from '@mui/material';
-import { InfiniteScrollSentinel } from '@/components/shared/InfiniteScrollSentinel';
-import { questionTypeBorderSx } from '@/lib/question-types/type-appearance';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-
-import { Question } from '@/types';
-import type { QuestionBankViewMode } from '@/lib/question-bank-view';
-import { QuestionBankItemDisplay } from '@/components/questions/QuestionBankItemDisplay';
+} from "@mui/material";
+import { InfiniteScrollSentinel } from "@/components/shared/InfiniteScrollSentinel";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Question } from "@/types";
+import type { QuestionBankViewMode } from "@/lib/question-bank-view";
+import { QuestionBankItemDisplay } from "@/components/questions/QuestionBankItemDisplay";
+import { QuestionBankCardMeta } from "@/components/exams/exam-questions/QuestionBankCardMeta";
+import {
+  QuestionBankCard,
+  QuestionBankEmptyState,
+} from "@/components/questions/question-bank";
 
 interface QuestionListProps {
   questions: Question[];
@@ -39,51 +38,6 @@ interface QuestionListProps {
   onEdit: (question: Question) => void;
   onDelete: (id: number) => void;
 }
-
-interface QuestionCardProps {
-  question: Question;
-  viewMode: QuestionBankViewMode;
-  onEdit: (question: Question) => void;
-  onDelete: (id: number) => void;
-}
-
-const QuestionCard = React.memo(function QuestionCard({
-  question,
-  viewMode,
-  onEdit,
-  onDelete,
-}: QuestionCardProps) {
-  return (
-    <Card
-      variant="outlined"
-      sx={(theme) => ({
-        ...questionTypeBorderSx(theme, question.type),
-      })}
-    >
-      <CardContent>
-        <Stack spacing={2}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <QuestionBankItemDisplay source={question} viewMode={viewMode} />
-            </Box>
-            <Stack direction="row" spacing={0.5}>
-              <Tooltip title="ویرایش سوال">
-                <IconButton size="small" color="primary" onClick={() => onEdit(question)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="حذف سوال">
-                <IconButton size="small" color="error" onClick={() => onDelete(question.id)}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Stack>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-});
 
 export const QuestionList: React.FC<QuestionListProps> = React.memo(function QuestionList({
   questions,
@@ -106,16 +60,12 @@ export const QuestionList: React.FC<QuestionListProps> = React.memo(function Que
 
   if (isInitialLoading) {
     return (
-      <Card variant="outlined">
-        <CardContent>
-          <Stack alignItems="center" justifyContent="center" py={6} spacing={2}>
-            <CircularProgress />
-            <Typography variant="body2" color="text.secondary">
-              در حال بارگذاری سوالات…
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
+      <Stack alignItems="center" justifyContent="center" py={8} spacing={2}>
+        <CircularProgress />
+        <Typography variant="body2" color="text.secondary">
+          در حال بارگذاری سوالات…
+        </Typography>
+      </Stack>
     );
   }
 
@@ -123,6 +73,7 @@ export const QuestionList: React.FC<QuestionListProps> = React.memo(function Que
     return (
       <Alert
         severity="error"
+        sx={{ borderRadius: 2 }}
         action={
           onRetry ? (
             <Typography
@@ -143,43 +94,70 @@ export const QuestionList: React.FC<QuestionListProps> = React.memo(function Que
 
   if (questions.length === 0) {
     return (
-      <Card variant="outlined">
-        <CardContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center" py={6}>
-            هیچ سوالی یافت نشد
-          </Typography>
-        </CardContent>
-      </Card>
+      <QuestionBankEmptyState
+        title="هنوز سوالی در بانک نیست"
+        description="اولین سوال را بسازید یا فیلترها را تغییر دهید."
+      />
     );
   }
 
   return (
-    <Stack spacing={2}>
-      {isRefetching && <LinearProgress aria-label="در حال به‌روزرسانی لیست" />}
+    <Stack spacing={1.5}>
+      {questions.map((question) => {
+        const questionType = question.type || "multiple_choice";
 
-      {questions.map((question) => (
-        <QuestionCard
-          key={question.id}
-          question={question}
-          viewMode={viewMode}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      ))}
+        return (
+          <QuestionBankCard
+            key={question.id}
+            questionType={questionType}
+            meta={
+              <QuestionBankCardMeta question={question} viewMode={viewMode} />
+            }
+            actions={
+              <>
+                <Tooltip title="ویرایش سوال">
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => handleEdit(question)}
+                    sx={{ bgcolor: "background.paper", boxShadow: 1 }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="حذف سوال">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleDelete(question.id)}
+                    sx={{ bgcolor: "background.paper", boxShadow: 1 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </>
+            }
+          >
+            <QuestionBankItemDisplay source={question} viewMode={viewMode} compact suppressStemMeta />
+          </QuestionBankCard>
+        );
+      })}
 
       {onLoadMore && (
-        <InfiniteScrollSentinel
-          hasMore={hasNextPage}
-          isFetchingMore={isFetchingNextPage}
-          onLoadMore={onLoadMore}
-          loadedCount={loadedCount}
-          totalCount={totalCount}
-        />
+        <Box sx={{ pt: 1 }}>
+          <InfiniteScrollSentinel
+            hasMore={hasNextPage}
+            isFetchingMore={isFetchingNextPage}
+            onLoadMore={onLoadMore}
+            loadedCount={loadedCount}
+            totalCount={totalCount}
+          />
+        </Box>
       )}
     </Stack>
   );
 });
 
-QuestionList.displayName = 'QuestionList';
+QuestionList.displayName = "QuestionList";
 
 export default QuestionList;

@@ -35,6 +35,34 @@ describe("normalizeQuestion", () => {
     expect(norm.text).toBe("Exam Q");
     expect(norm.display_settings.optionsPerRow).toBe(3);
   });
+
+  it("reads matching pairs from correct_answer (bank API shape)", () => {
+    const norm = normalizeQuestion({
+      type: "matching",
+      options: {
+        left_items: [{ text: "فرانسه" }, { text: "ژاپن" }],
+        right_items: [{ text: "پاریس" }, { text: "توکیو" }],
+      },
+      correct_answer: [
+        { left_index: 0, right_index: 0 },
+        { left_index: 1, right_index: 1 },
+      ],
+    });
+    expect(norm.matches).toHaveLength(2);
+    expect(norm.matches[0]).toEqual({ left_index: 0, right_index: 0 });
+    expect(norm.matches[1]).toEqual({ left_index: 1, right_index: 1 });
+  });
+
+  it("does not default matching to right_index 0 when key is missing", () => {
+    const norm = normalizeQuestion({
+      type: "matching",
+      options: {
+        left_items: [{ text: "A" }, { text: "B" }],
+        right_items: [{ text: "1" }, { text: "2" }],
+      },
+    });
+    expect(norm.matches).toEqual([]);
+  });
 });
 
 describe("isCorrectOptionId", () => {

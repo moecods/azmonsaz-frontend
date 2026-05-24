@@ -9,7 +9,7 @@ import { DesktopSidebar } from "@/components/layout/UserSidebar";
 import UserLayout from "@/components/layout/UserLayout";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
-import { NavigationProvider } from "@/components/layout/NavigationProvider";
+import { MainProgressProvider } from "@/components/layout/MainProgressProvider";
 import { RealtimeProvider } from "@/providers/RealtimeProvider";
 import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
 import { isTakeExamRoute } from "@/lib/take-exam-path";
@@ -71,22 +71,27 @@ export default function AuthenticatedShell({ children }: { children: ReactNode }
               overflowX: "hidden",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
+              display: "flex",
+              flexDirection: "column",
               ...(isTakeExam ? takeExamMainSx : {}),
             }}
           >
-            <Box
-              sx={{
-                p: isTakeExam ? 0 : 3,
-                boxSizing: "border-box",
-                width: "100%",
-                maxWidth: "100%",
-                minHeight: isTakeExam ? "100%" : undefined,
-              }}
-            >
-              <ImpersonationBanner />
-              {!isTakeExam && <StartedExamsAlert />}
-              <NavigationProvider>{children}</NavigationProvider>
-            </Box>
+            <MainProgressProvider>
+              <Box
+                sx={{
+                  p: isTakeExam ? 0 : 3,
+                  boxSizing: "border-box",
+                  width: "100%",
+                  maxWidth: "100%",
+                  minHeight: isTakeExam ? "100%" : undefined,
+                  flex: 1,
+                }}
+              >
+                <ImpersonationBanner />
+                {!isTakeExam && <StartedExamsAlert />}
+                {children}
+              </Box>
+            </MainProgressProvider>
           </Box>
         </Box>
       )}

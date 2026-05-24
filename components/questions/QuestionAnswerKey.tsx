@@ -100,25 +100,52 @@ export default function QuestionAnswerKey({ source }: QuestionAnswerKeyProps) {
   }
 
   if (kind === "matching" && q.left_items.length > 0) {
+    if (q.matches.length === 0) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          کلید تطبیق ثبت نشده است
+        </Typography>
+      );
+    }
+
+    const matchByLeft = new Map(
+      q.matches.map((m) => [m.left_index, m] as const)
+    );
+
     return (
       <Box>
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
           تطبیق صحیح:
         </Typography>
         <Stack spacing={0.5}>
-          {q.matches.map((m, i) => {
+          {q.left_items.map((leftItem, leftIdx) => {
+            const m = matchByLeft.get(leftIdx);
             const rights =
-              m.right_indices ??
-              (m.right_index != null ? [m.right_index] : []);
+              m?.right_indices ??
+              (m?.right_index != null ? [m.right_index] : []);
             return (
-              <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap" }}>
-                <RichLabel html={optionText(q.left_items[m.left_index] ?? "")} fontSize="0.875rem" block={false} />
+              <Box
+                key={leftIdx}
+                sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap" }}
+              >
+                <RichLabel html={optionText(leftItem)} fontSize="0.875rem" block={false} />
                 <Typography component="span" variant="body2">
                   ←
                 </Typography>
-                {rights.map((ri, j) => (
-                  <RichLabel key={j} html={optionText(q.right_items[ri] ?? "")} fontSize="0.875rem" block={false} />
-                ))}
+                {rights.length > 0 ? (
+                  rights.map((ri, j) => (
+                    <RichLabel
+                      key={j}
+                      html={optionText(q.right_items[ri] ?? "")}
+                      fontSize="0.875rem"
+                      block={false}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    —
+                  </Typography>
+                )}
               </Box>
             );
           })}

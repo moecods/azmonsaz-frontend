@@ -33,6 +33,42 @@ export function optionText(opt: unknown): string {
   return "";
 }
 
+function isMatchingPairRow(value: unknown): value is {
+  left_index: number;
+  right_index?: number;
+  right_indices?: number[];
+} {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "left_index" in value &&
+    typeof (value as { left_index: unknown }).left_index === "number"
+  );
+}
+
+/** Bank/API store matching key in `correct_answer`; exam payloads may use `matches`. */
+export function resolveMatchingPairs(
+  source: Record<string, unknown>,
+  nested: Record<string, unknown> | null,
+  leftItemCount: number
+): NormalizedQuestion["matches"] {
+  const direct = source.matches ?? nested?.matches;
+  if (Array.isArray(direct) && direct.length > 0 && direct.every(isMatchingPairRow)) {
+    return direct as NormalizedQuestion["matches"];
+  }
+
+  const ca = source.correct_answer;
+  if (Array.isArray(ca) && ca.length > 0 && ca.every(isMatchingPairRow)) {
+    return ca as NormalizedQuestion["matches"];
+  }
+
+  if (leftItemCount > 0) {
+    return [];
+  }
+
+  return [];
+}
+
 /** Normalize bank `Question` or exam `payload` into one shape for display/answer widgets. */
 export function normalizeQuestion(source: Record<string, unknown>): NormalizedQuestion {
   const type = String(source.type ?? source.question_type ?? "multiple_choice");
@@ -98,9 +134,7 @@ export function normalizeQuestion(source: Record<string, unknown>): NormalizedQu
         : items.map((_, i) => i)),
     left_items,
     right_items,
-    matches:
-      (source.matches as NormalizedQuestion["matches"]) ??
-      left_items.map((_, i) => ({ left_index: i, right_index: 0 })),
+    matches: resolveMatchingPairs(source, nested, left_items.length),
     blanks,
     correct_answers,
     display_settings: (source.display_settings as Record<string, unknown>) ?? {},

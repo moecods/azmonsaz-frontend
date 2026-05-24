@@ -449,6 +449,12 @@ export interface ExamListItem {
   end_time?: string | null;
   start_at?: string | null;
   end_at?: string | null;
+  schedule_type?: string | null;
+  available_from?: string | null;
+  due_by?: string | null;
+  calendar_start_at?: string | null;
+  calendar_end_at?: string | null;
+  calendar_all_day?: boolean;
   partner_id: number | null;
   partner?: {
     id: number;

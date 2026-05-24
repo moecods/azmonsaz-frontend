@@ -34,6 +34,7 @@ export interface AuthUser {
   permissions: string[];
   is_active: boolean;
   subscription?: UserSubscription | null;
+  created_at?: string;
 }
 
 export interface LoginCredentials {
