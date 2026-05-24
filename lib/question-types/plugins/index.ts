@@ -1,7 +1,10 @@
 import { QUESTION_TYPE_IDS, type QuestionTypeId } from "../constants";
 import { getQuestionTypeConfig } from "../registry";
 import type { QuestionTypePlugin } from "./types";
-import { DEFAULT_DISPLAY_SETTINGS } from "../display-settings";
+import {
+  DEFAULT_DISPLAY_SETTINGS,
+  OPTION_TYPE_DISPLAY_DEFAULTS,
+} from "../display-settings";
 
 const plugins: Record<QuestionTypeId, QuestionTypePlugin> = {} as Record<
   QuestionTypeId,
@@ -16,7 +19,7 @@ for (const id of QUESTION_TYPE_IDS) {
     labelFa: config.labelFa,
     defaultDisplaySettings:
       id === "multiple_choice" || id === "multiple_select" || id === "true_false"
-        ? { optionsPerRow: 1, optionLabelStyle: "latin" }
+        ? OPTION_TYPE_DISPLAY_DEFAULTS
         : id === "ordering"
           ? { orderingLayout: "vertical", orderingColumns: 3 }
           : id === "matching"

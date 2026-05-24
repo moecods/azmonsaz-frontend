@@ -6,7 +6,7 @@ import { getQuestionTypeKind } from '@/lib/question-types/registry';
 
 // Question validation schemas
 export const questionOptionSchema = z.object({
-  id: z.number().optional(),
+  id: z.string().min(1, 'شناسه گزینه الزامی است'),
   text: z.string().min(1, 'متن گزینه الزامی است'),
   is_correct: z.boolean(),
 });
@@ -38,8 +38,6 @@ export const questionSchema = z.object({
   type: z.enum(QUESTION_TYPE_IDS as unknown as [string, ...string[]]),
   options: z.array(questionOptionSchema).optional(),
   correct_answer: z.union([
-    z.number(),
-    z.array(z.number()),
     z.string(),
     z.array(z.string()),
     z.null(),
@@ -144,14 +142,14 @@ export const questionSchema = z.object({
     if (!hasCorrect) {
       ctx.addIssue({ code: 'custom', path: ['options'], message: 'حداقل یک گزینه را به عنوان صحیح انتخاب کنید' });
     }
-    const optionsLength = options.length;
-    if (typeof data.correct_answer === 'number') {
-      if (data.correct_answer < 0 || data.correct_answer >= optionsLength) {
-        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شاخص پاسخ صحیح نامعتبر است' });
+    const optionIds = new Set(options.map((o) => o.id));
+    if (typeof data.correct_answer === 'string') {
+      if (!optionIds.has(data.correct_answer)) {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شناسه پاسخ صحیح نامعتبر است' });
       }
     } else if (Array.isArray(data.correct_answer)) {
-      if (!data.correct_answer.every(i => i >= 0 && i < optionsLength)) {
-        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شاخص پاسخ صحیح نامعتبر است' });
+      if (!data.correct_answer.every((id) => typeof id === 'string' && optionIds.has(id))) {
+        ctx.addIssue({ code: 'custom', path: ['correct_answer'], message: 'شناسه پاسخ صحیح نامعتبر است' });
       }
     }
   }
@@ -164,7 +162,7 @@ export const examQuestionSchema = z.object({
   question_id: z.number().optional(),
   custom_text: z.string().optional(),
   custom_options: z.array(questionOptionSchema).optional(),
-  custom_correct_answer: z.union([z.number(), z.array(z.number())]).optional(),
+  custom_correct_answer: z.union([z.string(), z.array(z.string())]).optional(),
   order: z.number().min(0),
 });
 

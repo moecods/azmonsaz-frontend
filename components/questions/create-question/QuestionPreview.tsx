@@ -151,7 +151,7 @@ export function QuestionPreview({
               {questionType !== 'fill_in_the_blank' && payloadWithSettings && (
                 <QuestionAnswerInput
                   payload={payloadWithSettings}
-                  value={previewAnswer as number | number[] | string | null | undefined}
+                  value={previewAnswer as string | string[] | number[] | null | undefined}
                   onChange={(v) => onPreviewAnswerChange(v)}
                 />
               )}

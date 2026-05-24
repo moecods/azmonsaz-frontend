@@ -31,6 +31,7 @@ import {
   Divider,
 } from '@mui/material';
 import { useExamWithParticipants, usePublishExam, useUnpublishExam, useActivateExam, useDeactivateExam, useGenerateExamLink, useReleaseExamResults } from '@/hooks/useExams';
+import { useExamRealtime } from '@/hooks/useExamRealtime';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SchoolIcon from '@mui/icons-material/School';
@@ -95,6 +96,7 @@ function ExamDetailContent() {
 
   const queryClient = useQueryClient();
   const { data: exam, isLoading, error } = useExamWithParticipants(examId);
+  useExamRealtime(examId, { grading: true });
   const publishExamMutation = usePublishExam();
   const unpublishExamMutation = useUnpublishExam();
   const activateExamMutation = useActivateExam();
@@ -324,7 +326,7 @@ function ExamDetailContent() {
                   }}
                 >
                   <ListItemIcon><GradeIcon fontSize="small" /></ListItemIcon>
-                  <ListItemText>تصحیح دستی</ListItemText>
+                  <ListItemText>تصحیح آزمون</ListItemText>
                 </MenuItem>
                 {exam.result_release_requires_manual && exam.status === 'published' && !exam.results_released_at && (
                   <MenuItem

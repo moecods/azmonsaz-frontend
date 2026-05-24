@@ -16,18 +16,11 @@ import { ExamFormData } from "@/lib/validation";
 import { PersianDatePicker } from "@/components/exams/PersianDatePicker";
 import { PersianTimePicker } from "@/components/exams/PersianTimePicker";
 import { FormNumberField } from "@/components/forms";
+import { EXAM_SCHEDULE_LABELS } from "@/lib/exam-form-labels";
 
 interface SchedulingStepProps {
   form: UseFormReturn<ExamFormData>;
 }
-
-const SCHEDULE_LABELS: Record<string, string> = {
-  none: "بدون زمان‌بندی (پیش‌نویس / چاپ)",
-  fixed_window: "بازه ثابت (تاریخ + شروع و پایان)",
-  duration_only: "فقط مدت — شروع با ورود دانش‌آموز",
-  registration_deadline: "مهلت ثبت‌نام + بازه",
-  flexible_until: "در دسترس از / تا مهلت",
-};
 
 export const SchedulingStep = React.memo(function SchedulingStep({
   form,
@@ -72,7 +65,7 @@ export const SchedulingStep = React.memo(function SchedulingStep({
           <FormControl fullWidth>
             <InputLabel>نوع زمان‌بندی</InputLabel>
             <Select {...field} label="نوع زمان‌بندی" value={field.value ?? "fixed_window"}>
-              {Object.entries(SCHEDULE_LABELS).map(([value, label]) => (
+              {Object.entries(EXAM_SCHEDULE_LABELS).map(([value, label]) => (
                 <MenuItem key={value} value={value}>
                   {label}
                 </MenuItem>

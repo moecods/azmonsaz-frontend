@@ -11,7 +11,7 @@ export function formValuesToBankSource(
     difficulty: data.difficulty,
     tags: data.tags ?? [],
     category_name: categoryName ?? undefined,
-    options: data.options?.map((o) => ({ text: o.text, is_correct: o.is_correct })) ?? [],
+    options: data.options?.map((o) => ({ id: o.id, text: o.text })) ?? [],
     correct_answer: data.correct_answer,
     items: data.items,
     correct_order: data.correct_order,

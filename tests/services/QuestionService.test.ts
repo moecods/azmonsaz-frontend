@@ -71,15 +71,17 @@ describe('QuestionService', () => {
 
   describe('createQuestion', () => {
     it('should create new question', async () => {
+      const opt1 = '01JOPT11111111111111111111';
+      const opt2 = '01JOPT22222222222222222222';
       const questionData = {
         text: 'Test Question',
         type: 'multiple_choice',
         category_id: 1,
         options: [
-          { text: 'Option 1', is_correct: true },
-          { text: 'Option 2', is_correct: false },
+          { id: opt1, text: 'Option 1', is_correct: true },
+          { id: opt2, text: 'Option 2', is_correct: false },
         ],
-        correct_answer: 0,
+        correct_answer: opt1,
         difficulty: 'medium',
         tags: ['test'],
       };

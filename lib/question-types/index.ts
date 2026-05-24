@@ -22,7 +22,7 @@ export { getDescriptor, getDescriptorOrNull, type QuestionTypeDescriptor, type Q
 export { getQuestionPlugin, plugins } from './plugins';
 export type { DisplaySettings, OptionLabelStyle } from './display-settings';
 export { mergeDisplaySettings, getOptionLabel, DEFAULT_DISPLAY_SETTINGS } from './display-settings';
-export { normalizeQuestion, normalizeFromQuestion, optionText, isCorrectOptionIndex } from './normalize-question';
+export { normalizeQuestion, normalizeFromQuestion, optionText } from './normalize-question';
 export { formValuesToBankSource } from './preview-answer';
 export { getQuestionTypeDefaults } from './type-defaults';
 export {

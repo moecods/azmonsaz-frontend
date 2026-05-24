@@ -50,8 +50,10 @@ export function buildCustomQuestionPayload(
   };
 
   if (question.custom_options && question.custom_options.length > 0) {
-    payload.options = question.custom_options.map(opt => 
-      typeof opt === 'string' ? opt : opt.text
+    payload.options = question.custom_options.map((opt) =>
+      typeof opt === 'string'
+        ? { id: crypto.randomUUID(), text: opt }
+        : { id: opt.id, text: opt.text }
     );
   }
 

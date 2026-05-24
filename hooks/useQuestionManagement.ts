@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  useQuestions,
   useQuestionCategories,
   useDeleteQuestion,
 } from '@/hooks';
+import { useInfiniteQuestions } from '@/hooks/useInfiniteQuestions';
 import { Question, Difficulty, QuestionType } from '@/types';
 
 export interface QuestionFilters {
@@ -14,7 +14,6 @@ export interface QuestionFilters {
   type: QuestionType | '';
   tags: string[];
   sort: 'newest' | 'oldest';
-  page: number;
 }
 
 export function useQuestionManagement() {
@@ -26,31 +25,33 @@ export function useQuestionManagement() {
     type: '',
     tags: [],
     sort: 'newest',
-    page: 1,
   });
 
-  // Fetch questions
-  const { data: questionsData, isLoading: questionsLoading } = useQuestions({
-    search: filters.search || undefined,
-    category_id: filters.category || undefined,
-    difficulty: filters.difficulty || undefined,
-    type: filters.type || undefined,
-    tags: filters.tags.length > 0 ? filters.tags : undefined,
-    sort: filters.sort,
-    page: filters.page,
-    per_page: 10,
-  });
+  const apiFilterInput = useMemo(
+    () => ({
+      search: filters.search || undefined,
+      category_id: filters.category || undefined,
+      difficulty: filters.difficulty || undefined,
+      type: filters.type || undefined,
+      tags: filters.tags.length > 0 ? filters.tags : undefined,
+      sort: filters.sort,
+    }),
+    [
+      filters.search,
+      filters.category,
+      filters.difficulty,
+      filters.type,
+      filters.tags,
+      filters.sort,
+    ]
+  );
 
-  // Fetch categories
+  const questionsQuery = useInfiniteQuestions(apiFilterInput);
+
   const { data: categoriesData } = useQuestionCategories();
 
-  // Get all unique tags from current questions for filter
   const allTags = Array.from(
-    new Set(
-      (questionsData?.data || [])
-        .flatMap((q) => q.tags || [])
-        .filter(Boolean)
-    )
+    new Set(questionsQuery.questions.flatMap((q) => q.tags || []).filter(Boolean))
   ).sort();
 
   const deleteQuestionMutation = useDeleteQuestion();
@@ -62,7 +63,6 @@ export function useQuestionManagement() {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: key !== 'page' ? 1 : (value as number),
     }));
   };
 
@@ -78,11 +78,19 @@ export function useQuestionManagement() {
 
   return {
     filters,
-    questions: questionsData?.data || [],
+    questions: questionsQuery.questions,
     categories: categoriesData || [],
-    pagination: questionsData?.meta,
+    totalCount: questionsQuery.totalCount,
+    loadedCount: questionsQuery.loadedCount,
     allTags,
-    isLoading: questionsLoading,
+    isLoading: questionsQuery.isInitialLoading,
+    isRefetching: questionsQuery.isRefetching,
+    isFetchingNextPage: questionsQuery.isFetchingNextPage,
+    hasNextPage: questionsQuery.canLoadMore,
+    loadMore: questionsQuery.loadMore,
+    isError: questionsQuery.isError,
+    error: questionsQuery.error,
+    refetch: questionsQuery.refetch,
     updateFilter,
     handleOpenEdit,
     handleDelete,

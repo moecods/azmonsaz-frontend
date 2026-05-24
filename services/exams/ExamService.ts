@@ -585,14 +585,33 @@ export interface AvailableExam {
   } | null;
 }
 
+export interface ExamTakeTimingDescriptor {
+  visible: boolean;
+  remaining_seconds: number | null;
+  kind: string;
+  label: string;
+  hint?: string | null;
+}
+
+export interface ExamTakeTimingPreview {
+  visible: boolean;
+  label: string;
+  hint?: string | null;
+  duration_minutes?: number | null;
+}
+
 export interface ExamInfo {
   id: number;
   public_uuid?: string;
   title: string;
   type: 'online' | 'offline';
   meta: Record<string, unknown>;
+  schedule_type?: string | null;
+  duration_minutes?: number | null;
   start_at?: string | null;
   end_at?: string | null;
+  available_from?: string | null;
+  due_by?: string | null;
   questions_count: number;
   instructions: string | null,
   creator?: {
@@ -603,6 +622,7 @@ export interface ExamInfo {
   registration_status: 'registered' | 'started' | 'completed' | 'absent' | null;
   can_start: boolean;
   time_message?: string | null;
+  timing_preview?: ExamTakeTimingPreview | null;
 }
 
 export interface ExamRegistration {
@@ -643,8 +663,9 @@ export interface ExamStartResponse {
     payload: Record<string, unknown>;
   }>;
   started_at: string;
-  remaining_seconds?: number | null; // Remaining time in seconds (null if no time limit)
-  answers?: Record<string, any>; // Saved answers from previous session
+  remaining_seconds?: number | null;
+  timing?: ExamTakeTimingDescriptor | null;
+  answers?: Record<string, any>;
 }
 
 export interface ExamQuestionsResponse {
@@ -743,8 +764,8 @@ export interface ExamResultDetail {
     question_text: string;
     type: string;
     options?: Array<{ text: string; is_correct?: boolean }>;
-    correct_answer: number | number[] | string;
-    your_answer: number | number[] | string | null;
+    correct_answer: string | string[];
+    your_answer: string | string[] | number[] | null;
     is_correct: boolean;
     points_earned: number;
     points_total: number;

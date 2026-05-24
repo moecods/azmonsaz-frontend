@@ -14,7 +14,6 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Divider,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -23,7 +22,6 @@ import {
   DialogActions,
   Snackbar,
   TextField,
-  Collapse,
 } from '@mui/material';
 import {
   DndContext,
@@ -42,7 +40,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useExam, useAddQuestionToExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/useExams';
+import { useExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/useExams';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
@@ -50,17 +48,18 @@ import EditIcon from '@mui/icons-material/Edit';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamQuestionsToolbar } from '@/components/exams/exam-questions/ExamQuestionsToolbar';
-import { ExamQuestionBankPane } from '@/components/exams/exam-questions/ExamQuestionBankPane';
-import QuestionDisplay from '@/components/questions/QuestionDisplay';
-import { RichLabel, htmlToPlainText } from '@/components/editor';
+import CreateCustomQuestion from '@/components/questions/CreateCustomQuestion';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import { QuestionBankItemDisplay } from '@/components/questions/QuestionBankItemDisplay';
+import { QuestionBankViewToggle } from '@/components/questions/QuestionBankViewToggle';
+import { useExamQuestionsViewMode } from '@/hooks/useQuestionBankViewMode';
+import type { QuestionBankViewMode } from '@/lib/question-bank-view';
+import { htmlToPlainText } from '@/components/editor';
 import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
 import {
   getQuestionText,
-  getQuestionOptions,
   getQuestionType,
-  buildBankQuestionPayload,
-  buildCustomQuestionPayload,
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
 import { handleError, getErrorMessage } from '@/lib/error-handler';
@@ -76,6 +75,7 @@ import {ArrowRightIcon} from "@mui/x-date-pickers";
 interface SortableQuestionItemProps {
   question: ExamQuestion;
   index: number;
+  viewMode: QuestionBankViewMode;
   defaultPoints: number;
   maxPointsAllowed: number;
   examMaxScore: number | null;
@@ -90,6 +90,7 @@ interface SortableQuestionItemProps {
 const SortableQuestionItem = memo(function SortableQuestionItem({
   question,
   index,
+  viewMode,
   defaultPoints,
   maxPointsAllowed,
   examMaxScore,
@@ -102,7 +103,6 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
 }: SortableQuestionItemProps) {
   const points = (question.payload?.points as number) ?? defaultPoints;
   const [pointsValue, setPointsValue] = useState<string>(String(points));
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setPointsValue(String(points));
@@ -140,9 +140,8 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const questionText = getQuestionText(question);
-  const options = getQuestionOptions(question);
   const questionType = getQuestionType(question);
+  const displaySource = (question.payload ?? question.question ?? {}) as Record<string, unknown>;
 
   return (
     <Card
@@ -235,24 +234,23 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                     />
                   </Tooltip>
                 </Stack>
-                <Box
-                  onClick={() => setExpanded((e) => !e)}
-                  sx={{ cursor: 'pointer' }}
-                >
-                  <RichLabel
-                    html={questionText}
-                    fontSize="1rem"
-                    sx={{ fontWeight: 500 }}
+                <Box sx={{ mt: 0.5 }}>
+                  {viewMode === "student" && (
+                    <Chip
+                      label="نمای دانش‌آموز"
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                      sx={{ mb: 1, height: 22, fontSize: "0.7rem" }}
+                    />
+                  )}
+                  <QuestionBankItemDisplay
+                    source={displaySource}
+                    viewMode={viewMode}
+                    compact
+                    suppressStemMeta
                   />
                 </Box>
-                <Collapse in={expanded}>
-                  <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-                    <QuestionDisplay
-                      source={(question.payload ?? question.question ?? {}) as Record<string, unknown>}
-                      mode="manage"
-                    />
-                  </Box>
-                </Collapse>
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5}>
@@ -281,46 +279,6 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
             </Stack>
           </Stack>
 
-          {options.length > 0 && (
-            <Box sx={{ pl: 4 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                گزینه‌ها:
-              </Typography>
-              <Stack spacing={0.5}>
-                {options.map((option: { text?: string; is_correct?: boolean } | string, optionIndex: number) => {
-                  const isCorrect =
-                    typeof option === 'object' && option && 'is_correct' in option && option.is_correct;
-                  const optionText = typeof option === 'string' ? option : (option.text ?? '');
-                  return (
-                    <Stack
-                      key={optionIndex}
-                      direction="row"
-                      spacing={1}
-                      alignItems="flex-start"
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ minWidth: 24, fontWeight: 'medium', mt: 0.25 }}
-                      >
-                        {String.fromCharCode(65 + optionIndex)}.
-                      </Typography>
-                      <RichLabel
-                        html={optionText}
-                        fontSize="0.875rem"
-                        sx={{
-                          fontWeight: isCorrect ? 600 : 400,
-                          color: isCorrect ? 'success.main' : 'text.primary',
-                        }}
-                      />
-                      {isCorrect && (
-                        <Chip label="صحیح" size="small" color="success" />
-                      )}
-                    </Stack>
-                  );
-                })}
-              </Stack>
-            </Box>
-          )}
         </Stack>
       </CardContent>
     </Card>
@@ -331,8 +289,8 @@ function ExamQuestionsContent() {
   const params = useParams();
   const router = useRouter();
   const examId = params?.id ? parseInt(params.id as string) : null;
+  const { viewMode, setViewMode, hydrated } = useExamQuestionsViewMode();
 
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<ExamQuestion | null>(null);
@@ -344,7 +302,6 @@ function ExamQuestionsContent() {
   const dragUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: examWithQuestions, isLoading, error } = useExam(examId);
-  const addQuestionMutation = useAddQuestionToExam();
   const updateQuestionMutation = useUpdateExamQuestion();
   const deleteQuestionMutation = useDeleteExamQuestion();
 
@@ -497,72 +454,6 @@ function ExamQuestionsContent() {
   const rejectPointsOverflow = useCallback((message: string) => {
     setSnackbar({ open: true, message, severity: 'error' });
   }, []);
-
-  const handleAddQuestion = useCallback((question: ExamQuestion) => {
-    if (!examId) return;
-
-    const nextOrder = questions.length + 1;
-    const points = defaultPoints;
-    const cap = wouldExceedExamMaxScore(examForPoints, questions, defaultPoints, points);
-    if (cap.exceeds) {
-      rejectPointsOverflow(
-        `افزودن سوال با بارم ${points} مجاز نیست. مجموع بارم (${cap.projectedTotal}) از حداکثر نمره (${cap.maxScore}) بیشتر می‌شود.`
-      );
-      return;
-    }
-    
-    if (question.question_id) {
-      const payload = buildBankQuestionPayload(nextOrder, points);
-      addQuestionMutation.mutate(
-        { 
-          examId, 
-          data: { question_id: question.question_id, payload } 
-        },
-        {
-          onSuccess: () => {
-            setSnackbar({
-              open: true,
-              message: 'سوال با موفقیت به آزمون اضافه شد',
-              severity: 'success',
-            });
-          },
-          onError: (error) => {
-            handleError(error, { context: 'Add Question From Bank' });
-            setSnackbar({
-              open: true,
-              message: getErrorMessage(error, 'خطا در افزودن سوال'),
-              severity: 'error',
-            });
-          },
-        }
-      );
-    } else {
-      const payload = buildCustomQuestionPayload(question, nextOrder, points);
-      addQuestionMutation.mutate(
-        { 
-          examId, 
-          data: { payload } 
-        },
-        {
-          onSuccess: () => {
-            setSnackbar({
-              open: true,
-              message: 'سوال سفارشی با موفقیت به آزمون اضافه شد',
-              severity: 'success',
-            });
-          },
-          onError: (error) => {
-            handleError(error, { context: 'Add Custom Question' });
-            setSnackbar({
-              open: true,
-              message: getErrorMessage(error, 'خطا در افزودن سوال سفارشی'),
-              severity: 'error',
-            });
-          },
-        }
-      );
-    }
-  }, [examId, questions.length, addQuestionMutation, defaultPoints, examForPoints, questions, rejectPointsOverflow]);
 
   const handleDeleteQuestion = useCallback((questionId: number) => {
     const question = questions.find((q) => q.id === questionId);
@@ -725,7 +616,25 @@ function ExamQuestionsContent() {
           totalPoints={totalPoints}
           maxScore={examMaxScore}
           onBack={() => router.push(`/exams/${examId}`)}
+          viewModeToggle={
+            hydrated ? (
+              <QuestionBankViewToggle value={viewMode} onChange={setViewMode} />
+            ) : undefined
+          }
         />
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<LibraryBooksIcon />}
+            onClick={() => router.push(`/exams/${examId}/questions/from-bank`)}
+            sx={{ fontWeight: 700 }}
+          >
+            انتخاب از بانک سوالات
+          </Button>
+          <CreateCustomQuestion examId={examId ?? undefined} />
+        </Stack>
 
         {examMaxScore != null && totalPoints > examMaxScore && (
           <Alert severity="warning">
@@ -758,9 +667,16 @@ function ExamQuestionsContent() {
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         هنوز سوالی اضافه نشده است
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        از بخش «افزودن سوال از بانک» در پایین صفحه، سوالات را به آزمون اضافه کنید
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        با دکمه «انتخاب از بانک سوالات» سوالات را به آزمون اضافه کنید
                       </Typography>
+                      <Button
+                        variant="contained"
+                        startIcon={<LibraryBooksIcon />}
+                        onClick={() => router.push(`/exams/${examId}/questions/from-bank`)}
+                      >
+                        انتخاب از بانک سوالات
+                      </Button>
                     </Box>
                   ) : (
                     <DndContext
@@ -777,6 +693,7 @@ function ExamQuestionsContent() {
                             key={question.id}
                             question={question}
                             index={index}
+                            viewMode={viewMode}
                             defaultPoints={defaultPoints}
                             examMaxScore={examMaxScore}
                             maxPointsAllowed={maxPointsAllowedForQuestion(
@@ -799,12 +716,11 @@ function ExamQuestionsContent() {
 
                   {questions.length > 0 && (
                     <>
-                      {(addQuestionMutation.isError || updateQuestionMutation.isError || deleteQuestionMutation.isError) && (
+                      {(updateQuestionMutation.isError || deleteQuestionMutation.isError) && (
                         <Alert severity="error" sx={{ mb: 2 }}>
-                          {addQuestionMutation.error instanceof Error && addQuestionMutation.error.message}
                           {updateQuestionMutation.error instanceof Error && updateQuestionMutation.error.message}
                           {deleteQuestionMutation.error instanceof Error && deleteQuestionMutation.error.message}
-                          {!addQuestionMutation.error && !updateQuestionMutation.error && !deleteQuestionMutation.error && 'خطایی رخ داد. لطفا دوباره تلاش کنید.'}
+                          {!updateQuestionMutation.error && !deleteQuestionMutation.error && 'خطایی رخ داد. لطفا دوباره تلاش کنید.'}
                         </Alert>
                       )}
 
@@ -817,12 +733,6 @@ function ExamQuestionsContent() {
               </CardContent>
             </Card>
 
-        {/* Question bank (below exam list) */}
-        <ExamQuestionBankPane
-          examId={examId ?? undefined}
-          defaultPoints={defaultPoints}
-          onAddQuestion={handleAddQuestion}
-        />
       </Stack>
 
       {/* Delete Confirmation Dialog */}

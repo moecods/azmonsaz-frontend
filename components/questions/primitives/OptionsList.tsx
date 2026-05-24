@@ -1,13 +1,16 @@
 "use client";
 
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { RichLabel } from "@/components/editor";
 import {
   mergeDisplaySettings,
   getOptionLabel,
+  effectiveOptionsPerRow,
+  optionsGridSx,
   type DisplaySettings,
 } from "@/lib/question-types/display-settings";
-import { optionText, isCorrectOptionIndex } from "@/lib/question-types/normalize-question";
+import { optionText, optionIdFromUnknown } from "@/lib/question-types/normalize-question";
+import { isCorrectOptionId } from "@/lib/option-ids";
 
 interface OptionsListProps {
   questionType: string;
@@ -26,9 +29,11 @@ export default function OptionsList({
   displaySettings,
   mode = "authoring",
 }: OptionsListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const settings = mergeDisplaySettings(displaySettings);
-  const perRow = settings.optionsPerRow ?? 1;
-  const labelStyle = settings.optionLabelStyle ?? "latin";
+  const perRow = effectiveOptionsPerRow(questionType, settings, isMobile);
+  const labelStyle = settings.optionLabelStyle!;
 
   if (options.length === 0) return null;
 
@@ -38,19 +43,16 @@ export default function OptionsList({
         گزینه‌ها:
       </Typography>
       <Box
-        key={`opts-${perRow}-${labelStyle}`}
-        sx={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))`,
-          gap: 1,
-        }}
+        key={`opts-${perRow}-${labelStyle}-${isMobile}`}
+        sx={optionsGridSx(perRow)}
       >
         {options.map((opt, idx) => {
-          const isCorrect = isCorrectOptionIndex(questionType, correctAnswer, idx);
+          const optionId = optionIdFromUnknown(opt, idx);
+          const isCorrect = isCorrectOptionId(questionType, correctAnswer, optionId);
           const showCorrectBorder = mode === "authoring" && isCorrect;
           return (
             <Box
-              key={idx}
+              key={optionId}
               sx={{
                 display: "flex",
                 alignItems: "flex-start",

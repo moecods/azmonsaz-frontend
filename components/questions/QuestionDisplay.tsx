@@ -13,6 +13,7 @@ interface QuestionDisplayProps {
   mode?: QuestionDisplayMode;
   showAnswerKey?: boolean;
   compact?: boolean;
+  showStemMeta?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export default function QuestionDisplay({
   source,
   showAnswerKey = true,
   compact,
+  showStemMeta = true,
 }: QuestionDisplayProps) {
   const record = normalizeQuestion(source as Record<string, unknown>);
   const q = source as Question;
@@ -39,6 +41,7 @@ export default function QuestionDisplay({
           (((source as Record<string, unknown>).payload as Record<string, unknown> | undefined)?.points as number | undefined)
         }
         compact={compact}
+        showMeta={showStemMeta}
       />
       {showAnswerKey && <QuestionAnswerKey source={source as Record<string, unknown>} />}
     </Stack>

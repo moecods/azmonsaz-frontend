@@ -68,6 +68,16 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Dev database (option-id migration)
+
+After pulling the **option-id** backend change, reset the API database before testing question/exam flows:
+
+```bash
+cd ../azmonsaz && php artisan migrate:fresh --seed
+```
+
+Use the matching frontend branch; index-based `correct_answer` is no longer supported.
+
 ## Project Structure
 
 ```

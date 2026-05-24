@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Navbar from "@/components/Navbar";
@@ -9,7 +10,10 @@ import UserLayout from "@/components/layout/UserLayout";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import { NavigationProvider } from "@/components/layout/NavigationProvider";
+import { RealtimeProvider } from "@/providers/RealtimeProvider";
 import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
+import { isTakeExamRoute } from "@/lib/take-exam-path";
+import { takeExamMainSx } from "@/components/exams/take/take-exam-styles";
 
 /**
  * Authenticated app shell.
@@ -18,13 +22,16 @@ import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
  */
 export default function AuthenticatedShell({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const pathname = usePathname();
+  const isTakeExam = isTakeExamRoute(pathname);
   const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
 
   return (
     <ProtectedRoute>
-      {isMobile ? (
-        <UserLayout>{children}</UserLayout>
-      ) : (
+      <RealtimeProvider>
+        {isMobile ? (
+          <UserLayout>{children}</UserLayout>
+        ) : (
         <Box
           sx={{
             display: "grid",
@@ -64,23 +71,26 @@ export default function AuthenticatedShell({ children }: { children: ReactNode }
               overflowX: "hidden",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
+              ...(isTakeExam ? takeExamMainSx : {}),
             }}
           >
             <Box
               sx={{
-                p: 3,
+                p: isTakeExam ? 0 : 3,
                 boxSizing: "border-box",
                 width: "100%",
                 maxWidth: "100%",
+                minHeight: isTakeExam ? "100%" : undefined,
               }}
             >
               <ImpersonationBanner />
-              <StartedExamsAlert />
+              {!isTakeExam && <StartedExamsAlert />}
               <NavigationProvider>{children}</NavigationProvider>
             </Box>
           </Box>
         </Box>
       )}
+      </RealtimeProvider>
     </ProtectedRoute>
   );
 }

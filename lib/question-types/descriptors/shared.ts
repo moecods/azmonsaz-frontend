@@ -1,5 +1,9 @@
 import type { QuestionFormData } from '@/lib/validation';
 import type { QuestionCategoryRef } from './types';
+import {
+  correctAnswerIdsFromOptions,
+  toStoredOptions,
+} from '@/lib/option-ids';
 
 export function baseExamPayload(
   data: QuestionFormData,
@@ -40,14 +44,13 @@ export function baseBankFields(data: QuestionFormData): Record<string, unknown> 
   };
 }
 
-export function getOptionsCorrectAnswer(
+export function buildOptionTypePayload(
   data: QuestionFormData,
   multiple: boolean
-): number | number[] {
+): { options: ReturnType<typeof toStoredOptions>; correct_answer: string | string[] } {
   const opts = data.options ?? [];
-  const correctIndices: number[] = [];
-  opts.forEach((o, i) => {
-    if (o.is_correct) correctIndices.push(i);
-  });
-  return multiple ? correctIndices : (correctIndices[0] ?? 0);
+  return {
+    options: toStoredOptions(opts),
+    correct_answer: correctAnswerIdsFromOptions(opts, multiple),
+  };
 }

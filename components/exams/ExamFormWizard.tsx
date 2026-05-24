@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -8,20 +8,28 @@ import {
   CardContent,
   Stack,
   Paper,
-  Typography,
-  Divider,
-  Chip,
   Stepper,
   Step,
   StepLabel,
 } from "@mui/material";
-import { UseFormReturn, useWatch } from "react-hook-form";
+import { UseFormReturn } from "react-hook-form";
 import { ExamFormData } from "@/lib/validation";
-import { BasicInfoStep, ExamSettingsStep, SchedulingStep } from "./ExamFormSteps";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import {
+  BasicInfoStep,
+  ExamSettingsStep,
+  SchedulingStep,
+  ExamPreviewStep,
+} from "./ExamFormSteps";
 import { focusFirstFormError } from "@/lib/form-errors";
 
-const STEPS = ["اطلاعات پایه", "تنظیمات و نمره‌دهی", "زمان‌بندی"];
+const STEPS = [
+  "اطلاعات پایه",
+  "تنظیمات و نمره‌دهی",
+  "زمان‌بندی",
+  "پیش‌نمایش آزمون",
+];
+
+const PREVIEW_STEP_INDEX = STEPS.length - 1;
 
 interface ExamFormWizardProps {
   form: UseFormReturn<ExamFormData>;
@@ -29,6 +37,7 @@ interface ExamFormWizardProps {
   isSubmitting: boolean;
   existingExam?: boolean;
   showCreatorSelect?: boolean;
+  defaultOwnerUserId?: number | null;
 }
 
 export function ExamFormWizard({
@@ -37,16 +46,10 @@ export function ExamFormWizard({
   isSubmitting,
   existingExam,
   showCreatorSelect = false,
+  defaultOwnerUserId = null,
 }: ExamFormWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
-  const { handleSubmit, control, trigger } = form;
-
-  const title = useWatch({ control, name: "title" });
-  const type = useWatch({ control, name: "type" });
-  const durationMinutes = useWatch({ control, name: "duration_minutes" });
-  const gradingMode = useWatch({ control, name: "grading_mode" });
-  const scheduleType = useWatch({ control, name: "schedule_type" });
+  const { handleSubmit, trigger } = form;
 
   const stepFields: (keyof ExamFormData)[][] = [
     showCreatorSelect ? ["created_by", "title", "type"] : ["title", "type"],
@@ -61,29 +64,26 @@ export function ExamFormWizard({
       "due_by",
       "register_until",
     ],
+    [],
   ];
 
   const handleNext = async () => {
-    const ok = await trigger(stepFields[activeStep]);
+    const isBeforePreview = activeStep === PREVIEW_STEP_INDEX - 1;
+    const fieldsToValidate = isBeforePreview
+      ? stepFields.flat()
+      : stepFields[activeStep];
+
+    const ok = await trigger(fieldsToValidate);
     if (!ok) {
       focusFirstFormError(form.formState.errors);
       return;
     }
-    setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setActiveStep((s) => Math.min(s + 1, PREVIEW_STEP_INDEX));
   };
 
   const handleBack = () => setActiveStep((s) => Math.max(s - 1, 0));
 
-  const previewChips = useMemo(() => {
-    const chips: string[] = [];
-    if (type) chips.push(type === "online" ? "آنلاین" : "آفلاین");
-    if (durationMinutes) chips.push(`${durationMinutes} دقیقه`);
-    if (gradingMode === "descriptive") chips.push("نمره‌دهی توصیفی");
-    else if (gradingMode === "numeric_scale") chips.push("مقیاس عددی");
-    else if (gradingMode === "numeric_percent") chips.push("درصدی");
-    if (scheduleType) chips.push(scheduleType);
-    return chips;
-  }, [type, durationMinutes, gradingMode, scheduleType]);
+  const isPreviewStep = activeStep === PREVIEW_STEP_INDEX;
 
   return (
     <Card>
@@ -98,38 +98,21 @@ export function ExamFormWizard({
 
         <Paper variant="outlined" sx={{ p: 3, mb: 3, minHeight: 280 }}>
           {activeStep === 0 && (
-            <BasicInfoStep form={form} showCreatorSelect={showCreatorSelect && !existingExam} />
+            <BasicInfoStep
+              form={form}
+              showCreatorSelect={showCreatorSelect && !existingExam}
+              defaultOwnerUserId={defaultOwnerUserId}
+            />
           )}
           {activeStep === 1 && <ExamSettingsStep form={form} />}
           {activeStep === 2 && <SchedulingStep form={form} />}
+          {isPreviewStep && (
+            <ExamPreviewStep
+              form={form}
+              showCreatorSelect={showCreatorSelect && !existingExam}
+            />
+          )}
         </Paper>
-
-        {title && (
-          <Box sx={{ mb: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<VisibilityIcon />}
-              onClick={() => setShowPreview(!showPreview)}
-              fullWidth
-            >
-              {showPreview ? "مخفی کردن پیش‌نمایش" : "پیش‌نمایش آزمون"}
-            </Button>
-            {showPreview && (
-              <Paper sx={{ p: 2, mt: 2, bgcolor: "grey.50" }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {title}
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1, gap: 0.5 }}>
-                  {previewChips.map((c) => (
-                    <Chip key={c} label={c} size="small" variant="outlined" />
-                  ))}
-                </Stack>
-              </Paper>
-            )}
-          </Box>
-        )}
-
-        <Divider sx={{ my: 2 }} />
 
         <Stack
           direction="row"
@@ -148,8 +131,8 @@ export function ExamFormWizard({
           <Button disabled={activeStep === 0} onClick={handleBack}>
             قبلی
           </Button>
-          <Stack direction="row" spacing={2}>
-            {activeStep < STEPS.length - 1 ? (
+          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+            {!isPreviewStep ? (
               <Button variant="contained" onClick={handleNext}>
                 بعدی
               </Button>

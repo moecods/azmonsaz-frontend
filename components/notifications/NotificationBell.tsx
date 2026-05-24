@@ -9,10 +9,7 @@ import NotificationList from './NotificationList';
 export default function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const { data, isLoading } = useNotifications(
-    { per_page: 15 },
-    { enabled: open }
-  );
+  const { data, isLoading } = useNotifications({ per_page: 15 });
   const markAsRead = useMarkNotificationAsRead();
 
   const unreadCount = data?.data?.filter((n) => !n.read_at).length ?? 0;

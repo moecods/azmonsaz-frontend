@@ -4,11 +4,16 @@ import OptionsList from '@/components/questions/primitives/OptionsList';
 
 describe('OptionsList', () => {
   it('renders correct option with green border and no border on wrong options', () => {
+    const optB = '01JOPTBBBBBBBBBBBBBBBBBBBB';
     const { container } = render(
       <OptionsList
         questionType="multiple_choice"
-        options={['A', 'B', 'C']}
-        correctAnswer={1}
+        options={[
+          { id: '01JOPTAAAAAAAAAAAAAAAAAAAA', text: 'A' },
+          { id: optB, text: 'B' },
+          { id: '01JOPTCCCCCCCCCCCCCCCCCCCC', text: 'C' },
+        ]}
+        correctAnswer={optB}
         mode="authoring"
       />
     );

@@ -4,7 +4,8 @@ import { Box, Stack, Typography, Chip, Alert } from "@mui/material";
 import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { getQuestionTypeKind } from "@/lib/question-types";
-import { normalizeQuestion, optionText } from "@/lib/question-types/normalize-question";
+import { normalizeQuestion, optionText, optionIdFromUnknown } from "@/lib/question-types/normalize-question";
+import { isCorrectOptionId } from "@/lib/option-ids";
 import {
   participantAnswerChipLabel,
   participantAnswerLabel,
@@ -17,8 +18,8 @@ export interface ResultQuestion {
   type: string;
   question_text: string;
   options?: (string | { text: string })[];
-  correct_answer?: number | number[] | string | string[] | null;
-  your_answer?: number | number[] | string | string[] | null;
+  correct_answer?: string | string[] | null;
+  your_answer?: string | string[] | null;
   is_correct?: boolean;
   is_pending_grading?: boolean;
   points_earned?: number;
@@ -78,13 +79,16 @@ export function QuestionResultDisplay({
           گزینه‌ها:
         </Typography>
         {options.map((option, optIndex) => {
-          const isCorrect = Array.isArray(question.correct_answer)
-            ? question.correct_answer.includes(optIndex)
-            : question.correct_answer === optIndex;
-          const isSelected = question.your_answer === optIndex;
+          const optionId = optionIdFromUnknown(option, optIndex);
+          const isCorrect = isCorrectOptionId(
+            question.type,
+            question.correct_answer,
+            optionId
+          );
+          const isSelected = question.your_answer === optionId;
           const highlight = isCorrect ? "correct" : isSelected ? "selected" : "none";
           return (
-            <Box key={optIndex} sx={answerRowSx(highlight)}>
+            <Box key={optionId} sx={answerRowSx(highlight)}>
               <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
                 {isSelected ? (
                   <RadioButtonCheckedIcon
@@ -129,19 +133,22 @@ export function QuestionResultDisplay({
           گزینه‌ها:
         </Typography>
         {options.map((option, optIndex) => {
+          const optionId = optionIdFromUnknown(option, optIndex);
           const correctAnswers = Array.isArray(question.correct_answer)
             ? question.correct_answer
-            : [question.correct_answer];
+            : question.correct_answer != null
+              ? [question.correct_answer]
+              : [];
           const selectedAnswers = Array.isArray(question.your_answer)
             ? question.your_answer
             : question.your_answer != null
               ? [question.your_answer]
               : [];
-          const isCorrect = correctAnswers.includes(optIndex);
-          const isSelected = selectedAnswers.includes(optIndex);
+          const isCorrect = correctAnswers.includes(optionId);
+          const isSelected = selectedAnswers.includes(optionId);
           const highlight = isCorrect ? "correct" : isSelected ? "selected" : "none";
           return (
-            <Box key={optIndex} sx={answerRowSx(highlight)}>
+            <Box key={optionId} sx={answerRowSx(highlight)}>
               <Stack direction="row" alignItems="flex-start" spacing={1} flexWrap="wrap" useFlexGap>
                 <RichLabel html={optionLabel(option)} fontSize="1rem" block={false} sx={{ flex: 1 }} />
                 {isCorrect && (

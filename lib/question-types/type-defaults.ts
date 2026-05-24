@@ -1,6 +1,7 @@
 import type { QuestionFormData } from "@/lib/validation";
 import type { QuestionTypeId } from "./constants";
 import { getQuestionPlugin } from "./plugins";
+import { generateOptionId } from "@/lib/option-ids";
 
 /** Demo defaults shown when the teacher switches question type (create/edit). */
 export function getQuestionTypeDefaults(type: QuestionTypeId): Partial<QuestionFormData> {
@@ -8,36 +9,48 @@ export function getQuestionTypeDefaults(type: QuestionTypeId): Partial<QuestionF
   const display_settings = plugin?.defaultDisplaySettings ?? {};
 
   switch (type) {
-    case "multiple_choice":
+    case "multiple_choice": {
+      const a = generateOptionId();
+      const b = generateOptionId();
+      const c = generateOptionId();
+      const d = generateOptionId();
       return {
         options: [
-          { text: "گزینه الف", is_correct: true },
-          { text: "گزینه ب", is_correct: false },
-          { text: "گزینه ج", is_correct: false },
-          { text: "گزینه د", is_correct: false },
+          { id: a, text: "گزینه الف", is_correct: true },
+          { id: b, text: "گزینه ب", is_correct: false },
+          { id: c, text: "گزینه ج", is_correct: false },
+          { id: d, text: "گزینه د", is_correct: false },
         ],
-        correct_answer: 0,
+        correct_answer: a,
         display_settings,
       };
-    case "true_false":
+    }
+    case "true_false": {
+      const trueId = generateOptionId();
+      const falseId = generateOptionId();
       return {
         options: [
-          { text: "صحیح", is_correct: true },
-          { text: "غلط", is_correct: false },
+          { id: trueId, text: "صحیح", is_correct: true },
+          { id: falseId, text: "غلط", is_correct: false },
         ],
-        correct_answer: 0,
+        correct_answer: trueId,
         display_settings,
       };
-    case "multiple_select":
+    }
+    case "multiple_select": {
+      const o1 = generateOptionId();
+      const o2 = generateOptionId();
+      const o3 = generateOptionId();
       return {
         options: [
-          { text: "گزینه ۱", is_correct: true },
-          { text: "گزینه ۲", is_correct: true },
-          { text: "گزینه ۳", is_correct: false },
+          { id: o1, text: "گزینه ۱", is_correct: true },
+          { id: o2, text: "گزینه ۲", is_correct: true },
+          { id: o3, text: "گزینه ۳", is_correct: false },
         ],
-        correct_answer: [0, 1],
+        correct_answer: [o1, o2],
         display_settings,
       };
+    }
     case "essay":
       return {
         options: [],

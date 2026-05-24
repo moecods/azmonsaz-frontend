@@ -12,9 +12,17 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { getQuestionTypeKind } from '@/lib/question-types';
-import { mergeDisplaySettings, getOptionLabel } from '@/lib/question-types/display-settings';
+import {
+  mergeDisplaySettings,
+  getOptionLabel,
+  effectiveOptionsPerRow,
+  optionsGridSx,
+} from '@/lib/question-types/display-settings';
+import { normalizeTakeExamOptions, type StoredOption } from '@/lib/option-ids';
 import { RichLabel } from '@/components/editor';
 import OrderingAnswerInput from './answer/OrderingAnswerInput';
 import MatchingAnswerInput, { type MatchValue } from './answer/MatchingAnswerInput';
@@ -110,8 +118,8 @@ function OptionRow({
 export interface QuestionPayload {
   question_text: string;
   type: string;
-  options?: string[] | Record<string, unknown>;
-  correct_answer?: number | number[] | null;
+  options?: StoredOption[] | Record<string, unknown>;
+  correct_answer?: string | string[] | null;
   order?: number;
   points?: number;
   items?: (string | { text: string; order?: number })[];
@@ -149,18 +157,25 @@ function normalizePayloadForDisplay(payload: QuestionPayload): QuestionPayload {
 }
 
 export type PreviewAnswerValue =
-  | number
-  | number[]
   | string
   | string[]
+  | number[]
   | { left_index: number; right_index: number }[]
   | null;
 
 interface QuestionAnswerInputProps {
   payload: QuestionPayload;
-  value: number | number[] | string | null | undefined;
+  value: string | string[] | number[] | null | undefined;
   onChange: (value: PreviewAnswerValue) => void;
   disabled?: boolean;
+}
+
+function resolveTakeOptions(payload: QuestionPayload): StoredOption[] {
+  const raw = payload.options;
+  if (Array.isArray(raw)) {
+    return normalizeTakeExamOptions(raw);
+  }
+  return [];
 }
 
 export function QuestionAnswerInput({
@@ -169,19 +184,21 @@ export function QuestionAnswerInput({
   onChange,
   disabled = false,
 }: QuestionAnswerInputProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const p = normalizePayloadForDisplay(payload);
   const kind = getQuestionTypeKind(p.type);
   const type = p.type;
   const displaySettings = mergeDisplaySettings(p.display_settings);
-  const perRow = displaySettings.optionsPerRow ?? 1;
-  const labelStyle = displaySettings.optionLabelStyle ?? 'latin';
+  const perRow = effectiveOptionsPerRow(type, displaySettings, isMobile);
+  const labelStyle = displaySettings.optionLabelStyle!;
 
   if (kind === 'options_single' || type === 'true_false') {
-    const options = (Array.isArray(p.options) ? p.options : (type === 'true_false' ? ['درست', 'نادرست'] : [])) as string[];
-    const selectedIndex = value != null ? Number(value) : null;
+    const options = resolveTakeOptions(p);
+    const selectedId = typeof value === 'string' ? value : null;
     return (
       <FormControl component="fieldset" sx={{ width: '100%' }} aria-label="گزینه‌های پاسخ">
-        <RadioGroup value={selectedIndex != null ? String(selectedIndex) : ''}>
+        <RadioGroup value={selectedId ?? ''}>
           <Box
             key={`mc-${perRow}-${labelStyle}`}
             sx={{
@@ -192,16 +209,16 @@ export function QuestionAnswerInput({
           >
           {options.map((option, index) => (
             <OptionRow
-              key={index}
-              selected={selectedIndex === index}
-              onClick={() => !disabled && onChange(index)}
+              key={option.id}
+              selected={selectedId === option.id}
+              onClick={() => !disabled && onChange(option.id)}
               control={
                 <Radio
                   size="small"
                   disabled={disabled}
-                  checked={selectedIndex === index}
-                  value={index.toString()}
-                  onChange={() => onChange(index)}
+                  checked={selectedId === option.id}
+                  value={option.id}
+                  onChange={() => onChange(option.id)}
                   inputProps={{ 'aria-label': `گزینه ${index + 1}` }}
                 />
               }
@@ -213,7 +230,7 @@ export function QuestionAnswerInput({
                   </Typography>
                 )}
                 <RichLabel
-                  html={option}
+                  html={option.text}
                   block={false}
                   sx={{ flex: 1, minWidth: 0, display: 'inline' }}
                 />
@@ -227,41 +244,34 @@ export function QuestionAnswerInput({
   }
 
   if (kind === 'options_multiple') {
-    const options = (Array.isArray(p.options) ? p.options : []) as string[];
-    const current: number[] = Array.isArray(value)
-      ? (value as number[])
-      : value != null
-        ? [Number(value)]
+    const options = resolveTakeOptions(p);
+    const current: string[] = Array.isArray(value)
+      ? value.filter((v): v is string => typeof v === 'string')
+      : typeof value === 'string'
+        ? [value]
         : [];
-    const toggle = (index: number) => {
+    const toggle = (optionId: string) => {
       if (disabled) return;
-      const next = current.includes(index)
-        ? current.filter((i) => i !== index)
-        : [...current, index];
+      const next = current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId];
       onChange(next);
     };
     return (
       <FormControl component="fieldset" sx={{ width: '100%' }}>
         <FormLabel sx={{ mb: 1, fontSize: '0.875rem' }}>انتخاب چند گزینه</FormLabel>
-        <Box
-          key={`ms-${perRow}-${labelStyle}`}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))`,
-            gap: 1,
-          }}
-        >
+        <Box key={`ms-${perRow}-${labelStyle}-${isMobile}`} sx={optionsGridSx(perRow)}>
           {options.map((option, index) => (
             <OptionRow
-              key={index}
-              selected={current.includes(index)}
-              onClick={() => toggle(index)}
+              key={option.id}
+              selected={current.includes(option.id)}
+              onClick={() => toggle(option.id)}
               control={
                 <Checkbox
                   size="small"
                   disabled={disabled}
-                  checked={current.includes(index)}
-                  onChange={() => toggle(index)}
+                  checked={current.includes(option.id)}
+                  onChange={() => toggle(option.id)}
                   inputProps={{ 'aria-label': `گزینه ${index + 1}` }}
                 />
               }
@@ -273,7 +283,7 @@ export function QuestionAnswerInput({
                   </Typography>
                 )}
                 <RichLabel
-                  html={option}
+                  html={option.text}
                   block={false}
                   sx={{ flex: 1, minWidth: 0, display: 'inline' }}
                 />

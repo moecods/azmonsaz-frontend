@@ -93,8 +93,8 @@ export interface Question {
   id: number;
   text: string;
   type: QuestionType;
-  options: string[] | QuestionOption[]; // Backend returns string[], but form expects QuestionOption[]
-  correct_answer: number | number[] | null; // single or multiple correct answers, null for essay
+  options: QuestionOption[];
+  correct_answer: string | string[] | null;
   category_id: number;
   category?: QuestionCategory;
   tags: string[];
@@ -106,9 +106,9 @@ export interface Question {
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface QuestionOption {
-  id?: number;
+  id: string;
   text: string;
-  is_correct: boolean;
+  is_correct?: boolean;
 }
 
 export interface QuestionCategory {
@@ -175,7 +175,7 @@ export interface ExamQuestion {
   payload?: Record<string, unknown>; // payload from backend
   custom_text?: string; // for custom questions (frontend only)
   custom_options?: QuestionOption[]; // for custom questions (frontend only)
-  custom_correct_answer?: number | number[]; // for custom questions (frontend only)
+  custom_correct_answer?: string | string[];
   order: number;
   created_at: string;
   updated_at: string;
@@ -214,8 +214,8 @@ export interface UpdateExamRequest {
 export interface CreateQuestionRequest {
   text: string;
   type: QuestionType;
-  options: Omit<QuestionOption, 'id'>[];
-  correct_answer: number | number[] | null;
+  options: QuestionOption[];
+  correct_answer: string | string[] | null;
   category_id: number;
   tags: string[];
   difficulty: Difficulty;
@@ -225,8 +225,8 @@ export interface CreateQuestionRequest {
 export interface UpdateQuestionRequest {
   text?: string;
   type?: QuestionType;
-  options?: Omit<QuestionOption, 'id'>[];
-  correct_answer?: number | number[] | null;
+  options?: QuestionOption[];
+  correct_answer?: string | string[] | null;
   category_id?: number;
   tags?: string[];
   difficulty?: Difficulty;
@@ -268,7 +268,7 @@ export interface QuestionFormData {
   text: string;
   type: QuestionType;
   options: QuestionOption[];
-  correct_answer: number | number[];
+  correct_answer: string | string[];
   category_id: number;
   tags: string[];
   difficulty: Difficulty;

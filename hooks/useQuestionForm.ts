@@ -8,6 +8,8 @@ import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
 import { questionToFormData, payloadToFormData } from '@/lib/question-mappers';
+import { newFormOption } from '@/lib/option-ids';
+import { OPTION_TYPE_DISPLAY_DEFAULTS } from '@/lib/question-types/display-settings';
 import type { Question } from '@/types';
 import type { QuestionCategory } from '@/types';
 
@@ -17,11 +19,8 @@ const TYPES_WITH_OPTIONS = ['multiple_choice', 'true_false', 'multiple_select'];
 const DEFAULT_VALUES: QuestionFormData = {
   text: '',
   type: 'multiple_choice',
-  options: [
-    { text: '', is_correct: false },
-    { text: '', is_correct: false },
-  ],
-  correct_answer: 0,
+  options: [newFormOption(), newFormOption()],
+  correct_answer: '',
   category_id: 0,
   tags: [],
   difficulty: 'medium',
@@ -34,7 +33,7 @@ const DEFAULT_VALUES: QuestionFormData = {
   correct_answers: [],
   manual_grading: false,
   matching_mode: 'one_to_one',
-  display_settings: {},
+  display_settings: { ...OPTION_TYPE_DISPLAY_DEFAULTS },
 };
 
 export interface UseQuestionFormOptions {
@@ -94,10 +93,8 @@ export function useQuestionForm({
     if (TYPES_WITH_OPTIONS.includes(questionType)) {
       // Ensure default options exist for types that require them
       if (!currentOptions || currentOptions.length === 0) {
-        setValue('options', [
-          { text: '', is_correct: false },
-          { text: '', is_correct: false },
-        ]);
+        setValue('options', [newFormOption(), newFormOption()]);
+        setValue('correct_answer', '');
       }
     } else {
       // Clear options for types that do not require them
@@ -150,16 +147,18 @@ export function useQuestionForm({
     }
   }, [isEditMode, categories, questionData, setValue, getValues]);
 
-  // When type changes to true_false, set fixed options
+  // When type changes to true_false, set fixed options (preserve ids when possible)
   useEffect(() => {
     if (questionType === 'true_false') {
       const opts = questionOptions ?? [];
-      const firstCorrect = opts[0]?.is_correct ?? false;
-      const secondCorrect = opts[1]?.is_correct ?? false;
+      const trueId = opts[0]?.id ?? crypto.randomUUID();
+      const falseId = opts[1]?.id ?? crypto.randomUUID();
+      const trueCorrect = opts.find((o) => o.text === 'صحیح')?.is_correct ?? opts[0]?.is_correct ?? true;
       setValue('options', [
-        { text: 'صحیح', is_correct: firstCorrect && !secondCorrect },
-        { text: 'غلط', is_correct: secondCorrect && !firstCorrect },
+        { id: trueId, text: 'صحیح', is_correct: Boolean(trueCorrect) },
+        { id: falseId, text: 'غلط', is_correct: !trueCorrect },
       ]);
+      setValue('correct_answer', trueCorrect ? trueId : falseId);
     }
   }, [questionType, setValue]);
 

@@ -44,12 +44,12 @@ const mockQuestions: Question[] = [
     text: 'حاصل ۲ + ۲ چیست؟',
     type: 'multiple_choice',
     options: [
-      { id: 1, text: '۳', is_correct: false },
-      { id: 2, text: '۴', is_correct: true },
-      { id: 3, text: '۵', is_correct: false },
-      { id: 4, text: '۶', is_correct: false }
+      { id: 'mock-opt-1', text: '۳', is_correct: false },
+      { id: 'mock-opt-2', text: '۴', is_correct: true },
+      { id: 'mock-opt-3', text: '۵', is_correct: false },
+      { id: 'mock-opt-4', text: '۶', is_correct: false }
     ],
-    correct_answer: 2,
+    correct_answer: 'mock-opt-2',
     category_id: 1,
     category: mockCategories[0],
     tags: ['پایه', 'حساب'],
@@ -62,12 +62,12 @@ const mockQuestions: Question[] = [
     text: 'پایتخت فرانسه چیست؟',
     type: 'multiple_choice',
     options: [
-      { id: 5, text: 'لندن', is_correct: false },
-      { id: 6, text: 'برلین', is_correct: false },
-      { id: 7, text: 'پاریس', is_correct: true },
-      { id: 8, text: 'مادرید', is_correct: false }
+      { id: 'mock-opt-5', text: 'لندن', is_correct: false },
+      { id: 'mock-opt-6', text: 'برلین', is_correct: false },
+      { id: 'mock-opt-7', text: 'پاریس', is_correct: true },
+      { id: 'mock-opt-8', text: 'مادرید', is_correct: false }
     ],
-    correct_answer: 7,
+    correct_answer: 'mock-opt-7',
     category_id: 3,
     category: mockCategories[2],
     tags: ['جغرافیا', 'پایتخت‌ها'],
@@ -80,12 +80,12 @@ const mockQuestions: Question[] = [
     text: 'کدام یک از موارد زیر زبان برنامه‌نویسی هستند؟',
     type: 'multiple_select',
     options: [
-      { id: 9, text: 'JavaScript', is_correct: true },
-      { id: 10, text: 'HTML', is_correct: false },
-      { id: 11, text: 'Python', is_correct: true },
-      { id: 12, text: 'CSS', is_correct: false }
+      { id: 'mock-opt-9', text: 'JavaScript', is_correct: true },
+      { id: 'mock-opt-10', text: 'HTML', is_correct: false },
+      { id: 'mock-opt-11', text: 'Python', is_correct: true },
+      { id: 'mock-opt-12', text: 'CSS', is_correct: false }
     ],
-    correct_answer: [9, 11],
+    correct_answer: ['mock-opt-9', 'mock-opt-11'],
     category_id: 2,
     category: mockCategories[1],
     tags: ['برنامه‌نویسی', 'فناوری'],

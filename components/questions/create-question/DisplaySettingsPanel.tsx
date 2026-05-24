@@ -69,7 +69,7 @@ export default function DisplaySettingsPanel({
               <ToggleButtonGroup
                 exclusive
                 size="small"
-                value={String(settings.optionsPerRow ?? 1)}
+                value={String(settings.optionsPerRow)}
                 onChange={(_, v) => {
                   if (v != null) patch({ optionsPerRow: Number(v) as 1 | 2 | 3 | 4 });
                 }}
@@ -85,7 +85,7 @@ export default function DisplaySettingsPanel({
               <ToggleButtonGroup
                 exclusive
                 size="small"
-                value={settings.optionLabelStyle ?? "latin"}
+                value={settings.optionLabelStyle}
                 onChange={(_, v) => {
                   if (v) patch({ optionLabelStyle: v as DisplaySettings["optionLabelStyle"] });
                 }}

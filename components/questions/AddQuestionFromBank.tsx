@@ -167,33 +167,30 @@ export default function AddQuestionFromBank({ onAddQuestion }: AddQuestionFromBa
                       const questionDifficulty = question.difficulty || 'medium';
                       const questionCategory = question.category || null;
                       
-                      // Convert options to display format
-                      // Backend stores options as string[] in database
-                      // correct_answer can be:
-                      // - number (index) for multiple_choice and true_false
-                      // - number[] (array of indices) for multiple_select
-                      // - null for essay
-                      const displayOptions = Array.isArray(questionOptions) && questionOptions.length > 0
-                        ? questionOptions.map((opt: string | { text?: string }, index: number) => {
-                            const optionText =
-                              typeof opt === 'string'
-                                ? opt
-                                : String((opt as { text?: string }).text ?? '');
-                            const correctAnswer = question.correct_answer;
-                            let isCorrect = false;
-
-                            // Determine if this option is correct based on question type
-                            if (questionType === 'multiple_select') {
-                              isCorrect = Array.isArray(correctAnswer) && correctAnswer.includes(index);
-                            } else if (questionType === 'true_false' || questionType === 'multiple_choice') {
-                              // For true_false: 0 = صحیح (first option), 1 = غلط (second option)
-                              // For multiple_choice: index of correct option
-                              isCorrect = correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
-                            }
-
-                            return { text: optionText, is_correct: isCorrect };
-                          })
-                        : [];
+                      const displayOptions =
+                        Array.isArray(questionOptions) && questionOptions.length > 0
+                          ? questionOptions.map(
+                              (opt: { id: string; text: string } | string, index: number) => {
+                                const id =
+                                  typeof opt === 'object' &&
+                                  opt !== null &&
+                                  'id' in opt
+                                    ? String(opt.id)
+                                    : `opt-${index}`;
+                                const text =
+                                  typeof opt === 'string'
+                                    ? opt
+                                    : String(opt.text ?? '');
+                                const correctAnswer = question.correct_answer;
+                                const isCorrect =
+                                  questionType === 'multiple_select' &&
+                                  Array.isArray(correctAnswer)
+                                    ? correctAnswer.includes(id)
+                                    : correctAnswer === id;
+                                return { id, text, is_correct: isCorrect };
+                              }
+                            )
+                          : [];
 
 
                       return (

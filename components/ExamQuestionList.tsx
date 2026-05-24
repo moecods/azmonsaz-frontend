@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { ExamQuestion, QuestionOption } from '@/types';
+import { isCorrectOptionId, correctAnswerIdsFromOptions } from '@/lib/option-ids';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -39,7 +40,7 @@ interface ExamQuestionListProps {
 interface QuestionEditForm {
   text: string;
   options: QuestionOption[];
-  correct_answer: number | number[];
+  correct_answer: string | string[];
 }
 
 export default function ExamQuestionList({ 
@@ -55,7 +56,8 @@ export default function ExamQuestionList({
     const formData: QuestionEditForm = {
       text: question.question?.text || question.custom_text || '',
       options: question.question?.options || question.custom_options || [],
-      correct_answer: question.question?.correct_answer || question.custom_correct_answer || 0,
+      correct_answer:
+        question.question?.correct_answer ?? question.custom_correct_answer ?? '',
     };
     setEditForm(formData);
     setEditingIndex(index);
@@ -64,20 +66,25 @@ export default function ExamQuestionList({
   const handleSaveEdit = () => {
     if (editingIndex !== null && editForm) {
       const updatedQuestion = { ...questions[editingIndex] };
-      
+      const qType = updatedQuestion.question?.type ?? 'multiple_choice';
+      const correctAnswer = correctAnswerIdsFromOptions(
+        editForm.options,
+        qType === 'multiple_select'
+      );
+
       if (updatedQuestion.question) {
         // Update existing question from bank
         updatedQuestion.question = {
           ...updatedQuestion.question,
           text: editForm.text,
           options: editForm.options,
-          correct_answer: editForm.correct_answer,
+          correct_answer: correctAnswer,
         };
       } else {
         // Update custom question
         updatedQuestion.custom_text = editForm.text;
         updatedQuestion.custom_options = editForm.options;
-        updatedQuestion.custom_correct_answer = editForm.correct_answer;
+        updatedQuestion.custom_correct_answer = correctAnswer;
       }
       
       onUpdateQuestion(editingIndex, updatedQuestion);
@@ -93,12 +100,27 @@ export default function ExamQuestionList({
 
   const handleOptionChange = (optionIndex: number, field: keyof QuestionOption, value: string | boolean) => {
     if (!editForm) return;
-    
+
     const updatedOptions = [...editForm.options];
     updatedOptions[optionIndex] = {
       ...updatedOptions[optionIndex],
       [field]: value,
     };
+
+    if (field === 'is_correct' && value === true) {
+      const optionId = updatedOptions[optionIndex].id;
+      const nextOptions = updatedOptions.map((o, i) => ({
+        ...o,
+        is_correct: i === optionIndex,
+      }));
+      setEditForm({
+        ...editForm,
+        options: nextOptions,
+        correct_answer: optionId,
+      });
+      return;
+    }
+
     setEditForm({ ...editForm, options: updatedOptions });
   };
 
@@ -106,7 +128,10 @@ export default function ExamQuestionList({
     if (!editForm) return;
     setEditForm({
       ...editForm,
-      options: [...editForm.options, { id: Date.now(), text: '', is_correct: false }],
+      options: [
+        ...editForm.options,
+        { id: crypto.randomUUID(), text: '', is_correct: false },
+      ],
     });
   };
 
@@ -125,7 +150,7 @@ export default function ExamQuestionList({
   };
 
   const getCorrectAnswer = (question: ExamQuestion) => {
-    return question.question?.correct_answer || question.custom_correct_answer || 0;
+    return question.question?.correct_answer ?? question.custom_correct_answer ?? '';
   };
 
   if (questions.length === 0) {
@@ -197,9 +222,16 @@ export default function ExamQuestionList({
                         Options:
                       </Typography>
                       <Stack spacing={1}>
-                        {getQuestionOptions(question).map((option, optionIndex) => (
+                        {getQuestionOptions(question).map((option, optionIndex) => {
+                          const optionId = option.id ?? `opt-${optionIndex}`;
+                          const correct = getCorrectAnswer(question);
+                          const qType = question.question?.type ?? 'multiple_choice';
+                          const isCorrect =
+                            option.is_correct ??
+                            isCorrectOptionId(qType, correct, optionId);
+                          return (
                           <Stack
-                            key={optionIndex}
+                            key={optionId}
                             direction="row"
                             spacing={1}
                             alignItems="center"
@@ -211,17 +243,18 @@ export default function ExamQuestionList({
                               variant="body2"
                               sx={{
                                 flex: 1,
-                                fontWeight: option.is_correct ? 'bold' : 'normal',
-                                color: option.is_correct ? 'success.main' : 'text.primary',
+                                fontWeight: isCorrect ? 'bold' : 'normal',
+                                color: isCorrect ? 'success.main' : 'text.primary',
                               }}
                             >
                               {option.text}
                             </Typography>
-                            {option.is_correct && (
+                            {isCorrect && (
                               <Chip label="Correct" size="small" color="success" />
                             )}
                           </Stack>
-                        ))}
+                          );
+                        })}
                       </Stack>
                     </Box>
                   </Stack>
@@ -251,7 +284,7 @@ export default function ExamQuestionList({
                     </Typography>
                     <Stack spacing={2}>
                       {editForm.options.map((option, optionIndex) => (
-                        <Stack key={optionIndex} direction="row" spacing={2} alignItems="center">
+                        <Stack key={option.id} direction="row" spacing={2} alignItems="center">
                           <TextField
                             fullWidth
                             label={`Option ${String.fromCharCode(65 + optionIndex)}`}

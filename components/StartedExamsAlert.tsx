@@ -19,14 +19,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useAvailableExams } from '@/hooks';
 
 const ALERT_STORAGE_KEY = 'started_exams_alert_dismissed';
-const REFRESH_INTERVAL = 30000; // 30 seconds
 
 export default function StartedExamsAlert() {
   const router = useRouter();
   const [fetchEnabled, setFetchEnabled] = useState(false);
   const { data: availableExamsData } = useAvailableExams({ enabled: fetchEnabled });
   const [dismissed, setDismissed] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   // Check if alert was dismissed
   useEffect(() => {
@@ -39,15 +37,6 @@ export default function StartedExamsAlert() {
     // Defer so primary page API calls run first
     const timer = window.setTimeout(() => setFetchEnabled(true), 2000);
     return () => window.clearTimeout(timer);
-  }, []);
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastRefresh(Date.now());
-    }, REFRESH_INTERVAL);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleDismiss = () => {

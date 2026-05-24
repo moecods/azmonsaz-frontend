@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -7,12 +8,14 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Collapse,
   Divider,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
 import { RichLabel } from "@/components/editor";
 import QuestionView from "@/components/questions/QuestionView";
 import type { ResultQuestion } from "@/components/questions/QuestionResultDisplay";
@@ -65,10 +68,16 @@ interface GradingQuestionCardProps {
   scrollAnchorRef?: (el: HTMLDivElement | null) => void;
 }
 
-function toResultQuestion(
-  question: GradingQuestionData,
-  score: number
-): ResultQuestion {
+function noteHasContent(note: GraderNoteValue): boolean {
+  return Boolean(
+    note.text?.trim() ||
+      note.audio_media_id ||
+      note.audio_url ||
+      note.requires_acknowledgment
+  );
+}
+
+function toResultQuestion(question: GradingQuestionData, score: number): ResultQuestion {
   return {
     id: question.exam_question_id,
     type: question.question_type,
@@ -100,18 +109,24 @@ export default function GradingQuestionCard({
   onAiGrade,
   scrollAnchorRef,
 }: GradingQuestionCardProps) {
+  const [noteOpen, setNoteOpen] = useState(() => noteHasContent(note));
+
   const isPending = question.is_pending_grading;
+
   const statusLabel = isPending
-    ? "در انتظار نمره‌دهی"
+    ? question.manual_score != null
+      ? "نمره‌دهی شده"
+      : "در انتظار نمره"
     : question.is_correct
       ? "صحیح"
       : "نیاز به بازبینی";
-  const statusColor = isPending ? "info" : question.is_correct ? "success" : "default";
-  const borderColor = isPending
-    ? "info.light"
+  const statusColor = isPending
+    ? question.manual_score != null
+      ? "success"
+      : "warning"
     : question.is_correct
-      ? "success.light"
-      : "divider";
+      ? "success"
+      : "default";
 
   const resultQuestion = toResultQuestion(question, score);
   const source = {
@@ -129,78 +144,118 @@ export default function GradingQuestionCard({
   };
 
   return (
-    <Box ref={scrollAnchorRef}>
-    <Card variant="outlined" sx={{ borderColor, borderWidth: 2 }}>
-      <CardContent>
-        <Stack spacing={2}>
-          <Stack spacing={1.25}>
+    <Box ref={scrollAnchorRef} id={`grading-question-${question.exam_question_id}`}>
+      <Card
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          borderColor: isPending ? "warning.light" : "divider",
+          bgcolor: isPending ? "warning.50" : "background.paper",
+          transition: "border-color 0.2s, background-color 0.2s",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Stack spacing={2.5}>
             <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ justifyContent: 'flex-end' }}
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ sm: "flex-start" }}
+              spacing={1.5}
             >
-              <Chip label={`سوال ${index + 1}`} size="small" color="primary" variant="outlined" />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={QUESTION_TYPE_LABELS[question.question_type] ?? question.question_type}
-              />
-              <Chip label={statusLabel} color={statusColor} size="small" />
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Chip label={`سوال ${index + 1}`} size="small" color="primary" />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={QUESTION_TYPE_LABELS[question.question_type] ?? question.question_type}
+                />
+                <Chip label={statusLabel} color={statusColor} size="small" />
+              </Stack>
+
+              <Stack
+                direction="row"
+                spacing={1.5}
+                alignItems="center"
+                sx={{
+                  bgcolor: "background.paper",
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  flexShrink: 0,
+                }}
+              >
+                <TextField
+                  type="number"
+                  size="small"
+                  label="نمره"
+                  value={score}
+                  onChange={(e) => onScoreChange(e.target.value)}
+                  inputProps={{ min: 0, max: question.max_points }}
+                  sx={{ width: 88 }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                  از {question.max_points}
+                  {question.auto_score > 0 ? ` · خودکار: ${question.auto_score}` : ""}
+                </Typography>
+                {showAiButton && question.question_type === "essay" && onAiGrade && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={aiLoading ? <CircularProgress size={16} /> : <SmartToyIcon />}
+                    onClick={onAiGrade}
+                    disabled={aiLoading}
+                  >
+                    AI
+                  </Button>
+                )}
+              </Stack>
             </Stack>
+
             <RichLabel
               html={question.question_text}
-              fontSize="1.1rem"
+              fontSize="1.05rem"
               compact={false}
               fullContent
-              sx={{ fontWeight: 600, lineHeight: 1.75, width: '100%' }}
+              sx={{ fontWeight: 600, lineHeight: 1.75, width: "100%" }}
             />
-          </Stack>
 
-          <QuestionView
-            mode="result"
-            source={source as Record<string, unknown>}
-            resultQuestion={resultQuestion}
-            resultAudience="grader"
-          />
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "grey.50",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <QuestionView
+                mode="result"
+                source={source as Record<string, unknown>}
+                resultQuestion={resultQuestion}
+                resultAudience="grader"
+              />
+            </Box>
 
-          <Divider />
-
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems={{ sm: "center" }}
-          >
-            <TextField
-              type="number"
-              size="small"
-              label="نمره"
-              value={score}
-              onChange={(e) => onScoreChange(e.target.value)}
-              inputProps={{ min: 0, max: question.max_points }}
-              sx={{ width: { xs: "100%", sm: 120 } }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              نمره خودکار: {question.auto_score} / حداکثر: {question.max_points}
-            </Typography>
-            {showAiButton && question.question_type === "essay" && onAiGrade && (
+            {noteOpen || noteHasContent(note) ? (
+              <Collapse in={noteOpen || noteHasContent(note)}>
+                <GraderNoteInput label="یادداشت این سوال (اختیاری)" value={note} onChange={onNoteChange} />
+              </Collapse>
+            ) : (
               <Button
                 size="small"
-                variant="outlined"
-                startIcon={aiLoading ? <CircularProgress size={16} /> : <SmartToyIcon />}
-                onClick={onAiGrade}
-                disabled={aiLoading}
+                variant="text"
+                startIcon={<NoteAddOutlinedIcon />}
+                onClick={() => setNoteOpen(true)}
+                sx={{ alignSelf: "flex-start" }}
               >
-                تصحیح با AI
+                افزودن یادداشت برای این سوال
               </Button>
             )}
           </Stack>
-
-          <GraderNoteInput label="یادداشت سوال" value={note} onChange={onNoteChange} />
-        </Stack>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
     </Box>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Box } from "@mui/material";
 import UserSidebar from "./UserSidebar";
 import MobileBottomNav from "./MobileBottomNav";
@@ -11,6 +12,8 @@ import {
   MOBILE_BOTTOM_NAV_HEIGHT,
   SHELL_CONTENT_PADDING,
 } from "@/components/layout/layout-constants";
+import { isTakeExamRoute } from "@/lib/take-exam-path";
+import { takeExamMainSx } from "@/components/exams/take/take-exam-styles";
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -18,6 +21,8 @@ interface UserLayoutProps {
 
 /** Mobile authenticated layout: scrollable main + bottom nav + drawer. */
 export default function UserLayout({ children }: UserLayoutProps) {
+  const pathname = usePathname();
+  const isTakeExam = isTakeExamRoute(pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -46,6 +51,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
           WebkitOverflowScrolling: "touch",
           boxSizing: "border-box",
           pb: `${MOBILE_BOTTOM_NAV_HEIGHT}px`,
+          ...(isTakeExam ? takeExamMainSx : {}),
         }}
       >
         <Box
@@ -53,11 +59,12 @@ export default function UserLayout({ children }: UserLayoutProps) {
             width: "100%",
             maxWidth: "100%",
             boxSizing: "border-box",
-            ...SHELL_CONTENT_PADDING,
+            minHeight: isTakeExam ? "100%" : undefined,
+            ...(isTakeExam ? { px: 0, py: 0 } : SHELL_CONTENT_PADDING),
           }}
         >
           <ImpersonationBanner />
-          <StartedExamsAlert />
+          {!isTakeExam && <StartedExamsAlert />}
           <NavigationProvider>{children}</NavigationProvider>
         </Box>
       </Box>

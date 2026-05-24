@@ -27,14 +27,9 @@ export function getQuestionTypeMainColor(theme: Theme, type: string): string {
   return palette[shade];
 }
 
-/** Card / panel border in question bank lists. */
-export function questionTypeBorderSx(theme: Theme, type: string, borderWidth = 2) {
-  const color = getQuestionTypeMainColor(theme, type);
-  return {
-    borderWidth,
-    borderStyle: "solid" as const,
-    borderColor: color,
-  };
+/** Card / panel border in question bank lists (neutral; type color only on chips). */
+export function questionTypeBorderSx(_theme: Theme, _type?: string, _borderWidth?: number) {
+  return {};
 }
 
 /** Toggle button / chip styling for a question type. */

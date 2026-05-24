@@ -168,7 +168,8 @@ export default function CreateQuestionContent({
     }
   }, [questionType, questionText, blanks?.length, blanksFields]);
 
-  const handleAddOption = () => optionsFields.append({ text: '', is_correct: false });
+  const handleAddOption = () =>
+    optionsFields.append({ id: crypto.randomUUID(), text: '', is_correct: false });
   const handleRemoveOption = (index: number) => {
     if (optionsFields.fields.length > 2) optionsFields.remove(index);
   };

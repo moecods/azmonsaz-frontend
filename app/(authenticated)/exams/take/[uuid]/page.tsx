@@ -1,34 +1,32 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
-  Stack,
-  Typography,
-  Alert,
-  CircularProgress,
-  LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Snackbar,
-} from '@mui/material';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Alert, Button, Box, Snackbar, Stack } from '@mui/material';
 import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo } from '@/hooks/useExams';
+import { useExamTakeRealtime } from '@/hooks/useExamTakeRealtime';
+import { useMe } from '@/hooks/useAuth';
 import { TakeExamProvider, useTakeExamContext } from '@/hooks/exams/useTakeExam';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import QuestionView from '@/components/questions/QuestionView';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SaveIcon from '@mui/icons-material/Save';
-import SendIcon from '@mui/icons-material/Send';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import {
+  TakeExamShell,
+  TakeExamGate,
+  TakeExamLobby,
+  TakeExamHeader,
+  TakeExamNavigator,
+  TakeExamQuestionCard,
+  TakeExamFooter,
+  TakeExamSubmitDialog,
+  TakeExamSuccess,
+  TakeExamLoading,
+  isQuestionAnswered,
+} from '@/components/exams/take';
+import type { ExamTakeTimingDescriptor } from '@/lib/exam-take-timing';
+import { resolveTakeExamTiming } from '@/lib/exam-take-timing';
+import { useTakeExamTimer } from '@/hooks/exams/useTakeExamTimer';
+import type { ExamTakeTimingDescriptor as ApiExamTakeTiming } from '@/services/exams/ExamService';
+import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined';
+import HowToRegOutlinedIcon from '@mui/icons-material/HowToRegOutlined';
+import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import { parseExamRouteRef } from '@/lib/exam-route';
 
 interface Question {
@@ -37,7 +35,7 @@ interface Question {
     question_text: string;
     type: string;
     options?: string[]; // Options are now string array, not object array
-    correct_answer?: number | number[];
+    correct_answer?: string | string[];
     order: number;
     points?: number;
   };
@@ -54,21 +52,19 @@ export default function TakeExamPage() {
 
   if (needsIdFromApi && isLoading) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" p={3}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <TakeExamShell maxWidth="md">
+        <TakeExamLoading message="در حال بارگذاری اطلاعات آزمون..." />
+      </TakeExamShell>
     );
   }
 
   if (error || !examId) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">
+      <TakeExamShell maxWidth="md">
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
           {error instanceof Error ? error.message : 'آزمون یافت نشد.'}
         </Alert>
-      </Container>
+      </TakeExamShell>
     );
   }
 
@@ -106,7 +102,13 @@ function TakeExamPageContent({
     goPrevious,
   } = useTakeExamContext();
   const [examStarted, setExamStarted] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [examTiming, setExamTiming] = useState<ExamTakeTimingDescriptor>({
+    visible: false,
+    remaining_seconds: null,
+    kind: 'none',
+    label: 'زمان باقی‌مانده',
+    hint: null,
+  });
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -125,9 +127,32 @@ function TakeExamPageContent({
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
   const { data: examInfo, isLoading: isLoadingExamInfo, error: examInfoError } = useExamInfo(examRef);
+  const { data: currentUser } = useMe();
   
   // Get participant status
   const participantStatus = examInfo?.registration_status;
+
+  useExamTakeRealtime(examId, currentUser?.id, {
+    onTimeExpired: () => {
+      setExamTiming((prev) => ({
+        ...prev,
+        visible: true,
+        remaining_seconds: 0,
+      }));
+    },
+    onForceCompleted: () => {
+      if (!submitted && examId) {
+        router.push(`/exams/${examId}/result`);
+      }
+    },
+    onTeacherMessage: (payload) => {
+      setSnackbar({
+        open: true,
+        message: payload.message ?? 'اعلان جدید از معلم',
+        severity: 'warning',
+      });
+    },
+  });
 
   // Check exam time status (uses start_at, end_at from API)
   const getExamTimeStatus = useCallback(() => {
@@ -158,19 +183,32 @@ function TakeExamPageContent({
     return mapped;
   }, []);
 
-  const applyStartExamResponse = useCallback((data: { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> }) => {
+  const applyStartExamResponse = useCallback((data: {
+    questions?: Array<{ id: number; payload: Record<string, unknown> }>;
+    remaining_seconds?: number | null;
+    timing?: ApiExamTakeTiming | null;
+    answers?: Record<number, unknown>;
+  }) => {
     if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
       setQuestions(mapApiQuestionsToState(data.questions));
     }
     if (data.answers && typeof data.answers === 'object') {
       setAnswersMap(data.answers as Record<number, unknown>);
     }
-    if (data.remaining_seconds != null && typeof data.remaining_seconds === 'number') {
-      setTimeRemaining(data.remaining_seconds);
-    } else {
-      const dm = (examInfo as { duration_minutes?: number })?.duration_minutes ?? (examInfo?.meta as { duration_minutes?: number })?.duration_minutes;
-      if (typeof dm === 'number') setTimeRemaining(dm * 60);
-    }
+
+    const resolved = resolveTakeExamTiming(
+      {
+        timing: data.timing ?? undefined,
+        remaining_seconds: data.remaining_seconds,
+        schedule_type: examInfo?.schedule_type,
+        duration_minutes: examInfo?.duration_minutes,
+        start_at: examInfo?.start_at,
+        end_at: examInfo?.end_at,
+        due_by: examInfo?.due_by,
+      },
+      true
+    );
+    setExamTiming(resolved);
     setExamStarted(true);
   }, [mapApiQuestionsToState, examInfo, setQuestions, setAnswersMap]);
 
@@ -196,7 +234,7 @@ function TakeExamPageContent({
     try {
       // Call startExam API - returns questions, answers, remaining_seconds in one response
       const data = await startExamMutation.mutateAsync(examId);
-      applyStartExamResponse(data as { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> });
+      applyStartExamResponse(data as Parameters<typeof applyStartExamResponse>[0]);
     } catch (error) {
       hasStartedRef.current = false; // Reset on error so user can retry
       // Show error toast
@@ -229,7 +267,7 @@ function TakeExamPageContent({
       startExamMutation
         .mutateAsync(examId)
         .then((data) => {
-          applyStartExamResponse(data as { questions?: Array<{ id: number; payload: Record<string, unknown> }>; remaining_seconds?: number | null; answers?: Record<number, unknown> });
+          applyStartExamResponse(data as Parameters<typeof applyStartExamResponse>[0]);
         })
         .catch(() => {
           hasLoadedResumeRef.current = false;
@@ -291,23 +329,11 @@ function TakeExamPageContent({
     }
   }, [submitted, examId, handleSubmitConfirm]);
 
-  useEffect(() => {
-    if (timeRemaining !== null && timeRemaining > 0 && !submitted) {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev === null || prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return Math.floor(prev - 1); // Ensure integer
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !submitted) {
-      handleAutoSubmit();
-    }
-  }, [timeRemaining, submitted, handleAutoSubmit]);
+  const takeTimer = useTakeExamTimer({
+    timing: examTiming,
+    onExpire: handleAutoSubmit,
+    enabled: examStarted && !submitted,
+  });
 
   useEffect(() => () => flushPendingSave(), [flushPendingSave]);
 
@@ -345,569 +371,349 @@ function TakeExamPageContent({
   };
 
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const answeredCount = useMemo(
+    () => questions.filter((q) => isQuestionAnswered(answers[q.id])).length,
+    [questions, answers]
+  );
+  const unansweredCount = Math.max(0, questions.length - answeredCount);
+
+  const handleGoToQuestion = useCallback(
+    (index: number) => {
+      flushPendingSave();
+      goToIndex(index);
+    },
+    [flushPendingSave, goToIndex]
+  );
 
   // Show start button if user is registered but hasn't started yet
   const isRegistered = examInfo?.is_registered;
   const shouldShowStartButton = isRegistered && (participantStatus === 'registered' || participantStatus === null);
 
-  // Loading exam info (only while take-context / public info is in flight)
+  const durationMinutes =
+    (examInfo as { duration_minutes?: number } | undefined)?.duration_minutes ??
+    (examInfo?.meta as { duration_minutes?: number } | undefined)?.duration_minutes ??
+    null;
+
   if (isLoadingExamInfo) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell>
+        <TakeExamLoading message="در حال آماده‌سازی محیط آزمون..." />
+      </TakeExamShell>
     );
   }
 
-  // Exam info failed to load (e.g. 404 - exam not published)
   if (examInfoError || (examId && !examInfo)) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Alert severity="error">
-            {examInfoError instanceof Error
-              ? examInfoError.message
-              : 'Failed to load exam information.'}
-            {examInfoError && ' ممکن است آزمون منتشر نشده باشد.'}
-          </Alert>
-          <Button sx={{ mt: 2 }} variant="outlined" onClick={() => router.push('/exams/available')}>
-            بازگشت به لیست آزمون‌ها
-          </Button>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="md">
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          {examInfoError instanceof Error
+            ? examInfoError.message
+            : 'بارگذاری اطلاعات آزمون ناموفق بود.'}
+          {examInfoError && ' ممکن است آزمون منتشر نشده باشد.'}
+        </Alert>
+        <Button sx={{ mt: 2 }} variant="outlined" onClick={() => router.push('/exams/available')}>
+          بازگشت به لیست آزمون‌ها
+        </Button>
+      </TakeExamShell>
     );
   }
 
-  // User not registered - must register first to take the exam
   if (!examInfo?.is_registered && !examStarted) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <Typography variant="h5" gutterBottom>
-                  {examInfo?.title || 'آزمون'}
-                </Typography>
-                <Alert severity="warning" sx={{ width: '100%' }}>
-                  <Typography variant="body1" fontWeight="bold" gutterBottom>
-                    شما در این آزمون ثبت‌نام نکرده‌اید
-                  </Typography>
-                  <Typography variant="body2">
-                    برای شرکت در آزمون ابتدا باید ثبت‌نام کنید.
-                  </Typography>
-                </Alert>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    if (publicUuid) {
-                      router.push(`/exams/participate/${publicUuid}`);
-                    } else if (examId) {
-                      router.push(`/exams/take/${examId}`);
-                    }
-                  }}
-                >
-                  {publicUuid ? 'رفتن به صفحه ثبت‌نام' : 'تلاش مجدد'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="sm">
+        <TakeExamGate
+          title={examInfo?.title || 'آزمون'}
+          icon={<HowToRegOutlinedIcon sx={{ fontSize: 36 }} />}
+          actions={
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => {
+                if (publicUuid) router.push(`/exams/participate/${publicUuid}`);
+                else if (examId) router.push(`/exams/take/${examId}`);
+              }}
+            >
+              {publicUuid ? 'ثبت‌نام در آزمون' : 'تلاش مجدد'}
+            </Button>
+          }
+        >
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            برای شرکت در آزمون ابتدا باید ثبت‌نام کنید.
+          </Alert>
+        </TakeExamGate>
+      </TakeExamShell>
     );
   }
 
-  // If participant was absent (registered but never started when exam ended)
   if (participantStatus === 'absent') {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <Typography variant="h5" gutterBottom>
-                  {examInfo?.title || 'آزمون'}
-                </Typography>
-                <Alert severity="error" sx={{ width: '100%' }}>
-                  <Typography variant="body1" fontWeight="bold" gutterBottom>
-                    شما در این آزمون غیبت داشتید
-                  </Typography>
-                  <Typography variant="body2">
-                    شما در این آزمون ثبت‌نام کرده بودید اما تا پایان زمان آزمون آن را شروع نکردید.
-                  </Typography>
-                </Alert>
-                <Button variant="outlined" onClick={() => router.push('/exams/available')}>
-                  بازگشت به آزمون‌های من
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="sm">
+        <TakeExamGate
+          title={examInfo?.title || 'آزمون'}
+          icon={<EventBusyOutlinedIcon sx={{ fontSize: 36 }} />}
+          actions={
+            <Button variant="outlined" fullWidth onClick={() => router.push('/exams/available')}>
+              بازگشت به آزمون‌های من
+            </Button>
+          }
+        >
+          <Alert severity="error" sx={{ borderRadius: 2 }}>
+            شما ثبت‌نام کرده بودید اما تا پایان زمان آزمون، آن را شروع نکردید.
+          </Alert>
+        </TakeExamGate>
+      </TakeExamShell>
     );
   }
 
-  // If already completed, redirect to result page
   if (participantStatus === 'completed' && examId) {
     router.replace(`/exams/${examId}/result`);
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell>
+        <TakeExamLoading message="در حال انتقال به کارنامه..." />
+      </TakeExamShell>
     );
   }
 
-  // Show message if exam hasn't started yet (time restriction)
   if (timeStatus.hasTimeRestriction && timeStatus.isBeforeStart && timeStatus.startAt) {
+    const startLabel = timeStatus.startAt.toLocaleString('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Tehran',
+    });
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <Typography variant="h5" gutterBottom>
-                  {examInfo?.title || 'آزمون'}
-                </Typography>
-                <Alert severity="warning" sx={{ width: '100%' }}>
-                  <Typography variant="body1" fontWeight="bold" gutterBottom>
-                    آزمون هنوز شروع نشده است
-                  </Typography>
-                  <Typography variant="body2">
-                    زمان شروع آزمون: {timeStatus.startAt.toLocaleString('fa-IR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'Asia/Tehran'
-                    })}
-                  </Typography>
-                </Alert>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    if (publicUuid) {
-                      router.push(`/exams/participate/${publicUuid}`);
-                    } else {
-                      router.push('/exams/available');
-                    }
-                  }}
-                >
-                  {publicUuid ? 'بازگشت به صفحه ثبت‌نام' : 'بازگشت به آزمون‌های من'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="sm">
+        <TakeExamGate
+          title={examInfo?.title || 'آزمون'}
+          icon={<ScheduleOutlinedIcon sx={{ fontSize: 36 }} />}
+          actions={
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => {
+                if (publicUuid) router.push(`/exams/participate/${publicUuid}`);
+                else router.push('/exams/available');
+              }}
+            >
+              {publicUuid ? 'بازگشت' : 'آزمون‌های من'}
+            </Button>
+          }
+        >
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            آزمون هنوز شروع نشده است. زمان شروع: {startLabel}
+          </Alert>
+        </TakeExamGate>
+      </TakeExamShell>
     );
   }
 
-  // Show message if exam time has ended
   if (timeStatus.hasTimeRestriction && timeStatus.isAfterEnd && timeStatus.endAt) {
+    const endLabel = timeStatus.endAt.toLocaleString('fa-IR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Tehran',
+    });
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <Typography variant="h5" gutterBottom>
-                  {examInfo?.title || 'آزمون'}
-                </Typography>
-                <Alert severity="error" sx={{ width: '100%' }}>
-                  <Typography variant="body1" fontWeight="bold" gutterBottom>
-                    زمان آزمون به پایان رسیده است
-                  </Typography>
-                  <Typography variant="body2">
-                    زمان پایان آزمون: {timeStatus.endAt.toLocaleString('fa-IR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'Asia/Tehran'
-                    })}
-                  </Typography>
-                </Alert>
-                <Button
-                  variant="outlined"
-                  onClick={() => router.push('/exams/available')}
-                >
-                  بازگشت به لیست آزمون‌ها
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="sm">
+        <TakeExamGate
+          title={examInfo?.title || 'آزمون'}
+          icon={<EventBusyOutlinedIcon sx={{ fontSize: 36 }} />}
+          actions={
+            <Button variant="outlined" fullWidth onClick={() => router.push('/exams/available')}>
+              بازگشت به لیست آزمون‌ها
+            </Button>
+          }
+        >
+          <Alert severity="error" sx={{ borderRadius: 2 }}>
+            زمان آزمون به پایان رسیده است. پایان: {endLabel}
+          </Alert>
+        </TakeExamGate>
+      </TakeExamShell>
     );
   }
 
   if (shouldShowStartButton && !examStarted) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <Typography variant="h5" gutterBottom>
-                  {examInfo?.title || 'آزمون'}
-                </Typography>
-                <Typography variant="body1" color="text.secondary" textAlign="center">
-                  شما در این آزمون ثبت‌نام کرده‌اید. برای شروع آزمون روی دکمه زیر کلیک کنید.
-                </Typography>
-                {examInfo?.time_message && (
-                  <Alert severity="info" sx={{ width: '100%' }}>
-                    {examInfo.time_message}
-                  </Alert>
-                )}
-                {startExamMutation.isError && (
-                  <Alert severity="error" sx={{ width: '100%' }}>
-                    {startExamMutation.error instanceof Error
-                      ? startExamMutation.error.message
-                      : 'خطا در شروع آزمون'}
-                  </Alert>
-                )}
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={<PlayArrowIcon />}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleStartExam();
-                  }}
-                  disabled={startExamMutation.isPending || !canAccessQuestions}
-                  sx={{ minWidth: 200, zIndex: 1000 }}
-                >
-                  {startExamMutation.isPending ? 'در حال شروع...' : 'شروع آزمون'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="md">
+        <TakeExamLobby
+          title={examInfo?.title || 'آزمون'}
+          questionsCount={examInfo?.questions_count}
+          durationMinutes={durationMinutes}
+          instructions={examInfo?.instructions}
+          timeMessage={examInfo?.time_message}
+          timingPreview={examInfo?.timing_preview}
+          isStarting={startExamMutation.isPending}
+          canStart={canAccessQuestions}
+          errorMessage={
+            startExamMutation.isError && startExamMutation.error instanceof Error
+              ? startExamMutation.error.message
+              : null
+          }
+          onStart={handleStartExam}
+        />
+      </TakeExamShell>
     );
   }
 
   if (startExamMutation.isPending) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell>
+        <TakeExamLoading message="در حال بارگذاری سوالات آزمون..." />
+      </TakeExamShell>
     );
   }
 
   if (!examStarted && participantStatus === 'started' && questions.length === 0) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Stack spacing={2} alignItems="center">
-            <CircularProgress />
-            <Typography variant="body2" color="text.secondary">
-              در حال بارگذاری سوالات...
-            </Typography>
-            {startExamMutation.isError && (
-              <Alert severity="error" sx={{ width: '100%' }}>
-                {startExamMutation.error instanceof Error
-                  ? startExamMutation.error.message
-                  : 'خطا در بارگذاری آزمون'}
-              </Alert>
-            )}
-          </Stack>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell>
+        <TakeExamLoading message="در حال بارگذاری سوالات..." />
+        {startExamMutation.isError && (
+          <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+            {startExamMutation.error instanceof Error
+              ? startExamMutation.error.message
+              : 'خطا در بارگذاری آزمون'}
+          </Alert>
+        )}
+      </TakeExamShell>
     );
   }
 
-  if (startExamMutation.isError) {
+  if (startExamMutation.isError && !examStarted) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Alert severity="error">
-            {startExamMutation.error instanceof Error
-              ? startExamMutation.error.message
-              : 'Failed to start exam.'}
-          </Alert>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="md">
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          {startExamMutation.error instanceof Error
+            ? startExamMutation.error.message
+            : 'شروع آزمون ناموفق بود.'}
+        </Alert>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={handleStartExam}>
+          تلاش مجدد
+        </Button>
+      </TakeExamShell>
     );
   }
 
   if (submitted && result) {
-    const resultVisible = result.result_visibility?.visible !== false;
-    const resultMessage = result.result_visibility?.message;
-
     return (
-      <ProtectedRoute>
-        <Container maxWidth="md" sx={{ py: 4 }}>
-          <Card>
-            <CardContent>
-              <Stack spacing={3} alignItems="center">
-                <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main' }} />
-                <Typography variant="h4" gutterBottom>
-                  آزمون با موفقیت ارسال شد
-                </Typography>
-                {resultVisible ? (
-                  <>
-                    <Typography variant="h6" gutterBottom>
-                      {result.passed
-                        ? 'به حد نصاب رسیدید'
-                        : 'پاسخ‌های شما ثبت شد — می‌توانید بعد از انتشار نتیجه، کارنامه را ببینید'}
-                    </Typography>
-                    <Box textAlign="center">
-                      {result.outcome_label ? (
-                        <>
-                          <Chip
-                            label={result.outcome_label}
-                            color="primary"
-                            sx={{ fontSize: '1.1rem', mb: 1, py: 2, height: 'auto' }}
-                          />
-                          {result.scaled_score != null && (
-                            <Typography variant="body1" color="text.secondary">
-                              نمره: {result.scaled_score}
-                            </Typography>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Typography variant="h5" gutterBottom>
-                            نمره شما: {result.score} از {result.total_points}
-                          </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            درصد:{' '}
-                            {result.total_points > 0
-                              ? Math.round((result.score / result.total_points) * 100)
-                              : 0}
-                            %
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  </>
-                ) : (
-                  <Alert severity="info" sx={{ width: '100%' }}>
-                    {resultMessage || 'نتیجه پس از برآورده شدن شرایط انتشار در دسترس خواهد بود.'}
-                  </Alert>
-                )}
-                <Stack direction="row" spacing={2}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => router.push('/exams/available')}
-                  >
-                    بازگشت به لیست آزمون‌ها
-                  </Button>
-                  <Button
-                    variant="contained"
-                    onClick={() => router.push(`/exams/${examId}/result`)}
-                  >
-                    {resultVisible ? 'مشاهده جزئیات نتیجه' : 'وضعیت نتیجه'}
-                  </Button>
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell maxWidth="md">
+        <TakeExamSuccess
+          result={result}
+          onBack={() => router.push('/exams/available')}
+          onViewResult={() => router.push(`/exams/${examId}/result`)}
+        />
+      </TakeExamShell>
     );
   }
 
-  // Show error if exam started but no questions
   if (examStarted && questions.length === 0) {
     return (
-      <ProtectedRoute>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Alert severity="error">
-            سوالات آزمون دریافت نشد. لطفاً صفحه را رفرش کنید یا با پشتیبانی تماس بگیرید.
-          </Alert>
-        </Container>
-      </ProtectedRoute>
+      <TakeExamShell>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          سوالات آزمون دریافت نشد. لطفاً صفحه را رفرش کنید یا با پشتیبانی تماس بگیرید.
+        </Alert>
+      </TakeExamShell>
     );
   }
 
-  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
-
   return (
-    <ProtectedRoute>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack spacing={3}>
-          {/* Header with timer and progress */}
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    سوال {currentIndex + 1} از {questions.length}
-                  </Typography>
-                  <LinearProgress variant="determinate" value={progress} sx={{ width: 200, mt: 1 }} />
-                </Box>
-                {timeRemaining !== null && (
-                  <Box textAlign="center" aria-live="polite" aria-atomic="true" role="timer">
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <AccessTimeIcon color={timeRemaining < 300 ? 'error' : 'action'} />
-                      <Typography
-                        variant="h6"
-                        color={timeRemaining < 300 ? 'error.main' : 'text.primary'}
-                      >
-                        {formatTime(timeRemaining)}
-                      </Typography>
-                    </Stack>
-                  </Box>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+    <TakeExamShell>
+      <TakeExamHeader
+        examTitle={examInfo?.title || 'آزمون'}
+        currentIndex={currentIndex}
+        totalQuestions={questions.length}
+        answeredCount={answeredCount}
+        timerVisible={takeTimer.visible}
+        timerSeconds={takeTimer.seconds}
+        timerLabel={takeTimer.label}
+        timerHint={takeTimer.hint}
+      />
 
-          {/* Question Card */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 280px' },
+          gap: { xs: 1, sm: 2 },
+          alignItems: 'start',
+        }}
+      >
+        <Stack spacing={0}>
           {currentQuestion && (
-            <Card>
-              <CardContent>
-                <Stack spacing={3}>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                    <Chip
-                      icon={
-                        saveAnswerMutation.isPending ? (
-                          <SaveIcon
-                            sx={{
-                              fontSize: 18,
-                              '@keyframes pulse': {
-                                '0%, 100%': { opacity: 1 },
-                                '50%': { opacity: 0.6 },
-                              },
-                              animation: 'pulse 1.2s ease-in-out infinite',
-                            }}
-                          />
-                        ) : (
-                          <CheckCircleIcon sx={{ fontSize: 18 }} />
-                        )
-                      }
-                      label={saveAnswerMutation.isPending ? 'در حال ذخیره...' : 'ذخیره شد'}
-                      color={saveAnswerMutation.isPending ? 'primary' : 'success'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  <QuestionView
-                    mode="take"
-                    source={currentQuestion.payload as unknown as Record<string, unknown>}
-                    answerValue={answers[currentQuestion.id]}
-                    onAnswerChange={(v) => handleAnswerChange(currentQuestion.id, v)}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
+            <TakeExamQuestionCard
+              questionNumber={currentIndex + 1}
+              totalQuestions={questions.length}
+              points={
+                typeof currentQuestion.payload?.points === 'number'
+                  ? currentQuestion.payload.points
+                  : undefined
+              }
+              payload={currentQuestion.payload as unknown as Record<string, unknown>}
+              answerValue={answers[currentQuestion.id]}
+              onAnswerChange={(v) => handleAnswerChange(currentQuestion.id, v)}
+              isSaving={saveAnswerMutation.isPending}
+            />
           )}
 
-          {/* Navigation Buttons */}
-          <Stack direction="row" spacing={2} justifyContent="space-between">
-            <Button
-              variant="outlined"
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
-            >
-              قبلی
-            </Button>
-
-            <Stack direction="row" spacing={2}>
-              {currentIndex < questions.length - 1 ? (
-                <Button variant="contained" onClick={handleNext}>
-                  بعدی
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<SendIcon />}
-                  onClick={() => setShowSubmitDialog(true)}
-                  disabled={submitExamMutation.isPending}
-                >
-                  ارسال آزمون
-                </Button>
-              )}
-            </Stack>
-          </Stack>
-
-          {/* Question Navigation */}
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                پیمایش سریع:
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                {questions.map((q, index) => (
-                  <Button
-                    key={q.id}
-                    variant={index === currentIndex ? 'contained' : 'outlined'}
-                    size="small"
-                    onClick={() => {
-                      flushPendingSave();
-                      flushPendingSave();
-                      goToIndex(index);
-                    }}
-                    sx={{ minWidth: 40 }}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
+          <TakeExamFooter
+            currentIndex={currentIndex}
+            totalQuestions={questions.length}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            onSubmit={handleSubmitClick}
+            isSubmitting={submitExamMutation.isPending}
+          />
         </Stack>
 
-        {/* Submit Confirmation Dialog */}
-        <Dialog open={showSubmitDialog} onClose={() => setShowSubmitDialog(false)}>
-          <DialogTitle>تأیید ارسال آزمون</DialogTitle>
-          <DialogContent>
-            <Typography>
-              آیا از ارسال آزمون اطمینان دارید؟ پس از ارسال امکان تغییر پاسخ‌ها وجود ندارد.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              تعداد سوالات پاسخ داده شده: {Object.keys(answers).length} از {questions.length}
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowSubmitDialog(false)}>انصراف</Button>
-            <Button onClick={handleSubmitConfirm} variant="contained" color="success">
-              ارسال
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <Box sx={{ position: 'sticky', top: 88 }}>
+            <TakeExamNavigator
+              questions={questions}
+              currentIndex={currentIndex}
+              answers={answers}
+              onSelect={handleGoToQuestion}
+            />
+          </Box>
+        </Box>
+      </Box>
 
-        {/* Snackbar for error notifications */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, mt: { xs: 1, sm: 2 } }}>
+        <TakeExamNavigator
+          questions={questions}
+          currentIndex={currentIndex}
+          answers={answers}
+          onSelect={handleGoToQuestion}
+        />
+      </Box>
+
+      <TakeExamSubmitDialog
+        open={showSubmitDialog}
+        answeredCount={answeredCount}
+        totalQuestions={questions.length}
+        unansweredCount={unansweredCount}
+        isSubmitting={submitExamMutation.isPending}
+        onClose={() => setShowSubmitDialog(false)}
+        onConfirm={handleSubmitConfirm}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          severity={snackbar.severity}
+          sx={{ width: '100%', borderRadius: 2 }}
         >
-          <Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Container>
-    </ProtectedRoute>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </TakeExamShell>
   );
 }
 

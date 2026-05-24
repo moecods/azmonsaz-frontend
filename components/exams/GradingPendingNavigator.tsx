@@ -70,8 +70,8 @@ export default function GradingPendingNavigator({
           insetInlineEnd: isMobile ? MOBILE_SHELL_PADDING_X : DESKTOP_SHELL_PADDING_X,
           width: isMobile
             ? 'auto'
-            : `min(920px, calc(100vw - ${SIDEBAR_WIDTH}px - ${DESKTOP_SHELL_PADDING_X * 2}px))`,
-          maxWidth: 920,
+            : `min(1280px, calc(100vw - ${SIDEBAR_WIDTH}px - ${DESKTOP_SHELL_PADDING_X * 2}px))`,
+          maxWidth: 1280,
           mx: 'auto',
           borderRadius: { xs: 3, md: 2 },
           overflow: 'hidden',

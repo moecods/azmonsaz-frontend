@@ -1,6 +1,7 @@
 import type { Question } from "@/types";
 import type { QuestionTypeId } from "./constants";
 import { getQuestionTypeKind } from "./registry";
+import { optionIdFromUnknown } from "@/lib/option-ids";
 
 export interface NormalizedQuestion {
   type: string;
@@ -110,19 +111,4 @@ export function normalizeFromQuestion(question: Question): NormalizedQuestion {
   return normalizeQuestion(question as unknown as Record<string, unknown>);
 }
 
-export function isCorrectOptionIndex(
-  questionType: string,
-  correctAnswer: unknown,
-  idx: number
-): boolean {
-  if (questionType === "multiple_select" && Array.isArray(correctAnswer)) {
-    return correctAnswer.includes(idx);
-  }
-  if (questionType === "true_false" || questionType === "multiple_choice") {
-    return (
-      correctAnswer === idx ||
-      (Array.isArray(correctAnswer) && correctAnswer.includes(idx))
-    );
-  }
-  return false;
-}
+export { optionIdFromUnknown };

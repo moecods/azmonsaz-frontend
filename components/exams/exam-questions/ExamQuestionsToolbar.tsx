@@ -1,8 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
-import MenuIcon from "@mui/icons-material/Menu";
 
 interface ExamQuestionsToolbarProps {
   title: string;
@@ -10,8 +10,7 @@ interface ExamQuestionsToolbarProps {
   totalPoints: number;
   maxScore?: number | null;
   onBack: () => void;
-  onOpenBank?: () => void;
-  showMobileBankToggle?: boolean;
+  viewModeToggle?: ReactNode;
 }
 
 export function ExamQuestionsToolbar({
@@ -20,20 +19,21 @@ export function ExamQuestionsToolbar({
   totalPoints,
   maxScore,
   onBack,
-  onOpenBank,
-  showMobileBankToggle,
+  viewModeToggle,
 }: ExamQuestionsToolbarProps) {
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-        <Button startIcon={<ArrowRightIcon />} onClick={onBack} variant="outlined" size="small">
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "stretch", sm: "center" }}
+        justifyContent="space-between"
+        spacing={2}
+        sx={{ mb: 2 }}
+      >
+        <Button startIcon={<ArrowRightIcon />} onClick={onBack} variant="outlined" size="small" sx={{ alignSelf: "flex-start" }}>
           بازگشت
         </Button>
-        {showMobileBankToggle && onOpenBank && (
-          <Button startIcon={<MenuIcon />} onClick={onOpenBank} variant="contained" size="small">
-            بانک سوالات
-          </Button>
-        )}
+        {viewModeToggle}
       </Stack>
       <Typography variant="h4" gutterBottom>
         مدیریت سوالات: {title}

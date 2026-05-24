@@ -3,47 +3,53 @@
 import React, { useCallback } from 'react';
 
 import {
+  Alert,
   Box,
   Card,
   CardContent,
   CircularProgress,
   IconButton,
+  LinearProgress,
   Stack,
-  TablePagination,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { InfiniteScrollSentinel } from '@/components/shared/InfiniteScrollSentinel';
 import { questionTypeBorderSx } from '@/lib/question-types/type-appearance';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 import { Question } from '@/types';
-import QuestionDisplay from '@/components/questions/QuestionDisplay';
-
-const DEFAULT_PAGE_SIZE = 10;
+import type { QuestionBankViewMode } from '@/lib/question-bank-view';
+import { QuestionBankItemDisplay } from '@/components/questions/QuestionBankItemDisplay';
 
 interface QuestionListProps {
   questions: Question[];
-  loading: boolean;
-  pagination?: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-  };
-  onPageChange: (page: number) => void;
+  isInitialLoading: boolean;
+  isRefetching?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
+  viewMode?: QuestionBankViewMode;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
+  loadedCount?: number;
+  totalCount?: number;
   onEdit: (question: Question) => void;
   onDelete: (id: number) => void;
 }
 
 interface QuestionCardProps {
   question: Question;
+  viewMode: QuestionBankViewMode;
   onEdit: (question: Question) => void;
   onDelete: (id: number) => void;
 }
 
 const QuestionCard = React.memo(function QuestionCard({
   question,
+  viewMode,
   onEdit,
   onDelete,
 }: QuestionCardProps) {
@@ -58,7 +64,7 @@ const QuestionCard = React.memo(function QuestionCard({
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <QuestionDisplay source={question} mode="bank" />
+              <QuestionBankItemDisplay source={question} viewMode={viewMode} />
             </Box>
             <Stack direction="row" spacing={0.5}>
               <Tooltip title="ویرایش سوال">
@@ -81,25 +87,24 @@ const QuestionCard = React.memo(function QuestionCard({
 
 export const QuestionList: React.FC<QuestionListProps> = React.memo(function QuestionList({
   questions,
-  loading,
-  pagination,
-  onPageChange,
+  isInitialLoading,
+  isRefetching = false,
+  isError = false,
+  errorMessage,
+  onRetry,
+  viewMode = "bank",
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  onLoadMore,
+  loadedCount,
+  totalCount,
   onEdit,
   onDelete,
 }) {
   const handleEdit = useCallback((question: Question) => onEdit(question), [onEdit]);
   const handleDelete = useCallback((id: number) => onDelete(id), [onDelete]);
 
-  // MUI's TablePagination is 0-based; the API + hook are 1-based.
-  const handlePageChange = useCallback(
-    (_event: unknown, newPage: number) => onPageChange(newPage + 1),
-    [onPageChange],
-  );
-
-  const currentPage = pagination?.current_page ? pagination.current_page - 1 : 0;
-  const rowsPerPage = pagination?.per_page || DEFAULT_PAGE_SIZE;
-
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <Card variant="outlined">
         <CardContent>
@@ -111,6 +116,28 @@ export const QuestionList: React.FC<QuestionListProps> = React.memo(function Que
           </Stack>
         </CardContent>
       </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Alert
+        severity="error"
+        action={
+          onRetry ? (
+            <Typography
+              component="button"
+              variant="body2"
+              onClick={onRetry}
+              sx={{ border: 0, bgcolor: "transparent", cursor: "pointer", font: "inherit" }}
+            >
+              تلاش مجدد
+            </Typography>
+          ) : undefined
+        }
+      >
+        {errorMessage || "بارگذاری سوالات ناموفق بود."}
+      </Alert>
     );
   }
 
@@ -128,29 +155,26 @@ export const QuestionList: React.FC<QuestionListProps> = React.memo(function Que
 
   return (
     <Stack spacing={2}>
+      {isRefetching && <LinearProgress aria-label="در حال به‌روزرسانی لیست" />}
+
       {questions.map((question) => (
         <QuestionCard
           key={question.id}
           question={question}
+          viewMode={viewMode}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
       ))}
 
-      {pagination && pagination.total > rowsPerPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <TablePagination
-            component="div"
-            count={pagination.total}
-            page={currentPage}
-            onPageChange={handlePageChange}
-            rowsPerPage={rowsPerPage}
-            // Per-page is fixed by the hook; hide the selector for clarity.
-            rowsPerPageOptions={[rowsPerPage]}
-            labelRowsPerPage=""
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} از ${count}`}
-          />
-        </Box>
+      {onLoadMore && (
+        <InfiniteScrollSentinel
+          hasMore={hasNextPage}
+          isFetchingMore={isFetchingNextPage}
+          onLoadMore={onLoadMore}
+          loadedCount={loadedCount}
+          totalCount={totalCount}
+        />
       )}
     </Stack>
   );

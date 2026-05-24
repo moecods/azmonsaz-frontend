@@ -5,6 +5,7 @@
 
 import type { Question } from '@/types';
 import type { QuestionFormData } from '@/lib/validation';
+import { mapApiOptionsToForm } from '@/lib/option-ids';
 
 /**
  * Map exam question payload (from exam_questions.payload) to QuestionFormData for the edit form.
@@ -13,30 +14,18 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
   const questionText = (payload.question_text as string) ?? '';
   const qType = (payload.type as string) ?? 'multiple_choice';
   const optionsRaw = payload.options;
-  const correctAnswer = payload.correct_answer as number | number[] | string | null | undefined;
+  const correctAnswer = payload.correct_answer as string | string[] | null | undefined;
   const difficulty = (payload.difficulty as 'easy' | 'medium' | 'hard') ?? 'medium';
 
-  const options: QuestionFormData['options'] = Array.isArray(optionsRaw) && optionsRaw.length > 0
-    ? (optionsRaw as string[]).map((opt: string, index: number) => {
-        const text = typeof opt === 'string' ? opt : String(opt);
-        let isCorrect = false;
-
-        if (qType === 'multiple_select' && Array.isArray(correctAnswer)) {
-          isCorrect = correctAnswer.includes(index);
-        } else if (qType === 'true_false' || qType === 'multiple_choice') {
-          isCorrect = correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
-        }
-        return { text, is_correct: isCorrect };
-      })
-    : qType === 'true_false'
-      ? [
-          { text: 'صحیح', is_correct: correctAnswer === 0 },
-          { text: 'غلط', is_correct: correctAnswer === 1 },
-        ]
-      : [
-          { text: '', is_correct: false },
-          { text: '', is_correct: false },
-        ];
+  const options: QuestionFormData['options'] =
+    Array.isArray(optionsRaw) && optionsRaw.length > 0
+      ? mapApiOptionsToForm(optionsRaw, correctAnswer ?? null, qType)
+      : qType === 'true_false'
+        ? mapApiOptionsToForm([], correctAnswer ?? null, 'true_false')
+        : [
+            { id: crypto.randomUUID(), text: '', is_correct: false },
+            { id: crypto.randomUUID(), text: '', is_correct: false },
+          ];
 
   const items = (payload.items as QuestionFormData['items']) ?? [];
   const correct_order = (payload.correct_order as number[]) ?? [];
@@ -50,11 +39,17 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
       ? (optionsRaw as Record<string, unknown>)
       : null;
 
+  const resolvedCorrect =
+    correctAnswer ??
+    (qType === 'multiple_select'
+      ? options.filter((o) => o.is_correct).map((o) => o.id)
+      : options.find((o) => o.is_correct)?.id ?? '');
+
   return {
     text: questionText,
     type: qType as QuestionFormData['type'],
     options,
-    correct_answer: correctAnswer ?? 0,
+    correct_answer: resolvedCorrect,
     category_id: 0,
     tags: [],
     difficulty,
@@ -77,7 +72,11 @@ export function questionToFormData(question: Question): QuestionFormData {
   const questionOptions = question.options || [];
   const correctAnswer = question.correct_answer;
   const qType = question.type;
-  const convertedOptions = convertOptions(questionOptions, correctAnswer, qType);
+  const convertedOptions = mapApiOptionsToForm(
+    questionOptions as unknown[],
+    correctAnswer,
+    qType
+  );
 
   const categoryId = resolveCategoryId(question, q);
   const blanks = resolveBlanks(question, q, qType);
@@ -92,11 +91,17 @@ export function questionToFormData(question: Question): QuestionFormData {
       ? (q.options as Record<string, unknown>)
       : null;
 
+  const resolvedCorrect =
+    correctAnswer ??
+    (qType === 'multiple_select'
+      ? convertedOptions.filter((o) => o.is_correct).map((o) => o.id)
+      : convertedOptions.find((o) => o.is_correct)?.id ?? '');
+
   return {
     text: question.text,
     type: question.type,
     options: convertedOptions,
-    correct_answer: question.correct_answer,
+    correct_answer: resolvedCorrect,
     category_id: categoryId,
     tags: question.tags || [],
     difficulty: question.difficulty,
@@ -112,43 +117,6 @@ export function questionToFormData(question: Question): QuestionFormData {
       (optsNested?.matching_mode as QuestionFormData['matching_mode']) ??
       'one_to_one',
   };
-}
-
-function convertOptions(
-  questionOptions: unknown[],
-  correctAnswer: number | number[] | null,
-  qType: string
-): QuestionFormData['options'] {
-  const isStringArray = questionOptions.length > 0 && typeof questionOptions[0] === 'string';
-
-  if (isStringArray) {
-    return (questionOptions as string[]).map((opt: string, index: number) => {
-      const optionText = typeof opt === 'string' ? opt : String(opt);
-      let isCorrect = false;
-      if (qType === 'multiple_select') {
-        isCorrect = Array.isArray(correctAnswer) && correctAnswer.includes(index);
-      } else if (qType === 'true_false' || qType === 'multiple_choice') {
-        isCorrect = correctAnswer === index || (Array.isArray(correctAnswer) && correctAnswer.includes(index));
-      }
-      return { text: optionText, is_correct: isCorrect };
-    });
-  }
-
-  if (questionOptions.length > 0) {
-    return questionOptions as Array<{ text: string; is_correct: boolean }>;
-  }
-
-  if (qType === 'true_false') {
-    return [
-      { text: 'درست', is_correct: correctAnswer === 0 },
-      { text: 'نادرست', is_correct: correctAnswer === 1 },
-    ];
-  }
-
-  return [
-    { text: '', is_correct: false },
-    { text: '', is_correct: false },
-  ];
 }
 
 function resolveCategoryId(question: Question, q: Record<string, unknown>): number {

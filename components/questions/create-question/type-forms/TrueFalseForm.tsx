@@ -37,8 +37,17 @@ export function TrueFalseForm({ control, errors, setValue, questionOptions }: Ty
                   variant={f.value ? "contained" : "outlined"}
                   color={f.value ? "success" : "inherit"}
                   onClick={() => {
-                    setValue("options.0.is_correct", index === 0);
-                    setValue("options.1.is_correct", index === 1);
+                    const opts = questionOptions ?? [];
+                    const trueId = opts[0]?.id;
+                    const falseId = opts[1]?.id;
+                    setValue("options.0.is_correct", index === 0, { shouldDirty: true, shouldValidate: true });
+                    setValue("options.1.is_correct", index === 1, { shouldDirty: true, shouldValidate: true });
+                    if (trueId && falseId) {
+                      setValue("correct_answer", index === 0 ? trueId : falseId, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
                   }}
                   sx={{ minWidth: 100 }}
                   startIcon={f.value ? <CheckCircleIcon /> : null}

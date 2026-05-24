@@ -75,6 +75,23 @@ export function wouldExceedExamMaxScore(
   };
 }
 
+/** Whether adding `additionalCount` questions at `defaultPoints` each would exceed exam max. */
+export function wouldExceedExamMaxScoreForBatch(
+  exam: ExamWithGrading | null | undefined,
+  questions: ExamQuestion[],
+  defaultPoints: number,
+  additionalCount: number
+): { exceeds: boolean; maxScore: number | null; projectedTotal: number } {
+  const maxScore = getExamMaxScore(exam);
+  const currentSum = sumExamQuestionPoints(questions, defaultPoints);
+  const projectedTotal = currentSum + additionalCount * defaultPoints;
+  return {
+    exceeds: maxScore != null && projectedTotal > maxScore,
+    maxScore,
+    projectedTotal,
+  };
+}
+
 export function maxPointsAllowedForQuestion(
   exam: ExamWithGrading | null | undefined,
   questions: ExamQuestion[],

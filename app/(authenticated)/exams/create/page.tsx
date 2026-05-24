@@ -177,10 +177,9 @@ function CreateExamContent() {
     } else {
       const examData = {
         ...baseData,
-        ...(showCreatorSelect &&
-          data.created_by != null && {
-            created_by: Number(data.created_by),
-          }),
+        ...(showCreatorSelect && {
+          created_by: Number(data.created_by ?? user?.id),
+        }),
         ...(validationResult.success &&
           deepLinkParams.partner_id && {
             partner_id: parseInt(deepLinkParams.partner_id, 10),
@@ -275,6 +274,7 @@ function CreateExamContent() {
             isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
             existingExam={!!existingExam}
             showCreatorSelect={showCreatorSelect}
+            defaultOwnerUserId={user?.id ?? null}
           />
         </Stack>
       </Container>

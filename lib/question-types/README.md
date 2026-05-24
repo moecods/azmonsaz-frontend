@@ -15,6 +15,11 @@
 | `matching` | تطبیقی | matching |
 | `ordering` | ترتیب‌دهی | ordering |
 
+## گزینه‌ها و `correct_answer` (MC / MS / TF)
+
+- در API و دیتابیس: `options` آرایه‌ای از `{ id, text }` است؛ `correct_answer` شناسهٔ گزینه(ها) است، نه اندیس.
+- در فرم ساخت سوال: `is_correct` روی هر گزینه فقط برای UI است؛ هنگام ارسال با `toStoredOptions` / `correctAnswerIdsFromOptions` در `lib/option-ids.ts` به شکل id تبدیل می‌شود.
+
 ## معنی `kind`ها
 
 - **options_single**: یک گزینه صحیح از لیست گزینه‌ها (رادیو).

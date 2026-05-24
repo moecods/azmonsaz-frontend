@@ -36,6 +36,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import RichTextEditor from '@/components/editor/RichTextEditor';
+import { correctAnswerIdsFromOptions } from '@/lib/option-ids';
 import type { TypeFormProps } from './types';
 
 interface OptionsFormProps extends TypeFormProps {
@@ -60,8 +61,11 @@ export function OptionsForm({
 
   const setCorrect = (index: number, next: boolean) => {
     if (!setValue) return;
+    const opts = questionOptions ?? [];
+    const optionId = opts[index]?.id;
+    if (!optionId) return;
+
     if (!allowMultiple) {
-      // Radio-like behavior: only this one stays correct.
       const len = optionsFields.fields.length;
       for (let i = 0; i < len; i++) {
         setValue(`options.${i}.is_correct`, i === index && next, {
@@ -69,14 +73,19 @@ export function OptionsForm({
           shouldValidate: true,
         });
       }
-      if (next) setValue('correct_answer', index, { shouldDirty: true });
+      if (next) {
+        setValue('correct_answer', optionId, { shouldDirty: true, shouldValidate: true });
+      }
     } else {
       setValue(`options.${index}.is_correct`, next, { shouldDirty: true, shouldValidate: true });
-      const indices = (questionOptions ?? [])
-        .map((o, i) => (i === index ? next : Boolean(o?.is_correct)))
-        .map((v, i) => (v ? i : -1))
-        .filter((i) => i >= 0);
-      setValue('correct_answer', indices, { shouldDirty: true });
+      const nextOptions = opts.map((o, i) => ({
+        ...o,
+        is_correct: i === index ? next : Boolean(o?.is_correct),
+      }));
+      setValue('correct_answer', correctAnswerIdsFromOptions(nextOptions, true), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
     }
   };
 

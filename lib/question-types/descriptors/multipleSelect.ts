@@ -1,25 +1,22 @@
 import type { QuestionTypeDescriptor } from './types';
 import type { QuestionFormData } from '@/lib/validation';
 import type { QuestionCategoryRef } from './types';
-import { baseBankFields, baseExamPayload, getOptionsCorrectAnswer } from './shared';
+import { baseBankFields, baseExamPayload, buildOptionTypePayload } from './shared';
 
 export const multipleSelectDescriptor: QuestionTypeDescriptor = {
   buildExamPayload(data: QuestionFormData, categories: QuestionCategoryRef[]): Record<string, unknown> {
     const base = baseExamPayload(data, categories);
-    const opts = data.options ?? [];
-    base.options = opts.map((o) => o.text);
-    base.correct_answer = getOptionsCorrectAnswer(data, true);
+    const built = buildOptionTypePayload(data, true);
+    base.options = built.options;
+    base.correct_answer = built.correct_answer;
     return base;
   },
   buildBankPayload(data: QuestionFormData): Record<string, unknown> {
-    const correctIndices: number[] = [];
-    (data.options ?? []).forEach((opt, index) => {
-      if (opt.is_correct) correctIndices.push(index);
-    });
+    const built = buildOptionTypePayload(data, true);
     return {
       ...baseBankFields(data),
-      options: (data.options ?? []).map((o) => ({ text: o.text, is_correct: o.is_correct })),
-      correct_answer: correctIndices,
+      options: built.options,
+      correct_answer: built.correct_answer,
     };
   },
 };

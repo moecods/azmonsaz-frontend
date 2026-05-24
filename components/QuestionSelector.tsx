@@ -25,6 +25,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
+import { newFormOption } from '@/lib/option-ids';
 import { useQuestions, useQuestionCategories } from '@/hooks';
 import { Question, ExamQuestion, QuestionType, Difficulty } from '@/types';
 import { RichLabel } from '@/components/editor';
@@ -51,11 +52,8 @@ export default function QuestionSelector({ onAddQuestion }: QuestionSelectorProp
     defaultValues: {
       text: '',
       type: 'multiple_choice',
-      options: [
-        { text: '', is_correct: false },
-        { text: '', is_correct: false },
-      ],
-      correct_answer: 0,
+      options: [newFormOption(), newFormOption()],
+      correct_answer: '',
       category_id: 0,
       tags: [],
       difficulty: 'medium',
