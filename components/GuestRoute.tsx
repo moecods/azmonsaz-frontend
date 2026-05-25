@@ -18,7 +18,7 @@ interface GuestRouteProps {
  */
 export default function GuestRoute({
   children,
-  redirectTo = "/",
+  redirectTo = "/dashboard",
 }: GuestRouteProps) {
   const router = useRouter();
   const isAuthenticated = useIsAuthenticated();

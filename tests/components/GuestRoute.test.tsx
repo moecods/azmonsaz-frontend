@@ -37,7 +37,7 @@ describe('GuestRoute', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('redirects to home when user is authenticated', async () => {
+  it('redirects to dashboard when user is authenticated', async () => {
     (useIsAuthenticated as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
     render(
@@ -47,7 +47,7 @@ describe('GuestRoute', () => {
     );
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/');
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard');
     });
     expect(screen.queryByText('Login Form')).not.toBeInTheDocument();
   });

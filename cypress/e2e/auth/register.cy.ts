@@ -4,8 +4,7 @@ describe('Register', () => {
   });
 
   it('shows register form with all fields', () => {
-    cy.getByTestId('register-first-name').should('be.visible');
-    cy.getByTestId('register-last-name').should('be.visible');
+    cy.getByTestId('register-name').should('be.visible');
     cy.getByTestId('register-phone').should('be.visible');
     cy.getByTestId('register-password').should('be.visible');
     cy.getByTestId('register-password-confirmation').should('be.visible');
@@ -24,8 +23,7 @@ describe('Register', () => {
   it('registers successfully when backend accepts', () => {
     // Use unique phone to avoid duplicate; requires backend to allow registration
     const phone = `0912${Date.now().toString().slice(-7)}`;
-    cy.getByTestId('register-first-name').type('Test');
-    cy.getByTestId('register-last-name').type('User');
+    cy.getByTestId('register-name').type('Test User');
     cy.getByTestId('register-phone').type(phone);
     cy.getByTestId('register-password').type('password123');
     cy.getByTestId('register-password-confirmation').type('password123');
