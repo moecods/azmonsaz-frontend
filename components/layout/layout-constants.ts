@@ -1,8 +1,14 @@
 /** Width of the desktop sidebar (RTL: first grid column = physical right). */
 export const SIDEBAR_WIDTH = 280;
 
-/** Height reserved above scrollable main on mobile (bottom navigation). */
-export const MOBILE_BOTTOM_NAV_HEIGHT = 64;
+/** Desktop main column top bar (notifications + account). */
+export const DESKTOP_SHELL_BAR_HEIGHT = 48;
+
+/** Collapsed mobile bottom dock height (tabs row). */
+export const MOBILE_BOTTOM_NAV_HEIGHT = 56;
+
+/** Offset above dock for floating panels (cart bar, graders). */
+export const MOBILE_FLOATING_BOTTOM_OFFSET = MOBILE_BOTTOM_NAV_HEIGHT;
 
 /**
  * Single horizontal/vertical padding for authenticated shell content.

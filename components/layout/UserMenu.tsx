@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, MouseEvent } from 'react';
+import { useState, MouseEvent } from "react";
 import {
   IconButton,
   Button,
@@ -13,30 +13,31 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
-} from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SchoolIcon from '@mui/icons-material/School';
-import QuizIcon from '@mui/icons-material/Quiz';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/hooks';
-import { useColorMode } from '@/theme/ColorModeProvider';
-import UserAvatar from '@/components/ui/UserAvatar';
+} from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import LogoutIcon from "@mui/icons-material/Logout";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks";
+import { useColorMode } from "@/theme/ColorModeProvider";
+import UserAvatar from "@/components/ui/UserAvatar";
 
-export default function UserMenu() {
+export interface UserMenuProps {
+  /** Shell: account actions only (nav is in sidebar). Public navbar: includes dashboard link. */
+  variant?: "shell" | "public";
+}
+
+export default function UserMenu({ variant = "public" }: UserMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const router = useRouter();
-  const pathname = usePathname();
   const { user, logout } = useAuth();
   const { mode, toggleColorMode } = useColorMode();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isShell = variant === "shell";
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -49,7 +50,7 @@ export default function UserMenu() {
   const handleLogout = async () => {
     handleClose();
     await logout();
-    router.push('/');
+    router.push("/");
   };
 
   const handleNavigation = (path: string) => {
@@ -57,91 +58,78 @@ export default function UserMenu() {
     router.push(path);
   };
 
-  const isCreator = user?.roles?.includes('admin') || 
-                   user?.roles?.includes('content_manager') || 
-                   user?.roles?.includes('creator');
-
-  // Menu items for mobile (similar to sidebar)
-  const mobileMenuItems = [
-    { label: 'داشبورد', icon: <DashboardIcon />, path: '/dashboard' },
-    { label: 'آزمون‌های من', icon: <SchoolIcon />, path: '/exams/available' },
-    ...(isCreator ? [
-      { label: 'مدیریت آزمون‌ها', icon: <ListAltIcon />, path: '/exams' },
-      { label: 'ایجاد آزمون', icon: <SchoolIcon />, path: '/exams/create' },
-      { label: 'بانک سوالات', icon: <QuizIcon />, path: '/questions' },
-    ] : []),
-    { label: 'پروفایل', icon: <PersonIcon />, path: '/profile' },
-    ...((user?.roles?.includes('admin') || user?.roles?.includes('content_manager')) ? [
-      { label: 'پنل مدیریت', icon: <AdminPanelSettingsIcon />, path: '/admin' },
-    ] : []),
-  ];
-
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'admin':
-        return 'مدیر';
-      case 'content_manager':
-        return 'مدیر محتوا';
-      case 'creator':
-        return 'سازنده';
+      case "admin":
+        return "مدیر";
+      case "content_manager":
+        return "مدیر محتوا";
+      case "creator":
+        return "سازنده";
       default:
         return role;
     }
   };
 
-  const getRoleColor = (role: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  const getRoleColor = (
+    role: string
+  ): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
     switch (role) {
-      case 'admin':
-        return 'error';
-      case 'content_manager':
-        return 'primary';
-      case 'creator':
-        return 'success';
+      case "admin":
+        return "error";
+      case "content_manager":
+        return "primary";
+      case "creator":
+        return "success";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   if (!user) return null;
 
+  const triggerSx = isShell && isMobile ? { ml: 0.5 } : { ml: 2 };
+
   return (
     <>
-      {isMobile ? (
-      <IconButton
-        onClick={handleClick}
-        size="small"
-        sx={{ ml: 2 }}
-        aria-controls={open ? 'user-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
-        data-cy="user-menu-button"
-      >
-        <UserAvatar
-          name={user.name}
-          avatarUrl={user.avatar_url}
-          sx={{ width: 32, height: 32, fontSize: "0.875rem" }}
-        />
-      </IconButton>
+      {isShell && isMobile ? (
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          sx={triggerSx}
+          aria-controls={open ? "user-menu" : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? "true" : undefined}
+          data-cy="user-menu-button"
+        >
+          <UserAvatar
+            name={user.name}
+            avatarUrl={user.avatar_url}
+            sx={{ width: 32, height: 32, fontSize: "0.875rem" }}
+          />
+        </IconButton>
       ) : (
         <Button
           onClick={handleClick}
           sx={{
-            ml: 2,
-            textTransform: 'none',
-            color: 'text.primary',
-            '&:hover': {
-              bgcolor: 'action.hover',
+            ...triggerSx,
+            textTransform: "none",
+            color: "text.primary",
+            "&:hover": {
+              bgcolor: "action.hover",
             },
           }}
-          aria-controls={open ? 'user-menu' : undefined}
+          aria-controls={open ? "user-menu" : undefined}
           aria-haspopup="true"
-          aria-expanded={open ? 'true' : undefined}
+          aria-expanded={open ? "true" : undefined}
           data-cy="user-menu-button"
         >
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <Typography variant="body2" fontWeight="medium" noWrap>
-              {user.name}
-            </Typography>
+            {(!isMobile || !isShell) && (
+              <Typography variant="body2" fontWeight="medium" noWrap>
+                {user.name}
+              </Typography>
+            )}
             <UserAvatar
               name={user.name}
               avatarUrl={user.avatar_url}
@@ -156,20 +144,19 @@ export default function UserMenu() {
         open={open}
         onClose={handleClose}
         onClick={handleClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         PaperProps={{
           sx: {
             mt: 1.5,
             minWidth: 200,
-            '& .MuiMenuItem-root': {
+            "& .MuiMenuItem-root": {
               px: 2,
               py: 1.5,
             },
           },
         }}
       >
-        {/* User Info */}
         <Box sx={{ px: 2, py: 1.5 }}>
           <Typography variant="subtitle2" fontWeight="bold" noWrap>
             {user.name}
@@ -187,18 +174,20 @@ export default function UserMenu() {
                   label={getRoleLabel(role)}
                   size="small"
                   color={getRoleColor(role)}
-                  sx={{ height: 20, fontSize: '0.65rem' }}
+                  sx={{ height: 20, fontSize: "0.65rem" }}
                 />
               ))}
             </Stack>
           )}
         </Box>
         <Divider />
-        <MenuItem onClick={() => handleNavigation('/dashboard')}>
-          <DashboardIcon sx={{ mr: 2, fontSize: 20 }} />
-          داشبورد
-        </MenuItem>
-        <MenuItem onClick={() => handleNavigation('/profile')}>
+        {!isShell && (
+          <MenuItem onClick={() => handleNavigation("/dashboard")}>
+            <DashboardIcon sx={{ mr: 2, fontSize: 20 }} />
+            داشبورد
+          </MenuItem>
+        )}
+        <MenuItem onClick={() => handleNavigation("/profile")}>
           <PersonIcon sx={{ mr: 2, fontSize: 20 }} />
           پروفایل
         </MenuItem>
@@ -215,7 +204,7 @@ export default function UserMenu() {
           {mode === "light" ? "حالت تاریک" : "حالت روشن"}
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }} data-cy="logout-button">
+        <MenuItem onClick={handleLogout} sx={{ color: "error.main" }} data-cy="logout-button">
           <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
           خروج
         </MenuItem>
@@ -223,4 +212,3 @@ export default function UserMenu() {
     </>
   );
 }
-

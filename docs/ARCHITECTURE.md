@@ -17,7 +17,7 @@ components/
   exams/                # Exam-related components
   forms/                # FormField, FormSelect, etc.
   feedback/             # Loading, Alert, PageStates
-  layout/               # UserLayout, UserSidebar, MobileBottomNav
+  layout/               # UserLayout, MobileBottomNav, UserSidebar, DesktopShellBar
   questions/            # Question forms, table
   ui/                   # Button, Card, Input, Modal, Table
 hooks/                  # useAuth, useExams, useQuestions, etc.

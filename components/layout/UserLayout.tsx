@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Box } from "@mui/material";
-import UserSidebar from "./UserSidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
@@ -19,15 +18,14 @@ interface UserLayoutProps {
   children: ReactNode;
 }
 
-/** Mobile authenticated layout: scrollable main + bottom nav + drawer. */
+/**
+ * Mobile shell: expandable bottom dock (quick tabs + full menu sheet).
+ * No top header — avoids duplicate chrome with sidebar items.
+ */
 export default function UserLayout({ children }: UserLayoutProps) {
   const pathname = usePathname();
   const isTakeExam = isTakeExamRoute(pathname);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen((prev) => !prev);
-  };
+  const showMobileChrome = !isTakeExam;
 
   return (
     <Box
@@ -37,6 +35,8 @@ export default function UserLayout({ children }: UserLayoutProps) {
         height: "100%",
         overflow: "hidden",
         bgcolor: "background.default",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Box
@@ -45,12 +45,15 @@ export default function UserLayout({ children }: UserLayoutProps) {
           width: "100%",
           maxWidth: "100%",
           minWidth: 0,
-          height: "100%",
+          flex: 1,
+          minHeight: 0,
           overflowX: "hidden",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           boxSizing: "border-box",
-          pb: `${MOBILE_BOTTOM_NAV_HEIGHT}px`,
+          pb: showMobileChrome
+            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`
+            : 0,
           display: "flex",
           flexDirection: "column",
           ...(isTakeExam ? takeExamMainSx : {}),
@@ -68,14 +71,13 @@ export default function UserLayout({ children }: UserLayoutProps) {
             }}
           >
             <ImpersonationBanner />
-            {!isTakeExam && <StartedExamsAlert />}
+            {showMobileChrome && <StartedExamsAlert />}
             {children}
           </Box>
         </MainProgressProvider>
       </Box>
 
-      <UserSidebar open={mobileOpen} onClose={handleDrawerToggle} variant="temporary" />
-      <MobileBottomNav onMenuClick={handleDrawerToggle} />
+      {showMobileChrome && <MobileBottomNav />}
     </Box>
   );
 }

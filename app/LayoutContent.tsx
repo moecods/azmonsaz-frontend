@@ -56,7 +56,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
       return { show: true };
     }
 
-    // Authenticated shell owns the navbar (desktop grid + mobile bottom nav).
+    // Authenticated shell uses sidebar + ShellChrome (no global Navbar).
     const shellOwnsNavbar = isAuthenticated && isUserLayoutPage;
 
     const show = !isLandingPage && !isNoNavbarPage && !shellOwnsNavbar;

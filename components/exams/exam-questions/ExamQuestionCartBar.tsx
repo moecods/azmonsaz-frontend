@@ -16,7 +16,7 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
   DESKTOP_SHELL_PADDING_X,
-  MOBILE_BOTTOM_NAV_HEIGHT,
+  MOBILE_FLOATING_BOTTOM_OFFSET,
   MOBILE_SHELL_PADDING_X,
   SIDEBAR_WIDTH,
 } from "@/components/layout/layout-constants";
@@ -54,7 +54,9 @@ export function ExamQuestionCartBar({
         aria-label="سبد انتخاب سوالات از بانک"
         sx={{
           position: "fixed",
-          bottom: isMobile ? MOBILE_BOTTOM_NAV_HEIGHT + 12 : 20,
+          bottom: isMobile
+            ? `calc(${MOBILE_FLOATING_BOTTOM_OFFSET + 12}px + env(safe-area-inset-bottom, 0px))`
+            : 20,
           zIndex: theme.zIndex.drawer + 2,
           insetInlineStart: isMobile
             ? MOBILE_SHELL_PADDING_X

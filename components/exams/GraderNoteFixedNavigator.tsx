@@ -17,7 +17,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import type { GraderNoteEngagementStats, GraderNoteScrollTarget } from '@/lib/grader-notes';
 import {
   DESKTOP_SHELL_PADDING_X,
-  MOBILE_BOTTOM_NAV_HEIGHT,
+  MOBILE_FLOATING_BOTTOM_OFFSET,
   MOBILE_SHELL_PADDING_X,
   SIDEBAR_WIDTH,
 } from '@/components/layout/layout-constants';
@@ -79,7 +79,9 @@ export default function GraderNoteFixedNavigator({
         aria-label="پیمایش یادداشت‌های معلم"
         sx={{
           position: 'fixed',
-          bottom: isMobile ? MOBILE_BOTTOM_NAV_HEIGHT + 16 : 20,
+          bottom: isMobile
+            ? `calc(${MOBILE_FLOATING_BOTTOM_OFFSET + 16}px + env(safe-area-inset-bottom, 0px))`
+            : 20,
           zIndex: theme.zIndex.drawer + 2,
           // Mobile: full width inside main. Desktop: exclude sidebar column (inline-start in RTL).
           insetInlineStart: isMobile
