@@ -94,7 +94,7 @@ azmonsaz-frontend/
 ├── hooks/                        # React Query hooks (useExams, useQuestions, …)
 ├── services/                     # API clients per domain
 ├── lib/                          # validation.ts, question-types/, query-client.ts
-├── theme/                        # MUI theme + ColorModeProvider
+├── theme/                        # tokens, MUI theme, page-sx, ColorModeProvider — see theme/README.md
 ├── tests/                        # Vitest unit tests
 ├── cypress/                      # E2E tests
 └── docs/                         # Architecture, UI standards, testing

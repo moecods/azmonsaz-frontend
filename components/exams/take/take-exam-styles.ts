@@ -1,4 +1,8 @@
-/** Shared visual tokens for the take-exam experience (calm, focused). */
+/**
+ * Shared visual tokens for the take-exam experience (calm, focused).
+ * LEGACY ISOLATED THEME — do not reuse outside take-exam routes.
+ * @see docs/DESIGN.md
+ */
 export const takeExamColors = {
   pageBg: "#f4f6f9",
   surface: "#ffffff",

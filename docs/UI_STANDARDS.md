@@ -1,5 +1,9 @@
 # استانداردهای UI/UX - Azmoon-Saz
 
+> **منبع حقیقت کد:** [`theme/tokens.ts`](../theme/tokens.ts) و [`theme/page-sx.ts`](../theme/page-sx.ts)  
+> **قوانین عملی برای توسعه و AI:** [`DESIGN.md`](./DESIGN.md)  
+> اگر عدد رنگ در این سند با `tokens.ts` فرق داشت، به `tokens.ts` اعتماد کنید.
+
 ## 1. Design System
 
 ### 1.1 Color Palette

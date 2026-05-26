@@ -1,5 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 import type { ColorMode } from "@/theme/ColorModeProvider";
+import { paletteTokens, spacingUnit, typographyTokens } from "@/theme/tokens";
 
 type Direction = "ltr" | "rtl";
 type Locale = "en" | "fa";
@@ -9,79 +10,40 @@ export function createAppTheme(
   direction: Direction,
   locale: Locale
 ) {
+  const isLight = mode === "light";
+  const neutral = isLight ? paletteTokens.light : paletteTokens.dark;
+
   return createTheme({
     direction,
     palette: {
       mode,
-      primary: {
-        main: "#1976d2",
-        light: "#42a5f5",
-        dark: "#1565c0",
-        contrastText: "#ffffff",
-      },
-      secondary: {
-        main: "#dc004e",
-        light: "#ff5983",
-        dark: "#9a0036",
-        contrastText: "#ffffff",
-      },
-      success: {
-        main: "#2e7d32",
-        light: "#4caf50",
-        dark: "#1b5e20",
-      },
-      warning: {
-        main: "#ed6c02",
-        light: "#ff9800",
-        dark: "#e65100",
-      },
-      error: {
-        main: "#d32f2f",
-        light: "#ef5350",
-        dark: "#c62828",
-      },
-      info: {
-        main: "#0288d1",
-        light: "#03a9f4",
-        dark: "#01579b",
-      },
-      ...(mode === "light"
-        ? {
-            background: { default: "#fafafa", paper: "#ffffff" },
-            text: {
-              primary: "#212121",
-              secondary: "#757575",
-              disabled: "#bdbdbd",
-            },
-            divider: "#e0e0e0",
-          }
-        : {
-            background: { default: "#121212", paper: "#1e1e1e" },
-            text: {
-              primary: "#f5f5f5",
-              secondary: "#b0b0b0",
-              disabled: "#6e6e6e",
-            },
-            divider: "rgba(255, 255, 255, 0.12)",
-          }),
+      primary: paletteTokens.primary,
+      secondary: paletteTokens.secondary,
+      success: paletteTokens.success,
+      warning: paletteTokens.warning,
+      error: paletteTokens.error,
+      info: paletteTokens.info,
+      background: neutral.background,
+      text: neutral.text,
+      divider: neutral.divider,
     },
     typography: {
       fontFamily:
         locale === "fa"
-          ? "'Vazirmatn', 'Roboto', 'Arial', sans-serif"
-          : "var(--font-geist-sans), 'Roboto', 'Arial', sans-serif",
-      h1: { fontSize: "2.5rem", fontWeight: 700, lineHeight: 1.2 },
-      h2: { fontSize: "2rem", fontWeight: 700, lineHeight: 1.2 },
-      h3: { fontSize: "1.75rem", fontWeight: 500, lineHeight: 1.3 },
-      h4: { fontSize: "1.5rem", fontWeight: 500, lineHeight: 1.4 },
-      h5: { fontSize: "1.25rem", fontWeight: 500, lineHeight: 1.5 },
-      h6: { fontSize: "1rem", fontWeight: 500, lineHeight: 1.5 },
-      body1: { fontSize: "1rem", fontWeight: 400, lineHeight: 1.5 },
-      body2: { fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5 },
-      caption: { fontSize: "0.75rem", fontWeight: 400, lineHeight: 1.5 },
-      button: { fontSize: "0.875rem", fontWeight: 500, textTransform: "none" },
+          ? typographyTokens.fontFamily.fa
+          : typographyTokens.fontFamily.en,
+      h1: typographyTokens.h1,
+      h2: typographyTokens.h2,
+      h3: typographyTokens.h3,
+      h4: typographyTokens.h4,
+      h5: typographyTokens.h5,
+      h6: typographyTokens.h6,
+      body1: typographyTokens.body1,
+      body2: typographyTokens.body2,
+      caption: typographyTokens.caption,
+      button: typographyTokens.button,
     },
-    spacing: 8,
+    spacing: spacingUnit,
     shape: { borderRadius: 8 },
     components: {
       MuiButton: {

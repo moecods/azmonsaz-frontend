@@ -1,0 +1,40 @@
+{
+  "$description": "Design tokens for Azmoon-Saz. Import into Figma via Tokens Studio. Source: theme/tokens.ts",
+  "color": {
+    "primary": {
+      "main": { "value": "#1976d2", "type": "color" },
+      "light": { "value": "#42a5f5", "type": "color" },
+      "dark": { "value": "#1565c0", "type": "color" }
+    },
+    "secondary": {
+      "main": { "value": "#dc004e", "type": "color" }
+    },
+    "semantic": {
+      "success": { "value": "#2e7d32", "type": "color" },
+      "warning": { "value": "#ed6c02", "type": "color" },
+      "error": { "value": "#d32f2f", "type": "color" },
+      "info": { "value": "#0288d1", "type": "color" }
+    },
+    "background": {
+      "default-light": { "value": "#fafafa", "type": "color" },
+      "paper-light": { "value": "#ffffff", "type": "color" },
+      "default-dark": { "value": "#121212", "type": "color" },
+      "paper-dark": { "value": "#1e1e1e", "type": "color" }
+    },
+    "text": {
+      "primary-light": { "value": "#212121", "type": "color" },
+      "secondary-light": { "value": "#757575", "type": "color" }
+    }
+  },
+  "font": {
+    "family-fa": { "value": "Vazirmatn", "type": "fontFamilies" }
+  },
+  "radius": {
+    "sm": { "value": "8", "type": "borderRadius" },
+    "md": { "value": "12", "type": "borderRadius" },
+    "lg": { "value": "16", "type": "borderRadius" }
+  },
+  "spacing": {
+    "unit": { "value": "8", "type": "spacing" }
+  }
+}
