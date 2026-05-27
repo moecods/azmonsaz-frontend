@@ -25,7 +25,7 @@ export interface ExamUser {
 export interface UserParticipant {
   id: number;
   user: ExamUser | null;
-  group: GroupInfo | null;
+  group: ParticipantGroupRef | null;
   score: number | null;
   total_points: number | null;
   scaled_score?: number | null;
@@ -52,8 +52,16 @@ export interface GroupInfo {
   id: number;
   name: string;
   description?: string;
+  avatar_url?: string | null;
   users_count?: number;
   users?: GroupParticipant[];
+}
+
+/** Minimal group reference on a participant row */
+export interface ParticipantGroupRef {
+  id: number;
+  name: string;
+  avatar_url?: string | null;
 }
 
 export interface ParticipantResult {
@@ -72,11 +80,13 @@ export interface ParticipantResult {
 
 export interface ParticipantManagementProps {
   examId: number;
+  examTitle?: string;
   participants: UserParticipant[];
   gradingMode?: string;
   groups?: GroupInfo[];
   registrationLink?: string | null;
   examLink?: string | null;
+  canManageParticipants?: boolean;
   onSuccess?: () => void;
 }
 

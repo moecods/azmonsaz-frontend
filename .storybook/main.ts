@@ -7,9 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
   stories: [
-    '../stories/**/*.mdx',
-    '../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)',
+    '../.storybook/docs/**/*.mdx',
     '../components/**/*.stories.@(js|jsx|mjs|ts|tsx)',
+    '../theme/**/*.stories.@(js|jsx|mjs|ts|tsx)',
   ],
   addons: [
     '@chromatic-com/storybook',
@@ -31,6 +31,15 @@ const config: StorybookConfig = {
         alias: {
           '@': path.resolve(__dirname, '../'),
         },
+      },
+      optimizeDeps: {
+        include: [
+          'react',
+          'react-dom',
+          'react/jsx-runtime',
+          '@mui/material',
+          '@mui/icons-material',
+        ],
       },
     });
   },

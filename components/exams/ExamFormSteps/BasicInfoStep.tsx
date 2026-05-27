@@ -1,16 +1,23 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { Alert, Stack } from "@mui/material";
-import { UseFormReturn } from "react-hook-form";
+import { Alert, Box, Stack, Typography } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import TitleIcon from "@mui/icons-material/Title";
+import ComputerIcon from "@mui/icons-material/Computer";
+import PrintIcon from "@mui/icons-material/Print";
+import { Controller, UseFormReturn } from "react-hook-form";
 import { ExamFormData } from "@/lib/validation";
 import { FormField, FormSelect } from "@/components/forms";
 import { useUsers } from "@/hooks/useUsers";
+import {
+  FormStepSection,
+  SelectableOptionCard,
+} from "@/components/exams/create/form-step-ui";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<ExamFormData>;
   showCreatorSelect?: boolean;
-  /** Default exam owner when admin creates an exam (typically the logged-in admin). */
   defaultOwnerUserId?: number | null;
 }
 
@@ -53,42 +60,76 @@ export const BasicInfoStep = React.memo(function BasicInfoStep({
   }, [showCreatorSelect, defaultOwnerUserId, getValues, setValue]);
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2}>
       {showCreatorSelect && (
-        <>
-          <Alert severity="info">
-            مسئول آزمون کسی است که مالک آزمون محسوب می‌شود (مدیریت سوالات، نمره‌دهی و
-            انتشار). می‌توانید خودتان یا یک معلم دیگر را انتخاب کنید؛ پیش‌فرض خود شماست.
+        <FormStepSection
+          title="مسئول آزمون"
+          description="مالک آزمون برای مدیریت سوالات، تصحیح و انتشار"
+          icon={<PersonIcon fontSize="small" />}
+        >
+          <Alert severity="info" sx={{ mb: 2 }}>
+            پیش‌فرض خود شماست؛ می‌توانید معلم دیگری را انتخاب کنید.
           </Alert>
           <FormSelect
             name="created_by"
             control={control}
-            label="مسئول آزمون"
+            label="انتخاب مسئول"
             required
             disabled={usersLoading || ownerOptions.length === 0}
             options={ownerOptions}
           />
-        </>
+        </FormStepSection>
       )}
 
-      <FormField
-        name="title"
-        control={control}
-        label="عنوان آزمون"
-        required
-        placeholder="مثال: آزمون ریاضی پایه دهم"
-      />
+      <FormStepSection
+        title="مشخصات آزمون"
+        description="عنوان و نحوه برگزاری (آنلاین یا آفلاین)"
+        icon={<TitleIcon fontSize="small" />}
+      >
+        <Stack spacing={2.5}>
+          <FormField
+            name="title"
+            control={control}
+            label="عنوان آزمون"
+            required
+            placeholder="مثال: آزمون ریاضی پایه دهم — نوبت اول"
+          />
 
-      <FormSelect
-        name="type"
-        control={control}
-        label="نوع آزمون"
-        required
-        options={[
-          { value: "online", label: "آنلاین" },
-          { value: "offline", label: "آفلاین" },
-        ]}
-      />
+          <Box>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+              نوع برگزاری
+            </Typography>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                    gap: 1.5,
+                  }}
+                >
+                  <SelectableOptionCard
+                    selected={field.value === "online"}
+                    onClick={() => field.onChange("online")}
+                    title="آنلاین"
+                    description="شرکت در آزمون از طریق پلتفرم و لینک"
+                    icon={<ComputerIcon />}
+                  />
+                  <SelectableOptionCard
+                    selected={field.value === "offline"}
+                    onClick={() => field.onChange("offline")}
+                    title="آفلاین / چاپی"
+                    description="برگه آزمون یا حضوری — بدون آزمون آنلاین"
+                    icon={<PrintIcon />}
+                  />
+                </Box>
+              )}
+            />
+          </Box>
+        </Stack>
+      </FormStepSection>
     </Stack>
   );
 });

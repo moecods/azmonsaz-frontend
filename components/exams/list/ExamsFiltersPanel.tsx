@@ -25,19 +25,19 @@ interface ExamsFiltersPanelProps {
   totalCount: number;
 }
 
-const STATUS_LABELS: Record<ExamsStatusFilter, string> = {
+export const STATUS_LABELS: Record<ExamsStatusFilter, string> = {
   all: "همه وضعیت‌ها",
   published: "منتشرشده",
   draft: "پیش‌نویس",
 };
 
-const TYPE_LABELS: Record<ExamsTypeFilter, string> = {
+export const TYPE_LABELS: Record<ExamsTypeFilter, string> = {
   all: "همه انواع",
   online: "آنلاین",
   offline: "آفلاین",
 };
 
-const SORT_LABELS: Record<ExamsSort, string> = {
+export const SORT_LABELS: Record<ExamsSort, string> = {
   newest: "جدیدترین",
   oldest: "قدیمی‌ترین",
   title: "عنوان (الفبا)",

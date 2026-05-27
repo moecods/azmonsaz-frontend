@@ -5,10 +5,30 @@ import { fileURLToPath } from 'url';
 import path from 'node:path';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
-const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
-// More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
+const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
+const storybookBrowser = {
+  enabled: true,
+  headless: true,
+  provider: playwright({}),
+  instances: [{ browser: 'chromium' }],
+};
+
+const storybookOptimizeDeps = {
+  include: [
+    'react',
+    'react-dom',
+    'react/jsx-runtime',
+    'react/jsx-dev-runtime',
+    '@mui/material',
+    '@mui/icons-material',
+    '@emotion/react',
+    '@emotion/styled',
+  ],
+};
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -18,7 +38,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'tests/', '**/*.d.ts', '**/*.config.*', '**/mock-data.ts', '**/dev-utils.ts']
+      exclude: ['node_modules/', 'tests/', '**/*.d.ts', '**/*.config.*', '**/mock-data.ts', '**/dev-utils.ts'],
     },
     projects: [
       {
@@ -32,38 +52,35 @@ export default defineConfig({
       {
         extends: true,
         plugins: [
+          // فقط یک بار storybookTest — نام پروژه Vitest از configDir ساخته می‌شود
           storybookTest({
             configDir: path.join(dirname, '.storybook'),
+            tags: {
+              include: ['test'],
+            },
           }),
         ],
         test: {
           name: 'storybook',
-          include: ['**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright({}),
-            instances: [{ browser: 'chromium' }],
-          },
+          browser: storybookBrowser,
           setupFiles: ['.storybook/vitest.setup.ts'],
         },
+        optimizeDeps: storybookOptimizeDeps,
       },
-    ]
+    ],
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './')
-    }
+      '@': resolve(__dirname, './'),
+    },
   },
   css: {
     modules: {
-      classNameStrategy: 'non-scoped'
+      classNameStrategy: 'non-scoped',
     },
-    // Disable PostCSS processing for tests to avoid conflicts
-    postcss: false
+    postcss: false,
   },
-  // Exclude PostCSS config from being processed
   optimizeDeps: {
-    exclude: ['@tailwindcss/postcss']
-  }
+    exclude: ['@tailwindcss/postcss'],
+  },
 });

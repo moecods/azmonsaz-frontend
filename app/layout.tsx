@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/theme/loadVazirmatnFont";
 import { CssBaseline } from "@mui/material";
 import ThemeRegistry from "../theme/ThemeRegistry";
 import { QueryProvider } from "./providers/QueryProvider";

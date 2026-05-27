@@ -266,7 +266,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **[STATUS_REPORT.md](./STATUS_REPORT.md)** - گزارش وضعیت پروژه و کارهای انجام شده
 - **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - راهنمای کامل تست‌نویسی
-- **[STORYBOOK_SETUP.md](./STORYBOOK_SETUP.md)** - راهنمای راه‌اندازی و استفاده از Storybook
+- **[docs/storybook/STORYBOOK_SETUP.md](./docs/storybook/STORYBOOK_SETUP.md)** - Storybook setup and usage guide
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - راهنمای رفع مشکلات رایج
 - **[MOCK_DATA_GUIDE.md](./MOCK_DATA_GUIDE.md)** - راهنمای استفاده از Mock Data
 - **[PACKAGES_TO_INSTALL.md](./PACKAGES_TO_INSTALL.md)** - لیست پکیج‌های مورد نیاز

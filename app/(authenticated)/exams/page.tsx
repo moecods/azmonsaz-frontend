@@ -75,6 +75,11 @@ function ExamsPageContent() {
     [rawExams, filters.sort]
   );
 
+  const handleFilterChange = (patch: Partial<ExamsListFilters>) => {
+    setFilters((prev) => ({ ...prev, ...patch }));
+    setPage(1);
+  };
+
   const pageStats = useMemo(() => computeExamsStats(exams), [exams]);
 
   useMainProgress(isFetching && !isLoading ? { active: true } : null);
@@ -87,6 +92,13 @@ function ExamsPageContent() {
           meta.total
         ).toLocaleString("fa-IR")} از ${meta.total.toLocaleString("fa-IR")}`
       : undefined;
+
+  const filterPanelProps = {
+    filters,
+    onChange: handleFilterChange,
+    resultCount: exams.length,
+    totalCount,
+  };
 
   if (error) {
     return (
@@ -157,17 +169,7 @@ function ExamsPageContent() {
             pageInfo={pageInfo}
           />
         }
-        filters={
-          <ExamsFiltersPanel
-            filters={filters}
-            onChange={(patch) => {
-              setFilters((prev) => ({ ...prev, ...patch }));
-              setPage(1);
-            }}
-            resultCount={exams.length}
-            totalCount={totalCount}
-          />
-        }
+        filters={<ExamsFiltersPanel {...filterPanelProps} />}
       >
         {isLoading ? (
           <Stack alignItems="center" py={8}>

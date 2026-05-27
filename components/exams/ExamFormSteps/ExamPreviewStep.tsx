@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Chip,
-  Divider,
   Paper,
   Stack,
   Typography,
@@ -151,15 +150,15 @@ export const ExamPreviewStep = React.memo(function ExamPreviewStep({
         </PreviewRow>
       </PreviewSection>
 
-      <PreviewSection title="تنظیمات و نمره‌دهی">
-        <PreviewRow label="روش نمره‌دهی">
+      <PreviewSection title="روش نمره‌دهی">
+        <PreviewRow label="نوع">
           <Typography variant="body1">
             {GRADING_MODE_LABELS[gradingMode] ?? gradingMode}
           </Typography>
         </PreviewRow>
 
         {gradingMode === "numeric_percent" && (
-          <PreviewRow label="نمره قبولی">
+          <PreviewRow label="حداقل درصد قبولی">
             <Typography variant="body1">
               {values.passing_score != null
                 ? `${values.passing_score}%`
@@ -194,37 +193,31 @@ export const ExamPreviewStep = React.memo(function ExamPreviewStep({
             </Stack>
           </PreviewRow>
         )}
-
-        <Divider sx={{ my: 1 }} />
-
-        <PreviewRow label="انتشار نتیجه">
-          <Typography variant="body2">{resultReleaseSummary}</Typography>
-        </PreviewRow>
-
-        <PreviewRow label="دستورالعمل آزمون">
-          {values.instructions?.trim() ? (
-            <RichLabel html={values.instructions} fontSize="0.95rem" />
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              —
-            </Typography>
-          )}
-        </PreviewRow>
-
-        <PreviewRow label="تگ‌ها">
-          {(values.tags ?? []).length > 0 ? (
-            <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {(values.tags ?? []).map((tag) => (
-                <Chip key={tag} label={tag} size="small" variant="outlined" />
-              ))}
-            </Stack>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              —
-            </Typography>
-          )}
-        </PreviewRow>
       </PreviewSection>
+
+      <PreviewSection title="دستورالعمل و توضیحات">
+        {values.instructions?.trim() ? (
+          <RichLabel html={values.instructions} fontSize="0.95rem" />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            دستورالعملی ثبت نشده است.
+          </Typography>
+        )}
+      </PreviewSection>
+
+      <PreviewSection title="انتشار نتیجه">
+        <Typography variant="body2">{resultReleaseSummary}</Typography>
+      </PreviewSection>
+
+      {(values.tags ?? []).length > 0 && (
+        <PreviewSection title="برچسب‌ها">
+          <Stack direction="row" flexWrap="wrap" gap={0.5}>
+            {(values.tags ?? []).map((tag) => (
+              <Chip key={tag} label={tag} size="small" variant="outlined" />
+            ))}
+          </Stack>
+        </PreviewSection>
+      )}
 
       <PreviewSection title="زمان‌بندی">
         <PreviewRow label="نوع زمان‌بندی">

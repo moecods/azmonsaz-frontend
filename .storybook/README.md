@@ -1,32 +1,26 @@
 # Storybook Configuration
 
-## Files
+- **main.ts** — stories + MDX under `docs/`
+- **preview.tsx** — RTL, Vazirmatn, theme toolbar, a11y=`error` in CI
+- **StorybookDecorator.tsx** — ThemeRegistry + `colorMode` sync
 
-- **main.ts**: Main Storybook configuration
-  - Stories paths: `stories/` and `components/**/*.stories.tsx`
-  - Framework: `@storybook/nextjs-vite`
-  - Addons: Essentials, A11y, Vitest, Docs, Interactions, Links, Viewport
-  - Path aliases: `@/` configured for imports
-
-- **preview.tsx**: Preview configuration
-  - Decorators: ThemeRegistry and QueryClientProvider
-  - Parameters: Controls, Backgrounds, Layout, Docs, A11y
-
-## Stories Location
-
-Stories can be in two locations:
-1. `stories/` - Default Storybook examples
-2. `components/**/*.stories.tsx` - Component stories
-
-## Running Storybook
+## Run
 
 ```bash
 npm run storybook
-```
-
-## Building Storybook
-
-```bash
 npm run build-storybook
+npm run test:storybook          # tag test
+npm run test:storybook:a11y     # tag autodocs
 ```
 
+## CI
+
+`.github/workflows/storybook.yml` — build + artifact, interaction, a11y, Chromatic (optional). **No Pages deploy.**
+
+## Docs
+
+`docs/storybook/STORYBOOK_SETUP.md` — team guide and PR checklist.
+
+`docs/storybook/BACKLOG.md` — phase 8.
+
+`docs/storybook/COVERAGE_BACKLOG.md` — coverage improvement backlog.

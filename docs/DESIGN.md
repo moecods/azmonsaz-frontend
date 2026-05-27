@@ -10,9 +10,12 @@
 3. theme/page-sx.ts         ← الگوهای صفحه (برند، auth، section)
 4. docs/UI_STANDARDS.md     ← جزئیات UX، a11y، الگوهای کامپوننت
 5. theme/design-tokens.json ← export اختیاری برای Figma
+6. Storybook (`components/**/*.stories.tsx`) ← نمونه‌های فارسی/RTL برای کامپوننت‌های reusable
 ```
 
 اگر سندی با کد conflict داشت، **کد در `theme/` اولویت دارد** — سند را به‌روز کنید.
+
+Storybook: `npm run storybook` — rules in `AGENTS.md` and backlog in `docs/storybook/BACKLOG.md`.
 
 ## قوانین اجباری
 

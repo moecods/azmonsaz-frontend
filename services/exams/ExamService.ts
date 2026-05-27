@@ -223,6 +223,13 @@ export class ExamService {
     return this.apiClient.get<ExamWithParticipants>(`/exams/${id}/manage`);
   }
 
+  async removeExamParticipant(
+    examId: number,
+    participantId: number
+  ): Promise<ApiResponse<null>> {
+    return this.apiClient.delete<null>(`/exams/${examId}/participants/${participantId}`);
+  }
+
   /**
    * Get available exams for logged-in user (exams they are registered for)
    */
@@ -352,7 +359,10 @@ export class ExamService {
    * Backend route: GET /users/search
    */
   async searchUsers(_examId: number, params: SearchUsersParams): Promise<ApiResponse<SearchUsersResponse[]>> {
-    return this.apiClient.get<SearchUsersResponse[]>('/users/search', { params });
+    return this.apiClient.get<SearchUsersResponse[]>('/users/search', {
+      query: params.query,
+      ...(params.type ? { type: params.type } : {}),
+    });
   }
 
   /**
@@ -437,6 +447,10 @@ export interface ExamCapabilities {
   can_manage_participants: boolean;
   can_publish: boolean;
   can_delete: boolean;
+  can_activate: boolean;
+  can_deactivate: boolean;
+  can_release_results: boolean;
+  can_view_reports: boolean;
 }
 
 export interface ExamListItem {
@@ -532,6 +546,7 @@ export interface ExamWithParticipants {
     id: number;
     name: string;
     description?: string;
+    avatar_url?: string | null;
     users_count?: number;
     users?: Array<{
       id: number;

@@ -1,18 +1,31 @@
 import type { Preview } from '@storybook/nextjs-vite';
-import ThemeRegistry from '@/theme/ThemeRegistry';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import '@/theme/loadVazirmatnFont';
+import 'react-multi-date-picker/styles/layouts/mobile.css';
+import 'react-multi-date-picker/styles/colors/purple.css';
 import React from 'react';
+import { StorybookDecorator } from './StorybookDecorator';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const isCi = Boolean(process.env.CI);
 
 const preview: Preview = {
+  globalTypes: {
+    colorMode: {
+      name: 'تم',
+      description: 'حالت روشن یا تاریک (مثل اپ)',
+      defaultValue: 'light',
+      toolbar: {
+        icon: 'circlehollow',
+        items: [
+          { value: 'light', title: 'روشن', icon: 'sun' },
+          { value: 'dark', title: 'تاریک', icon: 'moon' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
+  initialGlobals: {
+    colorMode: 'light',
+  },
   parameters: {
     controls: {
       matchers: {
@@ -20,40 +33,22 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
-    backgrounds: {
-      default: 'light',
-      values: [
-        {
-          name: 'light',
-          value: '#ffffff',
-        },
-        {
-          name: 'dark',
-          value: '#0a0a0a',
-        },
-      ],
-    },
-    layout: 'centered',
+    layout: 'padded',
     docs: {
       toc: true,
     },
     a11y: {
-      // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
-      // 'off' - skip a11y checks entirely
-      test: 'todo',
+      // در CI نقض جدی accessibility باعث fail تست‌ها می‌شود
+      test: isCi ? 'error' : 'todo',
     },
   },
   decorators: [
-    (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <ThemeRegistry>
-          <Story />
-        </ThemeRegistry>
-      </QueryClientProvider>
+    (Story, { globals }) => (
+      <StorybookDecorator colorMode={globals.colorMode === 'dark' ? 'dark' : 'light'}>
+        <Story />
+      </StorybookDecorator>
     ),
   ],
 };
 
 export default preview;
-

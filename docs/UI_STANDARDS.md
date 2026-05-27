@@ -278,3 +278,24 @@ components/
 ### Color
 - Do not rely on color alone for correct/incorrect — use borders, chips, or icons (see `QuestionView` result mode).
 
+## 8. Exam manage & reports
+
+### Page shell
+- **One compact hero** on `/exams/{id}` for all tabs (`ExamManageHero`); no second hero or stat grid inside tab content.
+- **Five tabs**: overview, participants, reports (if `capabilities.can_view_reports`), notifications, settings. Sync `?tab=` with `useSearchParams` + `useEffect` for browser back/forward.
+- Use `getExamCapabilities(exam)` from `lib/exam-capabilities.ts`; do not show publish/grade/participants actions when the capability is false.
+
+### Lifecycle actions
+- Publish, unpublish, activate, deactivate, release results → **`ExamManageConfirmDialogs`** (no `window.confirm`).
+- Publish checklist → `ExamManageLifecycleCard` on the overview tab.
+
+### Participants tab
+- List-first: `ParticipantListSection` + add flow in `ParticipantAddDrawer`.
+- Remove single participant → `RemoveParticipantDialog` + `DELETE` API.
+- Export → `downloadParticipantsCsv` (UTF-8 BOM for Excel).
+
+### Reports tab
+- `ExamReportsTab`: summary bar, live table when `is_live`, question analytics always.
+- Polling fallback: 30s on summary/live while exam is live; websocket via `participant.progress.changed`.
+- Reuse `SectionCard`, theme tokens; stories under `آزمون/گزارش` and `آزمون/مدیریت`.
+

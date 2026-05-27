@@ -2,73 +2,50 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Table, TableColumn } from './Table';
 import { Button, Chip } from '@mui/material';
 
-interface User {
+interface QuestionRow {
   id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive';
+  title: string;
+  type: string;
+  status: 'active' | 'draft';
 }
 
 const meta: Meta<typeof Table> = {
-  title: 'UI/Table',
+  title: 'رابط کاربری/جدول',
   component: Table,
   parameters: {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Table component with pagination, loading states, and customizable columns.',
+        component: 'جدول با صفحه‌بندی، حالت بارگذاری و ستون‌های سفارشی. در بانک سوالات استفاده می‌شود.',
       },
     },
   },
   tags: ['autodocs'],
-  argTypes: {
-    loading: {
-      control: 'boolean',
-      description: 'Loading state',
-    },
-    pagination: {
-      control: 'boolean',
-      description: 'Show pagination',
-    },
-    size: {
-      control: 'select',
-      options: ['small', 'medium'],
-      description: 'Table size',
-    },
-    stickyHeader: {
-      control: 'boolean',
-      description: 'Sticky header',
-    },
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof Table<User>>;
+type Story = StoryObj<typeof Table<QuestionRow>>;
 
-const mockUsers: User[] = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'active' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'User', status: 'active' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'User', status: 'inactive' },
-  { id: 4, name: 'Alice Brown', email: 'alice@example.com', role: 'Moderator', status: 'active' },
-  { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', role: 'User', status: 'inactive' },
+const mockRows: QuestionRow[] = [
+  { id: 1, title: 'معادله درجه دوم', type: 'چندگزینه‌ای', status: 'active' },
+  { id: 2, title: 'تعریف مشتق', type: 'تشریحی', status: 'active' },
+  { id: 3, title: 'سوال نمونه', type: 'صحیح/غلط', status: 'draft' },
 ];
 
-const columns: TableColumn<User>[] = [
-  { id: 'id', label: 'ID', width: 80 },
-  { id: 'name', label: 'Name' },
-  { id: 'email', label: 'Email' },
+const columns: TableColumn<QuestionRow>[] = [
+  { id: 'id', label: 'شناسه', width: 72 },
+  { id: 'title', label: 'عنوان سوال' },
   {
-    id: 'role',
-    label: 'Role',
-    render: (value) => <Chip label={value} size="small" color="primary" />,
+    id: 'type',
+    label: 'نوع',
+    render: (value) => <Chip label={String(value)} size="small" variant="outlined" />,
   },
   {
     id: 'status',
-    label: 'Status',
+    label: 'وضعیت',
     render: (value) => (
       <Chip
-        label={value}
+        label={value === 'active' ? 'فعال' : 'پیش‌نویس'}
         size="small"
         color={value === 'active' ? 'success' : 'default'}
       />
@@ -76,11 +53,11 @@ const columns: TableColumn<User>[] = [
   },
   {
     id: 'actions',
-    label: 'Actions',
-    align: 'right',
+    label: 'عملیات',
+    align: 'left',
     render: () => (
       <Button size="small" variant="outlined">
-        Edit
+        ویرایش
       </Button>
     ),
   },
@@ -89,27 +66,18 @@ const columns: TableColumn<User>[] = [
 export const Default: Story = {
   args: {
     columns,
-    data: mockUsers,
+    data: mockRows,
   },
 };
 
 export const WithPagination: Story = {
   args: {
     columns,
-    data: mockUsers,
+    data: mockRows,
     pagination: true,
     page: 0,
     rowsPerPage: 3,
-    totalRows: 50,
-    onPageChange: (page) => console.log('Page changed:', page),
-    onRowsPerPageChange: (rowsPerPage) => console.log('Rows per page changed:', rowsPerPage),
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table with pagination controls.',
-      },
-    },
+    totalRows: 24,
   },
 };
 
@@ -119,95 +87,12 @@ export const Loading: Story = {
     data: [],
     loading: true,
   },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table in loading state with spinner.',
-      },
-    },
-  },
 };
 
 export const Empty: Story = {
   args: {
     columns,
     data: [],
-    emptyMessage: 'No users found',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table with empty state message.',
-      },
-    },
+    emptyMessage: 'سوالی یافت نشد',
   },
 };
-
-export const Small: Story = {
-  args: {
-    columns,
-    data: mockUsers,
-    size: 'small',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table with small size (more compact).',
-      },
-    },
-  },
-};
-
-export const StickyHeader: Story = {
-  args: {
-    columns,
-    data: Array.from({ length: 20 }).map((_, i) => ({
-      id: i + 1,
-      name: `User ${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      role: 'User',
-      status: i % 2 === 0 ? 'active' : 'inactive',
-    })),
-    stickyHeader: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table with sticky header that stays visible when scrolling.',
-      },
-    },
-  },
-};
-
-export const CustomRender: Story = {
-  args: {
-    columns: [
-      { id: 'name', label: 'Name' },
-      { id: 'email', label: 'Email' },
-      {
-        id: 'actions',
-        label: 'Actions',
-        align: 'right',
-        render: (_, row) => (
-          <>
-            <Button size="small" variant="outlined" sx={{ mr: 1 }}>
-              Edit
-            </Button>
-            <Button size="small" variant="outlined" color="error">
-              Delete
-            </Button>
-          </>
-        ),
-      },
-    ],
-    data: mockUsers,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Table with custom render functions for cells.',
-      },
-    },
-  },
-};
-

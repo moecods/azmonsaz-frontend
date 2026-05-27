@@ -48,7 +48,7 @@ export function ExamsListToolbar({
         </ToggleButton>
       </ToggleButtonGroup>
 
-      <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
+      <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end" flexWrap="wrap">
         {showPaginationHint && pageInfo && (
           <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", md: "block" } }}>
             {pageInfo}

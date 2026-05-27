@@ -1,22 +1,43 @@
 "use client";
 
 import React, { useMemo, useEffect } from "react";
-import {
-  Stack,
-  Typography,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-} from "@mui/material";
+import { Stack, Alert, Box } from "@mui/material";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import TimerIcon from "@mui/icons-material/Timer";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import DateRangeIcon from "@mui/icons-material/DateRange";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { Controller, UseFormReturn, useWatch } from "react-hook-form";
 import { ExamFormData } from "@/lib/validation";
 import { PersianDatePicker } from "@/components/exams/PersianDatePicker";
 import { PersianTimePicker } from "@/components/exams/PersianTimePicker";
+import { PersianDateTimePicker } from "@/components/exams/PersianDateTimePicker";
 import { FormNumberField } from "@/components/forms";
-import { EXAM_SCHEDULE_LABELS } from "@/lib/exam-form-labels";
+import {
+  EXAM_SCHEDULE_LABELS,
+  EXAM_SCHEDULE_DESCRIPTIONS,
+} from "@/lib/exam-form-labels";
+import {
+  FormStepSection,
+  SelectableOptionCard,
+} from "@/components/exams/create/form-step-ui";
+
+const SCHEDULE_TYPES = [
+  "none",
+  "fixed_window",
+  "duration_only",
+  "registration_deadline",
+  "flexible_until",
+] as const satisfies readonly NonNullable<ExamFormData["schedule_type"]>[];
+
+const SCHEDULE_ICONS = {
+  none: <EventBusyIcon />,
+  fixed_window: <ScheduleIcon />,
+  duration_only: <TimerIcon />,
+  registration_deadline: <HowToRegIcon />,
+  flexible_until: <DateRangeIcon />,
+} as const;
 
 interface SchedulingStepProps {
   form: UseFormReturn<ExamFormData>;
@@ -57,148 +78,198 @@ export const SchedulingStep = React.memo(function SchedulingStep({
   }, [calculatedDuration, durationMinutes, setValue, scheduleType]);
 
   return (
-    <Stack spacing={3}>
-      <Controller
-        name="schedule_type"
-        control={control}
-        render={({ field }) => (
-          <FormControl fullWidth>
-            <InputLabel>نوع زمان‌بندی</InputLabel>
-            <Select {...field} label="نوع زمان‌بندی" value={field.value ?? "fixed_window"}>
-              {Object.entries(EXAM_SCHEDULE_LABELS).map(([value, label]) => (
-                <MenuItem key={value} value={value}>
-                  {label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
-      />
+    <Stack spacing={2}>
+      <FormStepSection
+        title="نوع زمان‌بندی"
+        description="نحوه محدودیت زمانی برای شرکت در آزمون"
+        icon={<ScheduleIcon fontSize="small" />}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+            gap: 1.5,
+          }}
+        >
+          {SCHEDULE_TYPES.map((type) => (
+            <Controller
+              key={type}
+              name="schedule_type"
+              control={control}
+              render={({ field }) => (
+                <SelectableOptionCard
+                  selected={(field.value ?? "fixed_window") === type}
+                  onClick={() => field.onChange(type)}
+                  title={EXAM_SCHEDULE_LABELS[type]}
+                  description={EXAM_SCHEDULE_DESCRIPTIONS[type]}
+                  icon={SCHEDULE_ICONS[type]}
+                />
+              )}
+            />
+          ))}
+        </Box>
+      </FormStepSection>
 
       {scheduleType === "none" && (
-        <Alert severity="info">آزمون بدون محدودیت زمانی آنلاین ذخیره می‌شود.</Alert>
+        <Alert severity="info" icon={<EventBusyIcon />}>
+          این آزمون بدون بازه زمانی آنلاین ذخیره می‌شود. برای چاپ یا استفاده آفلاین مناسب است.
+        </Alert>
       )}
 
       {scheduleType === "duration_only" && (
-        <FormNumberField
-          name="duration_minutes"
-          control={control}
-          label="مدت آزمون (دقیقه)"
-          min={1}
-          helperText="زمان شروع هنگام ورود شرکت‌کننده به آزمون ثبت می‌شود."
-        />
+        <FormStepSection
+          title="مدت پاسخ‌دهی"
+          description="از لحظه ورود هر شرکت‌کننده به آزمون شمارش می‌شود"
+          icon={<TimerIcon fontSize="small" />}
+        >
+          <FormNumberField
+            name="duration_minutes"
+            control={control}
+            label="مدت آزمون (دقیقه)"
+            min={1}
+            helperText="مثلاً ۹۰ دقیقه برای کل آزمون از زمان ورود."
+          />
+        </FormStepSection>
       )}
 
       {(scheduleType === "fixed_window" || scheduleType === "registration_deadline") && (
-        <Stack spacing={3}>
-          <Controller
-            name="exam_date"
-            control={control}
-            render={({ field }) => (
-              <PersianDatePicker
-                label="تاریخ برگزاری"
-                value={field.value ?? null}
-                onChange={field.onChange}
-                error={!!errors.exam_date}
-                errorMessage={errors.exam_date?.message}
+        <FormStepSection
+          title="بازه برگزاری"
+          description="تاریخ و ساعتی که همه شرکت‌کنندگان مشترک دارند"
+          icon={<AccessTimeIcon fontSize="small" />}
+        >
+          <Stack spacing={2.5}>
+            <Controller
+              name="exam_date"
+              control={control}
+              render={({ field }) => (
+                <PersianDatePicker
+                  label="تاریخ برگزاری"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  error={!!errors.exam_date}
+                  errorMessage={errors.exam_date?.message}
+                />
+              )}
+            />
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                gap: 2,
+              }}
+            >
+              <Controller
+                name="start_time"
+                control={control}
+                render={({ field }) => (
+                  <PersianTimePicker
+                    label="ساعت شروع"
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    error={!!errors.start_time}
+                    errorMessage={errors.start_time?.message}
+                  />
+                )}
               />
-            )}
-          />
-          <Stack direction="row" spacing={2}>
-            <Controller
-              name="start_time"
+              <Controller
+                name="end_time"
+                control={control}
+                render={({ field }) => (
+                  <PersianTimePicker
+                    label="ساعت پایان"
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    error={!!errors.end_time}
+                    errorMessage={errors.end_time?.message}
+                  />
+                )}
+              />
+            </Box>
+            <FormNumberField
+              name="duration_minutes"
               control={control}
-              render={({ field }) => (
-                <PersianTimePicker
-                  label="ساعت شروع"
-                  value={field.value ?? null}
-                  onChange={field.onChange}
-                  error={!!errors.start_time}
-                  errorMessage={errors.start_time?.message}
-                />
-              )}
+              label="حداکثر مدت پاسخ (دقیقه)"
+              min={1}
+              helperText={
+                calculatedDuration != null
+                  ? `پیشنهاد از بازه: ${calculatedDuration.toLocaleString("fa-IR")} دقیقه`
+                  : "حداکثر زمانی که هر نفر می‌تواند در آزمون بماند"
+              }
             />
-            <Controller
-              name="end_time"
-              control={control}
-              render={({ field }) => (
-                <PersianTimePicker
-                  label="ساعت پایان"
-                  value={field.value ?? null}
-                  onChange={field.onChange}
-                  error={!!errors.end_time}
-                  errorMessage={errors.end_time?.message}
-                />
+            {calculatedDuration !== null &&
+              durationMinutes != null &&
+              durationMinutes > calculatedDuration && (
+                <Alert severity="warning">
+                  مدت پاسخ ({durationMinutes.toLocaleString("fa-IR")} دقیقه) بیشتر از
+                  بازه شروع تا پایان ({calculatedDuration.toLocaleString("fa-IR")} دقیقه) است.
+                </Alert>
               )}
-            />
           </Stack>
-          <FormNumberField
-            name="duration_minutes"
-            control={control}
-            label="مدت زمان آزمون (دقیقه)"
-            min={1}
-          />
-        </Stack>
+        </FormStepSection>
       )}
 
       {scheduleType === "registration_deadline" && (
-        <Controller
-          name="register_until"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              value={field.value ?? ""}
-              label="مهلت ثبت‌نام (ISO datetime)"
-              fullWidth
-              helperText="مثال: 2026-05-25T23:59:00"
-            />
-          )}
-        />
+        <FormStepSection
+          title="مهلت ثبت‌نام"
+          description="آخرین زمانی که فرد می‌تواند در آزمون ثبت‌نام کند"
+          icon={<HowToRegIcon fontSize="small" />}
+        >
+          <Controller
+            name="register_until"
+            control={control}
+            render={({ field }) => (
+              <PersianDateTimePicker
+                label="مهلت ثبت‌نام"
+                value={field.value ?? null}
+                onChange={field.onChange}
+                error={!!errors.register_until}
+                errorMessage={errors.register_until?.message}
+              />
+            )}
+          />
+        </FormStepSection>
       )}
 
       {scheduleType === "flexible_until" && (
-        <Stack spacing={2}>
-          <Controller
-            name="available_from"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                value={field.value ?? ""}
-                label="در دسترس از"
-                fullWidth
-              />
-            )}
-          />
-          <Controller
-            name="due_by"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                value={field.value ?? ""}
-                label="مهلت انجام تا"
-                fullWidth
-              />
-            )}
-          />
-          <FormNumberField
-            name="duration_minutes"
-            control={control}
-            label="مدت هر تلاش (دقیقه)"
-            min={1}
-          />
-        </Stack>
+        <FormStepSection
+          title="بازه انعطاف‌پذیر"
+          description="از چه زمانی آزمون باز است و تا چه تاریخی باید انجام شود"
+          icon={<DateRangeIcon fontSize="small" />}
+        >
+          <Stack spacing={2.5}>
+            <Controller
+              name="available_from"
+              control={control}
+              render={({ field }) => (
+                <PersianDateTimePicker
+                  label="در دسترس از"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <Controller
+              name="due_by"
+              control={control}
+              render={({ field }) => (
+                <PersianDateTimePicker
+                  label="مهلت انجام تا"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <FormNumberField
+              name="duration_minutes"
+              control={control}
+              label="مدت هر بار ورود (دقیقه)"
+              min={1}
+              helperText="حداکثر زمان هر session پاسخ‌دهی پس از ورود."
+            />
+          </Stack>
+        </FormStepSection>
       )}
-
-      {calculatedDuration !== null &&
-        durationMinutes != null &&
-        durationMinutes > calculatedDuration && (
-          <Typography variant="body2" color="warning.main">
-            مدت ({durationMinutes} دقیقه) بیشتر از بازه شروع–پایان ({calculatedDuration} دقیقه) است.
-          </Typography>
-        )}
     </Stack>
   );
 });

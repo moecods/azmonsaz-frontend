@@ -6,6 +6,7 @@ export const REALTIME_EVENTS = {
   examResultsReleased: '.exam.results.released',
   participantGradingUpdated: '.participant.grading.updated',
   participantListChanged: '.participant.list.changed',
+  participantProgressChanged: '.participant.progress.changed',
   groupMembershipChanged: '.group.membership.changed',
   userPermissionsChanged: '.user.permissions.changed',
 } as const;

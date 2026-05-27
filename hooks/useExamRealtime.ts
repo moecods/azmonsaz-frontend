@@ -3,7 +3,10 @@
 import { useEffect } from 'react';
 import { useRealtimeContext } from '@/providers/RealtimeProvider';
 
-export function useExamRealtime(examId: number | null, options?: { grading?: boolean }) {
+export function useExamRealtime(
+  examId: number | null,
+  options?: { grading?: boolean; reports?: boolean }
+) {
   const {
     subscribeExamChannel,
     unsubscribeExamChannel,

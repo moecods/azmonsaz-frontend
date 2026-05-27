@@ -1,38 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Stack,
-  Typography,
-  Tabs,
-  Tab,
-  TextField,
-  Chip,
-  Alert,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
-  Checkbox,
-  IconButton,
-  Divider,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { useMemo, useState } from "react";
+import { Stack } from "@mui/material";
 import {
   useSearchUsers,
   useAddParticipantsByPhone,
@@ -40,146 +9,119 @@ import {
   useAddSelectedParticipants,
   useAddGroupsToExam,
   useRemoveGroupFromExam,
-} from '@/hooks/useExams';
-import { useGroups, useCreateGroup } from '@/hooks/useGroups';
-import { useDebounce } from '@/hooks/useDebounce';
-import PhoneIcon from '@mui/icons-material/Phone';
-import BadgeIcon from '@mui/icons-material/Badge';
-import SearchIcon from '@mui/icons-material/Search';
-import GroupIcon from '@mui/icons-material/Group';
-import AddIcon from '@mui/icons-material/Add';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import PeopleIcon from '@mui/icons-material/People';
-import LinkIcon from '@mui/icons-material/Link';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import InputAdornment from '@mui/material/InputAdornment';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Tooltip from '@mui/material/Tooltip';
-import ViewListIcon from '@mui/icons-material/ViewList';
-import ViewModuleIcon from '@mui/icons-material/ViewModule';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { getErrorMessage } from '@/lib/error-handler';
-
+} from "@/hooks/useExams";
+import { useGroups, useCreateGroup } from "@/hooks/useGroups";
+import { useDebounce } from "@/hooks/useDebounce";
+import { getErrorMessage } from "@/lib/error-handler";
+import { Toast } from "@/components/feedback/Alert/Alert";
+import type { ParticipantManagementProps } from "@/components/exams/ParticipantManagement.types";
+import type { ParticipantAddMethod } from "@/components/exams/participants/participant-ui-shared";
+import type { GroupPickItem } from "@/components/exams/participants/GroupPickCard";
+import { ParticipantAddDrawer } from "@/components/exams/participants/ParticipantAddDrawer";
+import { ParticipantListSection } from "@/components/exams/participants/ParticipantListSection";
+import { CreateGroupDialog } from "@/components/exams/participants/CreateGroupDialog";
+import { RemoveGroupDialog } from "@/components/exams/participants/RemoveGroupDialog";
+import { RemoveParticipantDialog } from "@/components/exams/participants/RemoveParticipantDialog";
 import {
-  TabPanelProps,
-  ParticipantManagementProps,
-  ExamUser,
-  UserParticipant,
-} from './ParticipantManagement.types';
+  useRemoveExamParticipant,
+} from "@/hooks/useExams";
+import { downloadParticipantsCsv } from "@/lib/export-participants-csv";
+import type { UserParticipant } from "@/components/exams/ParticipantManagement.types";
 
-function ParticipantNameCell({ user }: { user: ExamUser | null | undefined }) {
-  const name = user?.name || '-';
-  const email = user?.email;
-  const nationalId = user?.national_id;
-  if (!email && !nationalId) {
-    return <>{name}</>;
+function mergeGroupCatalog(
+  examGroups: ParticipantManagementProps["groups"],
+  allGroups: GroupPickItem[]
+): GroupPickItem[] {
+  const byId = new Map<number, GroupPickItem>();
+  for (const g of allGroups) {
+    byId.set(g.id, g);
   }
-  return (
-    <Tooltip
-      title={
-        <Stack spacing={0.5}>
-          {email ? <Typography variant="caption">ایمیل: {email}</Typography> : null}
-          {nationalId ? <Typography variant="caption">کد ملی: {nationalId}</Typography> : null}
-        </Stack>
-      }
-    >
-      <Typography
-        component="span"
-        sx={{ cursor: 'help', borderBottom: '1px dotted', borderColor: 'text.disabled' }}
-      >
-        {name}
-      </Typography>
-    </Tooltip>
-  );
-}
-
-function scoreHeaderCells(isDescriptive: boolean) {
-  if (isDescriptive) {
-    return (
-      <>
-        <TableCell align="center">نمره عددی</TableCell>
-        <TableCell align="center">نمره توصیفی</TableCell>
-      </>
-    );
+  for (const g of examGroups ?? []) {
+    const existing = byId.get(g.id);
+    byId.set(g.id, {
+      id: g.id,
+      name: g.name,
+      description: g.description ?? existing?.description,
+      users_count: g.users_count ?? existing?.users_count,
+      avatar_url: g.avatar_url ?? existing?.avatar_url,
+    });
   }
-  return <TableCell align="center">نمره</TableCell>;
-}
-
-function scoreBodyCells(participant: UserParticipant, isDescriptive: boolean) {
-  if (isDescriptive) {
-    const numeric =
-      participant.scaled_score != null
-        ? String(participant.scaled_score)
-        : participant.score !== null && participant.total_points !== null
-          ? `${participant.score} / ${participant.total_points}`
-          : '-';
-    return (
-      <>
-        <TableCell align="center">{numeric}</TableCell>
-        <TableCell align="center">{participant.outcome_label || '-'}</TableCell>
-      </>
-    );
-  }
-  return (
-    <TableCell align="center">
-      {participant.score !== null && participant.total_points !== null
-        ? `${participant.score} / ${participant.total_points}`
-        : '-'}
-    </TableCell>
-  );
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  );
+  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, "fa"));
 }
 
 export default function ParticipantManagement({
   examId,
+  examTitle = "exam",
   participants,
-  gradingMode = 'numeric_percent',
+  gradingMode = "numeric_percent",
   groups = [],
   registrationLink,
   examLink,
+  canManageParticipants = false,
   onSuccess,
 }: ParticipantManagementProps) {
-  const isDescriptiveGrading = gradingMode === 'descriptive';
-  const [tabValue, setTabValue] = useState(0);
-  const [viewMode, setViewMode] = useState<'all' | 'grouped'>('all');
-  const [phoneNumbers, setPhoneNumbers] = useState('');
-  const [nationalIds, setNationalIds] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const isDescriptiveGrading = gradingMode === "descriptive";
+  const [addOpen, setAddOpen] = useState(participants.length === 0);
+  const [addMethod, setAddMethod] = useState<ParticipantAddMethod>("groups");
+  const [phoneNumbers, setPhoneNumbers] = useState("");
+  const [nationalIds, setNationalIds] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupDescription, setNewGroupDescription] = useState('');
-  const [newGroupUserIds, setNewGroupUserIds] = useState<number[]>([]);
-  const [alert, setAlert] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDescription, setNewGroupDescription] = useState("");
+  const [removeGroupTarget, setRemoveGroupTarget] = useState<GroupPickItem | null>(null);
+  const [removeParticipantTarget, setRemoveParticipantTarget] =
+    useState<UserParticipant | null>(null);
+  const removeParticipantMutation = useRemoveExamParticipant();
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { data: searchResults, isLoading: isSearching } = useSearchUsers(
     examId,
-    { query: debouncedSearchQuery, type: 'both' },
+    { query: debouncedSearchQuery, type: "both" },
     !!debouncedSearchQuery && debouncedSearchQuery.length >= 3
   );
 
   const { data: groupsData, refetch: refetchGroups } = useGroups();
-  const availableGroups = groupsData || [];
+  const availableGroups = useMemo(
+    () =>
+      mergeGroupCatalog(
+        groups,
+        (groupsData ?? []).map((g) => ({
+          id: g.id,
+          name: g.name,
+          description: g.description,
+          users_count: g.users_count,
+          avatar_url: g.avatar_url,
+        }))
+      ),
+    [groups, groupsData]
+  );
+
+  const attachedGroups = useMemo(
+    () => availableGroups.filter((g) => groups.some((eg) => eg.id === g.id)),
+    [availableGroups, groups]
+  );
+
+  const groupAvatarById = useMemo(() => {
+    const map = new Map<number, string | null | undefined>();
+    for (const g of availableGroups) {
+      map.set(g.id, g.avatar_url);
+    }
+    return map;
+  }, [availableGroups]);
+
+  const examGroupIds = useMemo(() => new Set(groups.map((g) => g.id)), [groups]);
+  const existingParticipantIds = useMemo(
+    () => new Set(participants.map((p) => p.user?.id).filter(Boolean)),
+    [participants]
+  );
 
   const addByPhoneMutation = useAddParticipantsByPhone();
   const addByNationalIdMutation = useAddParticipantsByNationalId();
@@ -188,916 +130,286 @@ export default function ParticipantManagement({
   const removeGroupMutation = useRemoveGroupFromExam();
   const createGroupMutation = useCreateGroup();
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-    setPhoneNumbers('');
-    setNationalIds('');
-    setSearchQuery('');
+  const showToast = (message: string, severity: "success" | "error") => {
+    setToast({ open: true, message, severity });
+  };
+
+  const openAdd = () => setAddOpen(true);
+
+  const handleMethodChange = (method: ParticipantAddMethod) => {
+    setAddMethod(method);
+    setPhoneNumbers("");
+    setNationalIds("");
+    setSearchQuery("");
     setSelectedUsers([]);
     setSelectedGroups([]);
   };
 
+  const handleAddSuccess = () => {
+    onSuccess?.();
+  };
+
   const handleAddByPhone = async () => {
     const phoneList = phoneNumbers
-      .split('\n')
+      .split("\n")
       .map((p) => p.trim())
-      .filter((p) => p.length > 0);
-
+      .filter(Boolean);
     if (phoneList.length === 0) {
-      setAlert({
-        open: true,
-        message: 'لطفاً حداقل یک شماره تلفن وارد کنید',
-        severity: 'error',
-      });
+      showToast("حداقل یک شماره موبایل وارد کنید", "error");
       return;
     }
-
     try {
       const result = await addByPhoneMutation.mutateAsync({
         examId,
         data: { phone_numbers: phoneList },
       });
-      setAlert({
-        open: true,
-        message: `${result.added} نفر با موفقیت اضافه شدند. ${result.skipped} نفر قبلاً اضافه شده بودند.`,
-        severity: 'success',
-      });
-      setPhoneNumbers('');
-      onSuccess?.();
+      showToast(
+        `${result.added} نفر اضافه شد · ${result.skipped} نفر از قبل بودند`,
+        "success"
+      );
+      setPhoneNumbers("");
+      handleAddSuccess();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در افزودن"), "error");
     }
   };
 
   const handleAddByNationalId = async () => {
     const idList = nationalIds
-      .split('\n')
+      .split("\n")
       .map((id) => id.trim())
-      .filter((id) => id.length > 0);
-
+      .filter(Boolean);
     if (idList.length === 0) {
-      setAlert({
-        open: true,
-        message: 'لطفاً حداقل یک کد ملی وارد کنید',
-        severity: 'error',
-      });
+      showToast("حداقل یک کد ملی وارد کنید", "error");
       return;
     }
-
     try {
       const result = await addByNationalIdMutation.mutateAsync({
         examId,
         data: { national_ids: idList },
       });
-      setAlert({
-        open: true,
-        message: `${result.added} نفر با موفقیت اضافه شدند. ${result.skipped} نفر قبلاً اضافه شده بودند.`,
-        severity: 'success',
-      });
-      setNationalIds('');
-      onSuccess?.();
+      showToast(
+        `${result.added} نفر اضافه شد · ${result.skipped} نفر از قبل بودند`,
+        "success"
+      );
+      setNationalIds("");
+      handleAddSuccess();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در افزودن"), "error");
     }
-  };
-
-  const handleToggleUser = (userId: number) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
   };
 
   const handleAddSelected = async () => {
     if (selectedUsers.length === 0) {
-      setAlert({
-        open: true,
-        message: 'لطفاً حداقل یک کاربر انتخاب کنید',
-        severity: 'error',
-      });
+      showToast("حداقل یک کاربر انتخاب کنید", "error");
       return;
     }
-
     try {
       const result = await addSelectedMutation.mutateAsync({
         examId,
         data: { user_ids: selectedUsers },
       });
-      setAlert({
-        open: true,
-        message: `${result.added} نفر با موفقیت اضافه شدند. ${result.skipped} نفر قبلاً اضافه شده بودند.`,
-        severity: 'success',
-      });
+      showToast(
+        `${result.added} نفر اضافه شد · ${result.skipped} نفر از قبل بودند`,
+        "success"
+      );
       setSelectedUsers([]);
-      setSearchQuery('');
-      onSuccess?.();
+      setSearchQuery("");
+      handleAddSuccess();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در افزودن شرکت‌کنندگان'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در افزودن"), "error");
     }
-  };
-
-  const handleToggleGroup = (groupId: number) => {
-    setSelectedGroups((prev) =>
-      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
-    );
   };
 
   const handleAddGroups = async () => {
     if (selectedGroups.length === 0) {
-      setAlert({
-        open: true,
-        message: 'لطفاً حداقل یک گروه انتخاب کنید',
-        severity: 'error',
-      });
+      showToast("حداقل یک گروه انتخاب کنید", "error");
       return;
     }
-
     try {
       const result = await addGroupsMutation.mutateAsync({
         examId,
         data: { group_ids: selectedGroups },
       });
-      setAlert({
-        open: true,
-        message: `${result.groups_added} گروه با ${result.total_users} کاربر با موفقیت اضافه شدند.`,
-        severity: 'success',
-      });
+      showToast(
+        `${result.groups_added} گروه و ${result.total_users} کاربر اضافه شدند`,
+        "success"
+      );
       setSelectedGroups([]);
-      onSuccess?.();
+      handleAddSuccess();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در افزودن گروه‌ها'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در افزودن گروه"), "error");
     }
   };
 
-  const handleRemoveGroup = async (groupId: number) => {
-    if (
-      !confirm(
-        'آیا از حذف این گروه از آزمون اطمینان دارید؟\nاعضایی که فقط در این گروه باشند از لیست شرکت‌کنندگان هم حذف می‌شوند.'
-      )
-    ) {
-      return;
-    }
+  const handleRemoveGroup = (groupId: number) => {
+    const group = availableGroups.find((g) => g.id === groupId) ?? null;
+    setRemoveGroupTarget(group);
+  };
 
+  const confirmRemoveGroup = async () => {
+    if (!removeGroupTarget) return;
     try {
-      const result = await removeGroupMutation.mutateAsync({ examId, groupId });
-      const removed = result?.participants_removed ?? 0;
-      setAlert({
-        open: true,
-        message:
-          removed > 0
-            ? `گروه حذف شد و ${removed} شرکت‌کننده از آزمون خارج شدند.`
-            : 'گروه با موفقیت از آزمون حذف شد.',
-        severity: 'success',
+      const result = await removeGroupMutation.mutateAsync({
+        examId,
+        groupId: removeGroupTarget.id,
       });
+      const removed = result?.participants_removed ?? 0;
+      showToast(
+        removed > 0 ? `گروه حذف شد · ${removed} شرکت‌کننده خارج شد` : "گروه از آزمون حذف شد",
+        "success"
+      );
+      setRemoveGroupTarget(null);
       onSuccess?.();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در حذف گروه'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در حذف گروه"), "error");
     }
   };
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
-      setAlert({
-        open: true,
-        message: 'لطفاً نام گروه را وارد کنید',
-        severity: 'error',
-      });
+      showToast("نام گروه الزامی است", "error");
       return;
     }
-
     try {
       await createGroupMutation.mutateAsync({
         name: newGroupName,
         description: newGroupDescription || undefined,
-        user_ids: newGroupUserIds.length > 0 ? newGroupUserIds : undefined,
       });
-      // Refetch groups list to show the new group
       await refetchGroups();
-      setAlert({
-        open: true,
-        message: 'گروه با موفقیت ایجاد شد',
-        severity: 'success',
-      });
+      showToast("گروه ایجاد شد", "success");
       setCreateGroupOpen(false);
-      setNewGroupName('');
-      setNewGroupDescription('');
-      setNewGroupUserIds([]);
+      setNewGroupName("");
+      setNewGroupDescription("");
       onSuccess?.();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: getErrorMessage(error, 'خطا در ایجاد گروه'),
-        severity: 'error',
-      });
+      showToast(getErrorMessage(error, "خطا در ایجاد گروه"), "error");
     }
   };
-
-  const existingParticipantIds = new Set(participants.map((p) => p.user?.id).filter(Boolean));
 
   const handleCopyRegistrationLink = () => {
     if (registrationLink) {
       navigator.clipboard.writeText(registrationLink);
-      setAlert({
-        open: true,
-        message: 'لینک ثبت‌نام کپی شد',
-        severity: 'success',
-      });
+      showToast("لینک ثبت‌نام کپی شد", "success");
     }
   };
 
   const handleCopyExamLink = () => {
     if (examLink) {
       navigator.clipboard.writeText(examLink);
-      setAlert({
-        open: true,
-        message: 'لینک آزمون کپی شد',
-        severity: 'success',
-      });
+      showToast("لینک آزمون کپی شد", "success");
     }
   };
 
+  const addSectionProps = {
+    method: addMethod,
+    onMethodChange: handleMethodChange,
+    layout: "drawer" as const,
+    registrationLink,
+    examLink,
+    onCopyRegistration: handleCopyRegistrationLink,
+    onCopyExam: handleCopyExamLink,
+    availableGroups,
+    examGroupIds,
+    selectedGroupIds: selectedGroups,
+    onToggleGroup: (id: number) =>
+      setSelectedGroups((prev) =>
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      ),
+    onAddGroups: handleAddGroups,
+    onRemoveGroup: handleRemoveGroup,
+    onCreateGroup: () => setCreateGroupOpen(true),
+    isAddingGroups: addGroupsMutation.isPending,
+    isRemovingGroup: removeGroupMutation.isPending,
+    phoneNumbers,
+    onPhoneChange: setPhoneNumbers,
+    onAddByPhone: handleAddByPhone,
+    isAddingPhone: addByPhoneMutation.isPending,
+    nationalIds,
+    onNationalIdsChange: setNationalIds,
+    onAddByNationalId: handleAddByNationalId,
+    isAddingNationalId: addByNationalIdMutation.isPending,
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    searchResults: searchResults?.data,
+    isSearching,
+    selectedUserIds: selectedUsers,
+    existingParticipantIds,
+    onToggleUser: (id: number) =>
+      setSelectedUsers((prev) =>
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      ),
+    onAddSelected: handleAddSelected,
+    isAddingSelected: addSelectedMutation.isPending,
+  };
+
   return (
-    <Box>
-      <Stack spacing={3}>
-        {/* Add Participants Section */}
-        <Card>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="لینک‌های آزمون" icon={<LinkIcon />} iconPosition="start" />
-              <Tab label="گروه‌ها" icon={<GroupIcon />} iconPosition="start" />
-              <Tab label="شماره تلفن" icon={<PhoneIcon />} iconPosition="start" />
-              <Tab label="کد ملی" icon={<BadgeIcon />} iconPosition="start" />
-              <Tab label="جستجو و انتخاب" icon={<SearchIcon />} iconPosition="start" />
-            </Tabs>
-          </Box>
+    <Stack spacing={2}>
+      <ParticipantListSection
+        participants={participants}
+        isDescriptiveGrading={isDescriptiveGrading}
+        groupAvatarById={groupAvatarById}
+        attachedGroups={attachedGroups}
+        onAddClick={openAdd}
+        canManageParticipants={canManageParticipants}
+        onRemoveParticipant={(p) => setRemoveParticipantTarget(p)}
+        onExportCsv={() => downloadParticipantsCsv(participants, examTitle)}
+      />
 
-          {/* Links Tab */}
-          <TabPanel value={tabValue} index={0}>
-            <CardContent>
-              <Stack spacing={3}>
-                {/* Registration Link */}
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    لینک ثبت‌نام آزمون
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    این لینک را برای افرادی که می‌خواهید در آزمون شرکت کنند ارسال کنید. با کلیک روی این لینک، افراد به عنوان شرکت‌کننده ثبت‌نام می‌شوند.
-                  </Typography>
-                  {registrationLink ? (
-                    <TextField
-                      value={registrationLink}
-                      fullWidth
-                      size="small"
-                      InputProps={{
-                        readOnly: true,
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={handleCopyRegistrationLink} edge="end">
-                              <ContentCopyIcon />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  ) : (
-                    <Alert severity="info">لینک ثبت‌نام پس از انتشار آزمون ایجاد می‌شود.</Alert>
-                  )}
-                </Box>
-                <Divider />
-                {/* Exam Link */}
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    لینک شرکت در آزمون
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    این لینک را فقط به شرکت‌کنندگانی که قبلاً ثبت‌نام کرده‌اند ارسال کنید. با این لینک مستقیماً وارد آزمون می‌شوند.
-                  </Typography>
-                  {examLink ? (
-                    <TextField
-                      value={examLink}
-                      fullWidth
-                      size="small"
-                      InputProps={{
-                        readOnly: true,
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={handleCopyExamLink} edge="end">
-                              <ContentCopyIcon />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  ) : (
-                    <Alert severity="info">
-                      لینک شرکت در آزمون از صفحه اطلاعات آزمون با دکمه «تولید لینک آزمون» ایجاد می‌شود.
-                    </Alert>
-                  )}
-                </Box>
-              </Stack>
-            </CardContent>
-          </TabPanel>
+      <ParticipantAddDrawer
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        {...addSectionProps}
+      />
 
-          {/* Groups Tab */}
-          <TabPanel value={tabValue} index={1}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6">گروه‌های موجود</Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={() => setCreateGroupOpen(true)}
-                  >
-                    ایجاد گروه جدید
-                  </Button>
-                </Box>
-                {availableGroups.length > 0 ? (
-                  <Paper variant="outlined">
-                    <List>
-                      {availableGroups.map((group: { id: number; name: string; description?: string; users_count?: number }) => {
-                        const isSelected = selectedGroups.includes(group.id);
-                        const isInExam = groups.some((g) => g.id === group.id);
-                        return (
-                          <ListItem
-                            key={group.id}
-                            secondaryAction={
-                              <Stack direction="row" spacing={1}>
-                                {isInExam ? (
-                                  <Stack direction="row" spacing={0.5} alignItems="center">
-                                    <Chip label="در آزمون" size="small" color="success" />
-                                    <IconButton
-                                      edge="end"
-                                      aria-label="حذف گروه از آزمون"
-                                      color="error"
-                                      size="small"
-                                      disabled={removeGroupMutation.isPending}
-                                      onClick={() => handleRemoveGroup(group.id)}
-                                    >
-                                      <DeleteOutlineIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                ) : (
-                                  <Checkbox
-                                    edge="end"
-                                    checked={isSelected}
-                                    onChange={() => handleToggleGroup(group.id)}
-                                  />
-                                )}
-                              </Stack>
-                            }
-                          >
-                            <ListItemText
-                              primary={group.name}
-                              secondary={
-                                <Typography variant="caption" color="text.secondary">
-                                  {group.description || 'بدون توضیحات'} • {group.users_count || 0} کاربر
-                                </Typography>
-                              }
-                            />
-                          </ListItem>
-                        );
-                      })}
-                    </List>
-                  </Paper>
-                ) : (
-                  <Alert severity="info">هیچ گروهی وجود ندارد. ابتدا یک گروه ایجاد کنید.</Alert>
-                )}
-                {selectedGroups.length > 0 && (
-                  <Button
-                    variant="contained"
-                    onClick={handleAddGroups}
-                    disabled={addGroupsMutation.isPending}
-                    startIcon={addGroupsMutation.isPending ? <CircularProgress size={20} /> : <AddIcon />}
-                    fullWidth
-                  >
-                    {addGroupsMutation.isPending ? 'در حال افزودن...' : `افزودن ${selectedGroups.length} گروه`}
-                  </Button>
-                )}
-              </Stack>
-            </CardContent>
-          </TabPanel>
+      <CreateGroupDialog
+        open={createGroupOpen}
+        name={newGroupName}
+        description={newGroupDescription}
+        onNameChange={setNewGroupName}
+        onDescriptionChange={setNewGroupDescription}
+        onClose={() => setCreateGroupOpen(false)}
+        onSubmit={handleCreateGroup}
+        isPending={createGroupMutation.isPending}
+      />
 
-          {/* Phone Numbers Tab */}
-          <TabPanel value={tabValue} index={2}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary">
-                  شماره تلفن‌ها را در هر خط وارد کنید
-                </Typography>
-                <TextField
-                  multiline
-                  rows={6}
-                  value={phoneNumbers}
-                  onChange={(e) => setPhoneNumbers(e.target.value)}
-                  placeholder="09123456789&#10;09187654321&#10;..."
-                  fullWidth
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleAddByPhone}
-                  disabled={addByPhoneMutation.isPending || !phoneNumbers.trim()}
-                  startIcon={addByPhoneMutation.isPending ? <CircularProgress size={20} /> : <AddIcon />}
-                >
-                  {addByPhoneMutation.isPending ? 'در حال افزودن...' : 'افزودن شرکت‌کنندگان'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </TabPanel>
+      <RemoveGroupDialog
+        open={Boolean(removeGroupTarget)}
+        groupName={removeGroupTarget?.name}
+        isPending={removeGroupMutation.isPending}
+        onClose={() => setRemoveGroupTarget(null)}
+        onConfirm={confirmRemoveGroup}
+      />
 
-          {/* National ID Tab */}
-          <TabPanel value={tabValue} index={3}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary">
-                  کد ملی‌ها را در هر خط وارد کنید
-                </Typography>
-                <TextField
-                  multiline
-                  rows={6}
-                  value={nationalIds}
-                  onChange={(e) => setNationalIds(e.target.value)}
-                  placeholder="1234567890&#10;0987654321&#10;..."
-                  fullWidth
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleAddByNationalId}
-                  disabled={addByNationalIdMutation.isPending || !nationalIds.trim()}
-                  startIcon={addByNationalIdMutation.isPending ? <CircularProgress size={20} /> : <AddIcon />}
-                >
-                  {addByNationalIdMutation.isPending ? 'در حال افزودن...' : 'افزودن شرکت‌کنندگان'}
-                </Button>
-              </Stack>
-            </CardContent>
-          </TabPanel>
+      <RemoveParticipantDialog
+        open={Boolean(removeParticipantTarget)}
+        participantName={removeParticipantTarget?.user?.name ?? "شرکت‌کننده"}
+        isPending={removeParticipantMutation.isPending}
+        onClose={() => setRemoveParticipantTarget(null)}
+        onConfirm={() => {
+          if (!removeParticipantTarget) return;
+          removeParticipantMutation.mutate(
+            { examId, participantId: removeParticipantTarget.id },
+            {
+              onSuccess: () => {
+                setRemoveParticipantTarget(null);
+                showToast("شرکت‌کننده حذف شد", "success");
+                onSuccess?.();
+              },
+              onError: (err) => {
+                showToast(getErrorMessage(err), "error");
+              },
+            }
+          );
+        }}
+      />
 
-          {/* Search and Select Tab */}
-          <TabPanel value={tabValue} index={4}>
-            <CardContent>
-              <Stack spacing={2}>
-                <TextField
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="جستجو بر اساس شماره تلفن یا کد ملی..."
-                  fullWidth
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                  }}
-                />
-                {isSearching && (
-                  <Box display="flex" justifyContent="center" py={2}>
-                    <CircularProgress size={24} />
-                  </Box>
-                )}
-                {searchResults?.data && searchResults.data.length > 0 && (
-                  <Paper variant="outlined">
-                    <List>
-                      {searchResults.data.map((user) => {
-                        const isSelected = selectedUsers.includes(user.id);
-                        const isAlreadyAdded = existingParticipantIds.has(user.id);
-                        return (
-                          <ListItem
-                            key={user.id}
-                            secondaryAction={
-                              <Checkbox
-                                edge="end"
-                                checked={isSelected}
-                                onChange={() => handleToggleUser(user.id)}
-                                disabled={isAlreadyAdded}
-                              />
-                            }
-                            disablePadding
-                          >
-                            <ListItemButton
-                              onClick={() => !isAlreadyAdded && handleToggleUser(user.id)}
-                              disabled={isAlreadyAdded}
-                            >
-                              <ListItemText
-                                primary={user.name}
-                                secondary={
-                                  <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {user.phone_number}
-                                    </Typography>
-                                    {user.national_id && (
-                                      <>
-                                        <Typography variant="caption">•</Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                          {user.national_id}
-                                        </Typography>
-                                      </>
-                                    )}
-                                  </Stack>
-                                }
-                              />
-                              {isAlreadyAdded && (
-                                <Chip label="قبلاً اضافه شده" size="small" color="success" sx={{ ml: 1 }} />
-                              )}
-                            </ListItemButton>
-                          </ListItem>
-                        );
-                      })}
-                    </List>
-                  </Paper>
-                )}
-                {searchQuery.length >= 3 && !isSearching && searchResults?.data && searchResults.data.length === 0 && (
-                  <Alert severity="info">نتیجه‌ای یافت نشد</Alert>
-                )}
-                {selectedUsers.length > 0 && (
-                  <Box>
-                    <Typography variant="body2" gutterBottom>
-                      {selectedUsers.length} کاربر انتخاب شده
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      onClick={handleAddSelected}
-                      disabled={addSelectedMutation.isPending}
-                      startIcon={addSelectedMutation.isPending ? <CircularProgress size={20} /> : <AddIcon />}
-                      fullWidth
-                    >
-                      {addSelectedMutation.isPending ? 'در حال افزودن...' : 'افزودن انتخاب شده‌ها'}
-                    </Button>
-                  </Box>
-                )}
-              </Stack>
-            </CardContent>
-          </TabPanel>
-        </Card>
-
-        {/* Participants List */}
-          <Card>
-            <CardContent>
-              <Stack spacing={2}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">لیست شرکت‌کنندگان ({participants.length})</Typography>
-                <ToggleButtonGroup
-                  value={viewMode}
-                  exclusive
-                  onChange={(_, newMode) => {
-                    if (newMode !== null) setViewMode(newMode);
-                  }}
-                  size="small"
-                >
-                  <ToggleButton value="all" aria-label="نمایش همه">
-                    <ViewListIcon sx={{ mr: 1 }} />
-                    همه
-                  </ToggleButton>
-                  <ToggleButton value="grouped" aria-label="نمایش بر اساس گروه">
-                    <ViewModuleIcon sx={{ mr: 1 }} />
-                    بر اساس گروه
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-              {participants.length === 0 ? (
-                <Box textAlign="center" py={4}>
-                  <PeopleIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    هنوز کسی در این آزمون شرکت نکرده است
-                  </Typography>
-                </Box>
-              ) : viewMode === 'all' ? (
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>نام</TableCell>
-                        <TableCell>شماره تماس</TableCell>
-                        <TableCell>گروه</TableCell>
-                        {scoreHeaderCells(isDescriptiveGrading)}
-                        <TableCell align="center">وضعیت</TableCell>
-                        <TableCell>تاریخ شروع</TableCell>
-                        <TableCell>تاریخ تکمیل</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {participants.map((participant) => (
-                        <TableRow key={participant.id}>
-                          <TableCell>
-                            <ParticipantNameCell user={participant.user} />
-                          </TableCell>
-                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                          <TableCell>
-                            {participant.group ? (
-                              <Chip label={participant.group.name} size="small" color="primary" />
-                            ) : (
-                              <Chip label="بدون گروه" size="small" variant="outlined" />
-                            )}
-                          </TableCell>
-                          {scoreBodyCells(participant, isDescriptiveGrading)}
-                          <TableCell align="center">
-                            {participant.completed_at ? (
-                              <Chip
-                                icon={participant.passed ? <CheckCircleIcon /> : <CancelIcon />}
-                                label={participant.passed ? 'قبول' : 'رد'}
-                                color={participant.passed ? 'success' : 'error'}
-                              size="small"
-                              />
-                            ) : participant.status === 'absent' ? (
-                              <Chip label="غیبت در امتحان" color="error" size="small" />
-                            ) : participant.started_at ? (
-                              <Chip label="در حال انجام" color="warning" size="small" />
-                            ) : (
-                              <Chip label="ثبت‌نام شده" color="info" size="small" />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {participant.started_at
-                              ? new Date(participant.started_at).toLocaleDateString('fa-IR')
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {participant.completed_at
-                              ? new Date(participant.completed_at).toLocaleDateString('fa-IR')
-                              : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Stack spacing={3}>
-                  {/* Group participants by their group */}
-                  {(() => {
-                    // Group participants by group_id
-                    const groupedByGroup = new Map<number, typeof participants>();
-                    const participantsWithoutGroup: typeof participants = [];
-                    
-                    participants.forEach((participant) => {
-                      if (participant.group?.id) {
-                        const groupId = participant.group.id;
-                        if (!groupedByGroup.has(groupId)) {
-                          groupedByGroup.set(groupId, []);
-                        }
-                        groupedByGroup.get(groupId)!.push(participant);
-                      } else {
-                        participantsWithoutGroup.push(participant);
-                      }
-                    });
-                    
-                    const groupEntries = Array.from(groupedByGroup.entries());
-                    
-                    return (
-                      <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                          borderRadius: 2,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {/* Display each group */}
-                        {groupEntries.map(([groupId, groupParticipants], index) => {
-                          const groupName = groupParticipants[0]?.group?.name || `گروه ${groupId}`;
-                          const isLastGroup = index === groupEntries.length - 1 && participantsWithoutGroup.length === 0;
-                          return (
-                            <Accordion 
-                              key={groupId}
-                              sx={{
-                                boxShadow: 'none',
-                                border: 'none',
-                                '&:before': {
-                                  display: 'none',
-                                },
-                                '&.Mui-expanded': {
-                                  margin: 0,
-                                },
-                                borderBottom: isLastGroup ? 'none' : '1px solid',
-                                borderBottomColor: 'divider',
-                              }}
-                            >
-                              <AccordionSummary 
-                                expandIcon={<ExpandMoreIcon />}
-                                sx={{
-                                  '&:hover': {
-                                    backgroundColor: 'action.hover',
-                                  },
-                                }}
-                              >
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%', pr: 2 }}>
-                                  <GroupIcon color="primary" />
-                                  <Typography variant="subtitle1" fontWeight="medium">
-                                    {groupName} ({groupParticipants.length} نفر)
-                                  </Typography>
-              </Stack>
-                              </AccordionSummary>
-                              <AccordionDetails sx={{ pt: 2, pb: 2 }}>
-                                <TableContainer component={Paper} variant="outlined">
-                                  <Table size="small">
-                                    <TableHead>
-                                      <TableRow>
-                                        <TableCell>نام</TableCell>
-                                        <TableCell>شماره تماس</TableCell>
-                                        {scoreHeaderCells(isDescriptiveGrading)}
-                                        <TableCell align="center">وضعیت</TableCell>
-                                        <TableCell>تاریخ شروع</TableCell>
-                                        <TableCell>تاریخ تکمیل</TableCell>
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {groupParticipants.map((participant) => (
-                                        <TableRow key={participant.id}>
-                                          <TableCell>
-                                            <ParticipantNameCell user={participant.user} />
-                                          </TableCell>
-                                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                                          {scoreBodyCells(participant, isDescriptiveGrading)}
-                                          <TableCell align="center">
-                                            {participant.completed_at ? (
-                                              <Chip
-                                                icon={participant.passed ? <CheckCircleIcon /> : <CancelIcon />}
-                                                label={participant.passed ? 'قبول' : 'رد'}
-                                                color={participant.passed ? 'success' : 'error'}
-                                                size="small"
-                                              />
-                                            ) : participant.status === 'absent' ? (
-                                              <Chip label="غیبت در امتحان" color="error" size="small" />
-                                            ) : participant.started_at ? (
-                                              <Chip label="در حال انجام" color="warning" size="small" />
-                                            ) : (
-                                              <Chip label="ثبت‌نام شده" color="info" size="small" />
-                                            )}
-                                          </TableCell>
-                                          <TableCell>
-                                            {participant.started_at
-                                              ? new Date(participant.started_at).toLocaleDateString('fa-IR')
-                                              : '-'}
-                                          </TableCell>
-                                          <TableCell>
-                                            {participant.completed_at
-                                              ? new Date(participant.completed_at).toLocaleDateString('fa-IR')
-                                              : '-'}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </TableContainer>
-                              </AccordionDetails>
-                            </Accordion>
-                          );
-                        })}
-                        
-                        {/* Participants without group */}
-                        {participantsWithoutGroup.length > 0 && (
-                          <Accordion
-                            sx={{
-                              boxShadow: 'none',
-                              border: 'none',
-                              '&:before': {
-                                display: 'none',
-                              },
-                              '&.Mui-expanded': {
-                                margin: 0,
-                              },
-                            }}
-                          >
-                            <AccordionSummary 
-                              expandIcon={<ExpandMoreIcon />}
-                              sx={{
-                                '&:hover': {
-                                  backgroundColor: 'action.hover',
-                                },
-                              }}
-                            >
-                              <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%', pr: 2 }}>
-                                <PeopleIcon color="action" />
-                                <Typography variant="subtitle1" fontWeight="medium">
-                                  بدون گروه ({participantsWithoutGroup.length} نفر)
-                  </Typography>
-                              </Stack>
-                            </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 2, pb: 2 }}>
-                              <TableContainer component={Paper} variant="outlined">
-                                <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>نام</TableCell>
-                        <TableCell>شماره تماس</TableCell>
-                        {scoreHeaderCells(isDescriptiveGrading)}
-                        <TableCell align="center">وضعیت</TableCell>
-                        <TableCell>تاریخ شروع</TableCell>
-                        <TableCell>تاریخ تکمیل</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                                    {participantsWithoutGroup.map((participant) => (
-                        <TableRow key={participant.id}>
-                          <TableCell>
-                            <ParticipantNameCell user={participant.user} />
-                          </TableCell>
-                          <TableCell>{participant.user?.phone_number || '-'}</TableCell>
-                          {scoreBodyCells(participant, isDescriptiveGrading)}
-                          <TableCell align="center">
-                            {participant.completed_at ? (
-                              <Chip
-                                icon={participant.passed ? <CheckCircleIcon /> : <CancelIcon />}
-                                label={participant.passed ? 'قبول' : 'رد'}
-                                color={participant.passed ? 'success' : 'error'}
-                                size="small"
-                              />
-                                          ) : participant.status === 'absent' ? (
-                              <Chip label="غیبت در امتحان" color="error" size="small" />
-                                          ) : participant.started_at ? (
-                              <Chip label="در حال انجام" color="warning" size="small" />
-                                          ) : (
-                                            <Chip label="ثبت‌نام شده" color="info" size="small" />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {participant.started_at
-                              ? new Date(participant.started_at).toLocaleDateString('fa-IR')
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {participant.completed_at
-                              ? new Date(participant.completed_at).toLocaleDateString('fa-IR')
-                              : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                            </AccordionDetails>
-                          </Accordion>
-                        )}
-                      </Paper>
-                    );
-                  })()}
-                </Stack>
-              )}
-            </Stack>
-          </CardContent>
-        </Card>
-      </Stack>
-
-      {/* Create Group Dialog */}
-      <Dialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>ایجاد گروه جدید</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="نام گروه"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              fullWidth
-              required
-            />
-            <TextField
-              label="توضیحات (اختیاری)"
-              value={newGroupDescription}
-              onChange={(e) => setNewGroupDescription(e.target.value)}
-              multiline
-              rows={3}
-              fullWidth
-            />
-            <Alert severity="info">
-              می‌توانید بعداً کاربران را به این گروه اضافه کنید
-            </Alert>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateGroupOpen(false)}>انصراف</Button>
-          <Button
-            variant="contained"
-            onClick={handleCreateGroup}
-            disabled={createGroupMutation.isPending || !newGroupName.trim()}
-          >
-            {createGroupMutation.isPending ? 'در حال ایجاد...' : 'ایجاد'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Alert Snackbar */}
-      {alert.open && (
-        <Alert
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
-          sx={{ position: 'fixed', bottom: 16, left: 16, right: 16, zIndex: 9999 }}
-        >
-          {alert.message}
-        </Alert>
-      )}
-    </Box>
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+      />
+    </Stack>
   );
 }

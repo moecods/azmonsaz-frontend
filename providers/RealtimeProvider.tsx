@@ -193,6 +193,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
     });
 
+    channel.listen(REALTIME_EVENTS.participantProgressChanged, () => {
+      queryClient.invalidateQueries({ queryKey: ['exam', examId, 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
+    });
+
     channel.listen(REALTIME_EVENTS.examStatusChanged, () => {
       queryClient.invalidateQueries({ queryKey: ['exam', 'manage', examId] });
       queryClient.invalidateQueries({ queryKey: ['exams', 'available'] });

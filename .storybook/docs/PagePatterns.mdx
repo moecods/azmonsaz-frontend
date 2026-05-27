@@ -1,0 +1,39 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="سیستم طراحی/الگوهای صفحه" />
+
+# الگوهای صفحه
+
+راهنمای کوتاه برای طراحی و توسعه — جزئیات در [`docs/DESIGN.md`](../../docs/DESIGN.md) و [`docs/UI_STANDARDS.md`](../../docs/UI_STANDARDS.md).
+
+## احراز هویت (Auth)
+
+- Layout: `theme/page-sx.ts` → `authPageSx`, `brandPanelSx`
+- پس‌زمینه برند + کارت فرم
+- متن **فارسی**، جهت **RTL**، فونت Vazirmatn
+
+## کارت بخش (Section card)
+
+- Story: **آزمون/شرکت‌کنندگان — UI** → `SectionCardDefault`
+- عنوان + آیکن + محتوا + action اختیاری
+
+## حالت خالی (Empty state)
+
+- **بازخورد/وضعیت صفحه** و **سوالات/بانک — حالت خالی**
+- عنوان، توضیح، دکمه action
+
+## فیلتر لیست
+
+- `QuestionBankFiltersPanel`: همان کارت فیلتر در sidebar (`lg+`)
+- موبایل (`< lg`): همان کارت داخل **Accordion** (پیش‌فرض بسته) — `collapsibleOnMobile` روی پنل
+- Story: **سوالات/بانک — QuestionBankFiltersPanel**
+
+## توکن‌ها
+
+- کد: `theme/tokens.ts`
+- Figma: `theme/design-tokens.json`
+- Story: **سیستم طراحی/توکن‌ها**
+
+## بدون Storybook
+
+صفحات کامل با routing و API — فقط قطعات reusable.

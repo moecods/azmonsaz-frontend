@@ -19,7 +19,10 @@
     "cy:run:ci": "cypress run --config video=true,screenshotOnRunFailure=true",
     "test:e2e": "start-server-and-test start http://localhost:3000 cy:run",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:storybook": "vitest run --project=storybook",
+    "test:storybook:a11y": "vitest run --config vitest.storybook-a11y.mjs",
+    "chromatic": "npm run build-storybook && npx chromatic --storybook-build-dir=storybook-static --exit-zero-on-changes"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -28,6 +31,7 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource-variable/vazirmatn": "^5.2.8",
     "@hookform/resolvers": "^3.9.0",
     "@mui/icons-material": "^7.3.2",
     "@mui/lab": "^7.0.0-beta.17",

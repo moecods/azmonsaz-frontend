@@ -1,30 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  Box,
-  Button,
-  Container,
-  Stack,
-  Typography,
   Alert,
+  Button,
+  Stack,
 } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { examSchema, ExamFormData } from "@/lib/validation";
 import { usePartner, useExam, useCreateExam, useUpdateExam, useCompleteExam, useAuth } from "@/hooks";
 import { isUsingMockData } from "@/lib/data-service";
 import { deepLinkParamsSchema } from "@/lib/validation";
-import Breadcrumb from "@/components/Breadcrumb";
 import { loadExamMetaToForm, buildCallbackUrl, isCreatorUser } from "@/lib/exam-utils";
 import { handleError } from "@/lib/error-handler";
 import { PageLoading } from "@/components/feedback";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PageContentLoader from "@/components/layout/PageContentLoader";
+import { ExamCreateHeader } from "@/components/exams/create/ExamCreateHeader";
 
-// Heavy form + Persian date pickers — load in a separate chunk so ?_rsc= navigation is faster
 const ExamFormWizard = dynamic(
   () =>
     import("@/components/exams/ExamFormWizard").then((mod) => mod.ExamFormWizard),
@@ -87,10 +84,7 @@ function CreateExamContent() {
     },
   });
 
-  const {
-    handleSubmit,
-    setValue,
-  } = form;
+  const { setValue } = form;
 
   const partnerId =
     validationResult.success && deepLinkParams.partner_id
@@ -109,6 +103,12 @@ function CreateExamContent() {
   const createExamMutation = useCreateExam();
   const updateExamMutation = useUpdateExam();
   const completeExamMutation = useCompleteExam();
+
+  const mutationError =
+    (createExamMutation.error instanceof Error && createExamMutation.error.message) ||
+    (updateExamMutation.error instanceof Error && updateExamMutation.error.message) ||
+    (completeExamMutation.error instanceof Error && completeExamMutation.error.message) ||
+    null;
 
   useEffect(() => {
     if (existingExam) {
@@ -218,66 +218,46 @@ function CreateExamContent() {
 
   return (
     <PageContentLoader isLoading={isLoadingExam && !!examId}>
-      <Container maxWidth="lg">
-        <Stack spacing={4}>
-          <Breadcrumb
-            items={[
-              { label: "مدیریت آزمون‌ها", href: "/exams" },
-              { label: existingExam ? "ویرایش آزمون" : "ایجاد آزمون جدید" },
-            ]}
-          />
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              {existingExam ? "ویرایش آزمون" : "ایجاد آزمون جدید"}
-            </Typography>
-            {isUsingMockData() && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                🧪 Using mock data for development. Partner ID: {deepLinkParams.partner_id}
-              </Alert>
-            )}
-            {partnerData && (
-              <Typography color="text.secondary">Partner: {partnerData.name}</Typography>
-            )}
-          </Box>
+      <Stack spacing={2.5}>
+        <ExamCreateHeader
+          isEdit={!!existingExam}
+          partnerName={partnerData?.name}
+          onBack={() => router.push("/exams")}
+        />
 
-          {(createExamMutation.isError ||
-            updateExamMutation.isError ||
-            completeExamMutation.isError) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {createExamMutation.error instanceof Error && createExamMutation.error.message}
-              {updateExamMutation.error instanceof Error && updateExamMutation.error.message}
-              {completeExamMutation.error instanceof Error &&
-                completeExamMutation.error.message}
-              {!createExamMutation.error &&
-                !updateExamMutation.error &&
-                !completeExamMutation.error &&
-                "خطایی رخ داد. لطفا دوباره تلاش کنید."}
-            </Alert>
-          )}
+        {isUsingMockData() && (
+          <Alert severity="info">
+            حالت mock فعال است — Partner ID: {deepLinkParams.partner_id}
+          </Alert>
+        )}
 
-          {existingExam && (
-            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 2 }}>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleCompleteExam}
-                disabled={completeExamMutation.isPending}
-              >
-                {completeExamMutation.isPending ? "در حال تکمیل..." : "تکمیل آزمون"}
-              </Button>
-            </Stack>
-          )}
+        {mutationError && (
+          <Alert severity="error">{mutationError}</Alert>
+        )}
 
-          <ExamFormWizard
-            form={form}
-            onSubmit={onSubmit}
-            isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
-            existingExam={!!existingExam}
-            showCreatorSelect={showCreatorSelect}
-            defaultOwnerUserId={user?.id ?? null}
-          />
-        </Stack>
-      </Container>
+        {existingExam && (
+          <Stack direction="row" justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color="success"
+              startIcon={<CheckCircleOutlineIcon />}
+              onClick={handleCompleteExam}
+              disabled={completeExamMutation.isPending}
+            >
+              {completeExamMutation.isPending ? "در حال تکمیل..." : "تکمیل آزمون (آفلاین)"}
+            </Button>
+          </Stack>
+        )}
+
+        <ExamFormWizard
+          form={form}
+          onSubmit={onSubmit}
+          isSubmitting={createExamMutation.isPending || updateExamMutation.isPending}
+          existingExam={!!existingExam}
+          showCreatorSelect={showCreatorSelect}
+          defaultOwnerUserId={user?.id ?? null}
+        />
+      </Stack>
     </PageContentLoader>
   );
 }

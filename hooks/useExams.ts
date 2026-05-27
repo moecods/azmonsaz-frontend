@@ -591,3 +591,32 @@ export function useRemoveGroupFromExam() {
     },
   });
 }
+
+export function useRemoveExamParticipant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      examId,
+      participantId,
+    }: {
+      examId: number;
+      participantId: number;
+    }) => {
+      const response = await examService.removeExamParticipant(examId, participantId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to remove participant',
+          undefined,
+          (response as any).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: ['exam', variables.examId, 'reports'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}

@@ -12,6 +12,8 @@
 ### Tests
 - [ ] `npm run test:run -- --project=unit` passes
 - [ ] Cypress updated if user-facing flows changed
+- [ ] Shared UI component added/changed → Storybook story updated (`npm run storybook`)
+- [ ] If story has `play` interaction → `npm run test:storybook` passes
 
 ### Docs
 - [ ] README or CHANGELOG updated if needed
