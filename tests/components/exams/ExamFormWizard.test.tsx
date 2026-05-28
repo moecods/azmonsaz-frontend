@@ -29,18 +29,28 @@ function createWrapper() {
 
 const validDefaultValues: ExamFormData = {
   title: 'Test Exam',
-  description: '',
-  subject: '',
   type: 'online',
   questions: [],
   duration_minutes: null,
   passing_score: null,
+  grading_mode: 'numeric_percent',
   instructions: '',
   tags: [],
+  schedule_type: 'none',
   exam_date: null,
   start_time: null,
   end_time: null,
+  result_release_after_exam_end: true,
+  result_release_after_grading_complete: true,
+  result_release_requires_manual: false,
 };
+
+async function goToPreviewStep(user: ReturnType<typeof userEvent.setup>) {
+  const nextButton = () => screen.getByRole('button', { name: /مرحله بعد/i });
+  await user.click(nextButton());
+  await user.click(nextButton());
+  await user.click(nextButton());
+}
 
 function TestWizard({
   onSubmit,
@@ -76,6 +86,8 @@ describe('ExamFormWizard', () => {
       { wrapper: createWrapper() }
     );
 
+    await goToPreviewStep(user);
+
     const createExamButton = screen.getByRole('button', { name: /ایجاد آزمون/i });
     await user.click(createExamButton);
 
@@ -94,6 +106,8 @@ describe('ExamFormWizard', () => {
       { wrapper: createWrapper() }
     );
 
+    await goToPreviewStep(user);
+
     const createAndAddButton = screen.getByRole('button', { name: /ایجاد و افزودن سوال/i });
     await user.click(createAndAddButton);
 
@@ -104,14 +118,17 @@ describe('ExamFormWizard', () => {
     );
   });
 
-  it('shows "Update exam" button when existingExam is true', () => {
+  it('shows save button when existingExam is true on preview step', async () => {
+    const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(
       <TestWizard onSubmit={onSubmit} existingExam />,
       { wrapper: createWrapper() }
     );
 
-    expect(screen.getByRole('button', { name: /به‌روزرسانی آزمون/i })).toBeInTheDocument();
+    await goToPreviewStep(user);
+
+    expect(screen.getByRole('button', { name: /ذخیره تغییرات/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ایجاد آزمون/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ایجاد و افزودن سوال/i })).not.toBeInTheDocument();
   });

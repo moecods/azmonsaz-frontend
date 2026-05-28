@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useAuth } from '@/hooks';
+import { useAuth, useIsAuthenticated } from '@/hooks';
 
 // Mock dependencies (UserSidebar is rendered in 403 state and needs usePathname)
 vi.mock('next/navigation', () => ({
@@ -11,9 +11,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@/hooks', () => ({
-  useAuth: vi.fn(),
-}));
+vi.mock('@/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks')>();
+  return {
+    ...actual,
+    useAuth: vi.fn(),
+    useIsAuthenticated: vi.fn(),
+  };
+});
 
 describe('ProtectedRoute', () => {
   const mockPush = vi.fn();
@@ -25,6 +30,7 @@ describe('ProtectedRoute', () => {
       push: mockPush,
       replace: mockReplace,
     });
+    (useIsAuthenticated as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
   it('renders children when user is authenticated and has required role', async () => {
@@ -51,6 +57,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('redirects to login when user is not authenticated', async () => {
+    (useIsAuthenticated as ReturnType<typeof vi.fn>).mockReturnValue(false);
     (useAuth as any).mockReturnValue({
       isAuthenticated: false,
       isLoading: false,
@@ -95,7 +102,8 @@ describe('ProtectedRoute', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('shows loading state during initial load', () => {
+  it('shows loading spinner when there is no token and auth is still loading', async () => {
+    (useIsAuthenticated as ReturnType<typeof vi.fn>).mockReturnValue(false);
     (useAuth as any).mockReturnValue({
       isAuthenticated: false,
       isLoading: true,
@@ -108,8 +116,10 @@ describe('ProtectedRoute', () => {
       </ProtectedRoute>
     );
 
-    // Should show loading spinner
-    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('allows access when no role is required', async () => {

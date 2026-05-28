@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter, useSearchParams } from 'next/navigation';
-import CreateExamPage from '@/app/exams/create/page';
+import CreateExamPage from '@/app/(authenticated)/exams/create/page';
 import { useAuth, useCreateExam, useUpdateExam, useCompleteExam, usePartner, useExam } from '@/hooks';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
@@ -21,6 +21,7 @@ vi.mock('@/hooks', async (importOriginal) => {
   return {
     ...actual,
     useAuth: vi.fn(),
+    useIsAuthenticated: vi.fn(() => true),
     usePartner: vi.fn(),
     useExam: vi.fn(),
     useCreateExam: vi.fn(),
@@ -28,6 +29,13 @@ vi.mock('@/hooks', async (importOriginal) => {
     useCompleteExam: vi.fn(),
   };
 });
+
+async function goToPreviewStep(user: ReturnType<typeof userEvent.setup>) {
+  const nextButton = () => screen.getByRole('button', { name: /مرحله بعد/i });
+  await user.click(nextButton());
+  await user.click(nextButton());
+  await user.click(nextButton());
+}
 
 vi.mock('@/lib/data-service', () => ({
   isUsingMockData: vi.fn(() => false),
@@ -74,6 +82,7 @@ describe('CreateExamPage redirects', () => {
   });
 
   it('redirects to manage exam (/exams/{id}) when user clicks "Create exam"', async () => {
+    const user = userEvent.setup();
     const examId = 42;
     (useCreateExam as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: vi.fn(),
@@ -88,13 +97,11 @@ describe('CreateExamPage redirects', () => {
     });
 
     const titleInput = screen.getByLabelText(/عنوان آزمون/i);
-    await userEvent.type(titleInput, 'Test Exam');
+    await user.type(titleInput, 'Test Exam');
+    await goToPreviewStep(user);
 
-    // Sidebar also has "ایجاد آزمون" link; get the form submit button (actual <button>)
-    const createExamButtons = screen.getAllByRole('button', { name: /ایجاد آزمون/i });
-    const formCreateButton = createExamButtons.find((el) => el.tagName === 'BUTTON');
-    expect(formCreateButton).toBeDefined();
-    await userEvent.click(formCreateButton!);
+    const createExamButton = screen.getByRole('button', { name: /ایجاد آزمون/i });
+    await user.click(createExamButton);
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(`/exams/${examId}`);
@@ -103,6 +110,7 @@ describe('CreateExamPage redirects', () => {
   });
 
   it('redirects to manage exam questions (/exams/{id}/questions) when user clicks "Create and add question"', async () => {
+    const user = userEvent.setup();
     const examId = 42;
     (useCreateExam as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: vi.fn(),
@@ -117,10 +125,11 @@ describe('CreateExamPage redirects', () => {
     });
 
     const titleInput = screen.getByLabelText(/عنوان آزمون/i);
-    await userEvent.type(titleInput, 'Test Exam');
+    await user.type(titleInput, 'Test Exam');
+    await goToPreviewStep(user);
 
     const createAndAddButton = screen.getByRole('button', { name: /ایجاد و افزودن سوال/i });
-    await userEvent.click(createAndAddButton);
+    await user.click(createAndAddButton);
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith(`/exams/${examId}/questions`);
