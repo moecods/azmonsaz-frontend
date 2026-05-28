@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build:docker
 
-FROM node:22-bookworm-slim AS runner
+FROM node:22-bookworm AS runner
 
 WORKDIR /app
 

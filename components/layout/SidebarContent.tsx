@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Box,
@@ -16,7 +17,6 @@ import {
   alpha,
   useTheme,
 } from "@mui/material";
-import SchoolIcon from "@mui/icons-material/School";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { useAuth } from "@/hooks";
 import { useStartNavigation } from "@/components/layout/NavigationProvider";
@@ -33,6 +33,7 @@ export { sidebarMenuItems } from "@/lib/sidebar-nav";
 export type { SidebarMenuItem } from "@/lib/sidebar-nav";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME_FA || "آزمون‌ساز";
+const SIDEBAR_LOGO_SRC = "/brand/logo.png";
 
 interface SidebarContentProps {
   onNavigate?: () => void;
@@ -63,24 +64,27 @@ function SidebarBrand() {
     >
       <Box
         sx={{
-          width: 40,
-          height: 40,
-          borderRadius: 2,
+          width: 52,
+          height: 52,
+          flexShrink: 0,
+          lineHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
-          color: "primary.main",
         }}
       >
-        <SchoolIcon />
+        <Image
+          src={SIDEBAR_LOGO_SRC}
+          alt=""
+          width={104}
+          height={104}
+          priority
+          style={{ width: "100%", height: "auto", objectFit: "contain" }}
+        />
       </Box>
       <Box sx={{ minWidth: 0 }}>
         <Typography variant="subtitle1" fontWeight={800} noWrap>
           {APP_NAME}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" noWrap>
-          پلتفرم آزمون آنلاین
         </Typography>
       </Box>
     </Box>

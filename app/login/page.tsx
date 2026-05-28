@@ -11,7 +11,6 @@ import {
   Stack,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -148,19 +147,11 @@ export default function LoginPage() {
 
   return (
     <GuestRoute redirectTo="/dashboard">
-      <AuthShell
-        brandTagline="ورود امن با رمز عبور یا کد یکبارمصرف — مناسب مدارس و موسسات آموزشی."
-        brandBullets={[
-          "برگزاری و شرکت در آزمون آنلاین",
-          "مدیریت بانک سوال و گروه‌ها",
-          "گزارش و نمره‌دهی یکپارچه",
-        ]}
-      >
+      <AuthShell>
         {view === "forgot" ? (
           <>
             <AuthFormHeader
               title="فراموشی رمز عبور"
-              subtitle="شماره موبایل را وارد کنید تا کد بازیابی برای تنظیم رمز جدید ارسال شود."
             />
 
             <Stack spacing={2}>
@@ -222,7 +213,6 @@ export default function LoginPage() {
           <>
             <AuthFormHeader
               title="ورود به حساب"
-              subtitle="روش ورود را انتخاب کنید و ادامه دهید."
             />
 
             <ToggleButtonGroup
@@ -406,16 +396,9 @@ export default function LoginPage() {
               )}
             </Stack>
 
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 3, textAlign: { xs: "center", md: "start" } }}
-            >
-              حساب ندارید؟{" "}
-              <Link href="/register" style={{ fontWeight: 700 }}>
-                ثبت‌نام
-              </Link>
-            </Typography>
+            <Button component={Link} href="/register" variant="text" sx={{ mt: 1 }}>
+              ثبت‌نام
+            </Button>
           </>
         )}
       </AuthShell>

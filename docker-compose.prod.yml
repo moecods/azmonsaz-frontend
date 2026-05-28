@@ -15,7 +15,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required and must point to the production API URL}
     restart: unless-stopped
     ports:
       - "${NEXT_PORT:-3000}:3000"

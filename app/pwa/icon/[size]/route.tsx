@@ -1,7 +1,11 @@
-import { ImageResponse } from "next/og";
-import { PwaIconMark } from "@/lib/pwa-icon-mark";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 const ALLOWED_SIZES = new Set([192, 512]);
+const ICON_BY_SIZE: Record<number, string> = {
+  192: "pwa-192.png",
+  512: "pwa-512.png",
+};
 
 export async function GET(
   _request: Request,
@@ -14,8 +18,14 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  return new ImageResponse(<PwaIconMark size={px} />, {
-    width: px,
-    height: px,
+  const iconName = ICON_BY_SIZE[px];
+  const iconPath = path.join(process.cwd(), "public", "brand", "icons", iconName);
+  const icon = await readFile(iconPath);
+
+  return new Response(icon, {
+    headers: {
+      "content-type": "image/png",
+      "cache-control": "public, max-age=31536000, immutable",
+    },
   });
 }

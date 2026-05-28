@@ -74,10 +74,7 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <AuthShell
-        brandTagline="رمز عبور جدید با موفقیت ذخیره شد."
-        brandBullets={[]}
-      >
+      <AuthShell>
         <Stack spacing={2} sx={{ textAlign: "center", py: 2 }}>
           <Alert severity="success" data-cy="reset-success">
             رمز عبور شما تغییر کرد. در حال انتقال به صفحه ورود…
@@ -88,14 +85,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <AuthShell
-      brandTagline="کد ارسال‌شده به موبایل و رمز جدید را وارد کنید."
-      brandBullets={[
-        "رمز حداقل ۸ کاراکتر",
-        "کد یکبارمصرف محدود به زمان",
-        "پس از تغییر، با رمز جدید وارد شوید",
-      ]}
-    >
+    <AuthShell>
       <AuthFormHeader
         title="تنظیم رمز جدید"
         subtitle={

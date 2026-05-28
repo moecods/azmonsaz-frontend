@@ -6,7 +6,11 @@ import { Box } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import { APP_NAME_FA } from "@/components/auth/auth-layout";
 
-export const AUTH_BRAND_LOGO_SRC = "/brand/azmonsaz-logo.png";
+const LOGO_SOURCES = {
+  mark: "/brand/logo.png",
+  withName: "/brand/logo-with-name.png",
+  withNameAndSlogan: "/brand/logo-with-name-and-slogan.png",
+} as const;
 
 const logoBoxSx = {
   width: 52,
@@ -24,13 +28,19 @@ const logoBoxSx = {
 export interface AuthBrandLogoProps {
   /** When true, hide the mark entirely if the image fails to load */
   hideOnError?: boolean;
+  variant?: keyof typeof LOGO_SOURCES;
 }
 
 /**
  * Brand mark on auth pages: logo image when available, School icon fallback on error.
  */
-export default function AuthBrandLogo({ hideOnError = false }: AuthBrandLogoProps) {
+export default function AuthBrandLogo({
+  hideOnError = false,
+  variant = "mark",
+}: AuthBrandLogoProps) {
   const [failed, setFailed] = useState(false);
+  const src = LOGO_SOURCES[variant];
+  const isMarkVariant = variant === "mark";
 
   if (failed && hideOnError) {
     return null;
@@ -44,10 +54,26 @@ export default function AuthBrandLogo({ hideOnError = false }: AuthBrandLogoProp
     );
   }
 
+  if (!isMarkVariant) {
+    return (
+      <Box sx={{ width: { xs: 132, sm: variant === "withName" ? 158 : 178 }, flexShrink: 0 }}>
+        <Image
+          src={src}
+          alt={APP_NAME_FA}
+          width={356}
+          height={356}
+          style={{ width: "100%", height: "auto", objectFit: "contain" }}
+          priority
+          onError={() => setFailed(true)}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box sx={logoBoxSx}>
       <Image
-        src={AUTH_BRAND_LOGO_SRC}
+        src={src}
         alt={APP_NAME_FA}
         width={44}
         height={44}

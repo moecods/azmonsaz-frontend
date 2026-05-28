@@ -9,7 +9,6 @@ import {
   CircularProgress,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,17 +56,9 @@ export default function RegisterPage() {
 
   return (
     <GuestRoute redirectTo="/dashboard">
-      <AuthShell
-        brandTagline="در چند دقیقه حساب بسازید و آزمون‌های آنلاین را مدیریت یا در آن‌ها شرکت کنید."
-        brandBullets={[
-          "ثبت‌نام رایگان با شماره موبایل",
-          "دسترسی به آزمون‌های فعال سازمان شما",
-          "پروفایل و امنیت قابل تنظیم",
-        ]}
-      >
+      <AuthShell>
         <AuthFormHeader
           title="ثبت‌نام"
-          subtitle="اطلاعات زیر را وارد کنید تا حساب کاربری شما ساخته شود."
         />
 
         <Stack spacing={2}>
@@ -162,16 +153,9 @@ export default function RegisterPage() {
             </Stack>
           </form>
 
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 2, textAlign: { xs: "center", md: "start" } }}
-          >
-            قبلاً ثبت‌نام کرده‌اید؟{" "}
-            <Link href="/login" style={{ fontWeight: 700 }}>
-              ورود
-            </Link>
-          </Typography>
+          <Button component={Link} href="/login" variant="text" sx={{ mt: 1 }}>
+            ورود
+          </Button>
         </Stack>
       </AuthShell>
     </GuestRoute>

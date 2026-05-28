@@ -2,24 +2,15 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Box, Container, Paper, Stack, Typography, alpha, useTheme } from "@mui/material";
+import { Box, Container, Paper, Stack } from "@mui/material";
 import AuthBrandLogo from "@/components/auth/AuthBrandLogo";
-import { APP_NAME_FA, authPageSx } from "@/components/auth/auth-layout";
+import { authPageSx } from "@/components/auth/auth-layout";
 
 export interface AuthShellProps {
   children: ReactNode;
-  /** Short line under app name on brand panel */
-  brandTagline: string;
-  brandBullets?: string[];
 }
 
-export default function AuthShell({
-  children,
-  brandTagline,
-  brandBullets = [],
-}: AuthShellProps) {
-  const theme = useTheme();
-
+export default function AuthShell({ children }: AuthShellProps) {
   return (
     <Box sx={authPageSx.root}>
       <Container maxWidth="md" disableGutters sx={{ width: "100%" }}>
@@ -38,63 +29,17 @@ export default function AuthShell({
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
-                color: "primary.contrastText",
-                position: "relative",
-                overflow: "hidden",
-                ...authPageSx.brandPanel(theme),
+                bgcolor: "background.default",
+                borderInlineEnd: { md: 1 },
+                borderColor: "divider",
               }}
             >
-              <Box
-                sx={{
-                  position: "absolute",
-                  width: 220,
-                  height: 220,
-                  borderRadius: "50%",
-                  bgcolor: alpha("#fff", 0.08),
-                  top: -80,
-                  insetInlineEnd: -60,
-                }}
-              />
-              <Box
-                sx={{
-                  position: "absolute",
-                  width: 160,
-                  height: 160,
-                  borderRadius: "50%",
-                  bgcolor: alpha("#fff", 0.06),
-                  bottom: -50,
-                  insetInlineStart: -40,
-                }}
-              />
-
-              <Stack spacing={2.5} sx={{ position: "relative", zIndex: 1 }}>
+              <Stack spacing={2.5}>
                 <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <AuthBrandLogo />
-                    <Box>
-                      <Typography variant="h5" fontWeight={800} lineHeight={1.2}>
-                        {APP_NAME_FA}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.88 }}>
-                        پلتفرم آزمون آنلاین
-                      </Typography>
-                    </Box>
+                  <Stack justifyContent="center" alignItems="center">
+                    <AuthBrandLogo variant="withNameAndSlogan" />
                   </Stack>
                 </Link>
-
-                <Typography variant="body1" sx={{ opacity: 0.95, lineHeight: 1.75, maxWidth: 280 }}>
-                  {brandTagline}
-                </Typography>
-
-                {brandBullets.length > 0 && (
-                  <Stack component="ul" spacing={0.75} sx={{ m: 0, pl: 2.25, opacity: 0.9 }}>
-                    {brandBullets.map((item) => (
-                      <Typography key={item} component="li" variant="body2">
-                        {item}
-                      </Typography>
-                    ))}
-                  </Stack>
-                )}
               </Stack>
             </Box>
 
