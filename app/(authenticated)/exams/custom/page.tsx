@@ -21,10 +21,10 @@ import {
   Preview as PreviewIcon,
   Quiz as QuizIcon,
 } from '@mui/icons-material';
-import CustomExamBuilder from '../../../components/CustomExamBuilder';
-import CustomExamRenderer from '../../../components/CustomExamRenderer';
-import CustomPDFExport from '../../../components/CustomPDFExport';
-import { Question } from '../../../components/QuestionBankBuilder';
+import CustomExamBuilder from '@/components/CustomExamBuilder';
+import CustomExamRenderer from '@/components/CustomExamRenderer';
+import CustomPDFExport from '@/components/CustomPDFExport';
+import { Question } from '@/components/QuestionBankBuilder';
 
 interface Exam {
   id?: string;

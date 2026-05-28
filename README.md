@@ -286,7 +286,8 @@ For support and questions:
 - [ ] Real-time collaboration on exams
 - [ ] Advanced analytics and reporting
 - [ ] Mobile app (React Native)
-- [ ] Offline support with PWA
+- [x] PWA install (home screen / standalone; no offline cache)
+- [ ] Offline support (service worker caching)
 - [ ] Advanced question types (drag & drop, matching, etc.)
 - [ ] Integration with learning management systems
 - [ ] Automated grading and feedback

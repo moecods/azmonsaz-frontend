@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks";
 import { useColorMode } from "@/theme/ColorModeProvider";
 import UserAvatar from "@/components/ui/UserAvatar";
+import InstallAppMenuItem from "@/components/pwa/InstallAppMenuItem";
 
 export interface UserMenuProps {
   /** Shell: account actions only (nav is in sidebar). Public navbar: includes dashboard link. */
@@ -203,6 +204,7 @@ export default function UserMenu({ variant = "public" }: UserMenuProps) {
           )}
           {mode === "light" ? "حالت تاریک" : "حالت روشن"}
         </MenuItem>
+        <InstallAppMenuItem onClose={handleClose} />
         <Divider />
         <MenuItem onClick={handleLogout} sx={{ color: "error.main" }} data-cy="logout-button">
           <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />

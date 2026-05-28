@@ -5,10 +5,18 @@ import { CssBaseline } from "@mui/material";
 import ThemeRegistry from "../theme/ThemeRegistry";
 import { QueryProvider } from "./providers/QueryProvider";
 import LayoutContent from "./LayoutContent";
+import PwaServiceWorkerRegister from "@/components/pwa/PwaServiceWorkerRegister";
+import { getPwaAppName } from "@/lib/pwa-config";
 
 export const metadata: Metadata = {
   title: (process.env.APP_NAME_EN || "APP_NAME") + " - Exam Builder",
   description: "Create and manage exams with our powerful exam builder platform",
+  applicationName: getPwaAppName(),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: getPwaAppName(),
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +30,7 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeRegistry>
             <CssBaseline />
+            <PwaServiceWorkerRegister />
             <LayoutContent>{children}</LayoutContent>
           </ThemeRegistry>
         </QueryProvider>
