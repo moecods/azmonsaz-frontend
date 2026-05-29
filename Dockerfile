@@ -3,7 +3,8 @@ FROM node:22-bookworm AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry https://package-mirror.liara.ir/repository/npm/ \
+    && npm ci
 
 FROM node:22-bookworm AS builder
 
@@ -15,7 +16,8 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build:docker
+RUN npm config set registry https://package-mirror.liara.ir/repository/npm/ \
+    && npm run build:docker
 
 FROM node:22-bookworm AS runner
 
