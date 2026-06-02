@@ -1,10 +1,12 @@
-# Next.js dev in Docker (macOS)
+# Next.js dev in Docker (macOS / Linux)
 #
 # Critical: /app/.next and /app/.turbo use Docker volumes (not the Mac bind mount).
-# Without them, each compile writes through osxfs and takes 60–90+ seconds.
 #
+#   cp .env.example .env.local   # optional; or use .env below
 #   docker compose -f docker-compose.dev.yml up --build -d
 #   docker compose -f docker-compose.dev.yml logs -f next
+#
+# API on the host machine: use host.docker.internal (not 127.0.0.1 from inside the container).
 
 name: azmonsaz-frontend-dev
 
@@ -15,6 +17,8 @@ services:
       dockerfile: Dockerfile.dev
     working_dir: /app
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - .:/app:cached
       - /app/node_modules
@@ -23,8 +27,14 @@ services:
     ports:
       - "${NEXT_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8000/api}
-      # File watching on Docker Desktop for Mac
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://host.docker.internal:8000/api}
+      NEXT_PUBLIC_USE_MOCK_DATA: ${NEXT_PUBLIC_USE_MOCK_DATA:-false}
+      NEXT_PUBLIC_APP_NAME_FA: ${NEXT_PUBLIC_APP_NAME_FA:-آزمون‌افزار}
+      NEXT_PUBLIC_APP_NAME_EN: ${NEXT_PUBLIC_APP_NAME_EN:-azmonsaz}
+      NEXT_PUBLIC_REVERB_APP_KEY: ${NEXT_PUBLIC_REVERB_APP_KEY:-azmonsaz-reverb-key}
+      NEXT_PUBLIC_REVERB_HOST: ${NEXT_PUBLIC_REVERB_HOST:-host.docker.internal}
+      NEXT_PUBLIC_REVERB_PORT: ${NEXT_PUBLIC_REVERB_PORT:-8080}
+      NEXT_PUBLIC_REVERB_SCHEME: ${NEXT_PUBLIC_REVERB_SCHEME:-http}
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
       WATCHPACK_POLLING: "true"

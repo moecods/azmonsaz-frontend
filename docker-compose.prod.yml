@@ -1,11 +1,10 @@
-# Frontend-only production image (Next.js standalone).
-# Set NEXT_PUBLIC_API_URL to the public API base URL (baked in at build time).
+# Production — from this repo directory only:
+#   cp .env.prod.example .env
+#   # edit .env (URLs, Reverb host = public IP/domain for browsers)
+#   docker compose -f docker-compose.prod.yml up -d --build
 #
-# From this directory:
-#   export NEXT_PUBLIC_API_URL=https://api.example.com/api
-#   docker compose -f docker-compose.prod.yml up --build -d
-#
-# Run Postgres + Laravel from the azmonsaz repo separately.
+# Requires a file named `.env` in this directory (Compose reads it for build args).
+# Backend runs separately (azmonsaz repo).
 
 name: azmonsaz-frontend-prod
 
@@ -15,9 +14,28 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required and must point to the production API URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in .env}
+        NEXT_PUBLIC_USE_MOCK_DATA: ${NEXT_PUBLIC_USE_MOCK_DATA:-false}
+        NEXT_PUBLIC_APP_NAME_FA: ${NEXT_PUBLIC_APP_NAME_FA}
+        NEXT_PUBLIC_APP_NAME_EN: ${NEXT_PUBLIC_APP_NAME_EN:-azmonsaz}
+        NEXT_PUBLIC_REVERB_APP_KEY: ${NEXT_PUBLIC_REVERB_APP_KEY:?Set NEXT_PUBLIC_REVERB_APP_KEY in .env (same as backend REVERB_APP_KEY)}
+        NEXT_PUBLIC_REVERB_HOST: ${NEXT_PUBLIC_REVERB_HOST:?Set NEXT_PUBLIC_REVERB_HOST in .env (browser-reachable host, not reverb)}
+        NEXT_PUBLIC_REVERB_PORT: ${NEXT_PUBLIC_REVERB_PORT:-8080}
+        NEXT_PUBLIC_REVERB_SCHEME: ${NEXT_PUBLIC_REVERB_SCHEME:-http}
     restart: unless-stopped
     ports:
       - "${NEXT_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
