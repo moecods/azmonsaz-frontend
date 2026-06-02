@@ -3,8 +3,7 @@ FROM node:22-bookworm AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm config set registry https://package-mirror.liara.ir/repository/npm/ \
-    && npm ci
+RUN npm ci
 
 FROM node:22-bookworm AS builder
 
@@ -32,8 +31,7 @@ ENV NEXT_PUBLIC_REVERB_HOST=${NEXT_PUBLIC_REVERB_HOST}
 ENV NEXT_PUBLIC_REVERB_PORT=${NEXT_PUBLIC_REVERB_PORT}
 ENV NEXT_PUBLIC_REVERB_SCHEME=${NEXT_PUBLIC_REVERB_SCHEME}
 
-RUN npm config set registry https://package-mirror.liara.ir/repository/npm/ \
-    && npm run build:docker
+RUN npm run build:docker
 
 FROM node:22-bookworm AS runner
 
