@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { ExamQuestion, QuestionOption } from '@/types';
-import { isCorrectOptionId, correctAnswerIdsFromOptions } from '@/lib/option-ids';
+import { generateOptionId, isCorrectOptionId, correctAnswerIdsFromOptions } from '@/lib/option-ids';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -130,7 +130,7 @@ export default function ExamQuestionList({
       ...editForm,
       options: [
         ...editForm.options,
-        { id: crypto.randomUUID(), text: '', is_correct: false },
+        { id: generateOptionId(), text: '', is_correct: false },
       ],
     });
   };

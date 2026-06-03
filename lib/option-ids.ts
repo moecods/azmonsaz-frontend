@@ -1,4 +1,5 @@
 import { optionText } from '@/lib/question-types/normalize-question';
+import { randomUUID } from '@/lib/random-uuid';
 
 export type StoredOption = { id: string; text: string };
 
@@ -9,7 +10,7 @@ export type FormOption = {
 };
 
 export function generateOptionId(): string {
-  return crypto.randomUUID();
+  return randomUUID();
 }
 
 export function newFormOption(isCorrect = false, text = ''): FormOption {

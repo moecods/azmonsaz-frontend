@@ -8,7 +8,7 @@ import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionSchema, QuestionFormData } from '@/lib/validation';
 import { questionToFormData, payloadToFormData } from '@/lib/question-mappers';
-import { newFormOption } from '@/lib/option-ids';
+import { generateOptionId, newFormOption } from '@/lib/option-ids';
 import { OPTION_TYPE_DISPLAY_DEFAULTS } from '@/lib/question-types/display-settings';
 import type { Question } from '@/types';
 import type { QuestionCategory } from '@/types';
@@ -151,8 +151,8 @@ export function useQuestionForm({
   useEffect(() => {
     if (questionType === 'true_false') {
       const opts = questionOptions ?? [];
-      const trueId = opts[0]?.id ?? crypto.randomUUID();
-      const falseId = opts[1]?.id ?? crypto.randomUUID();
+      const trueId = opts[0]?.id ?? generateOptionId();
+      const falseId = opts[1]?.id ?? generateOptionId();
       const trueCorrect = opts.find((o) => o.text === 'صحیح')?.is_correct ?? opts[0]?.is_correct ?? true;
       setValue('options', [
         { id: trueId, text: 'صحیح', is_correct: Boolean(trueCorrect) },

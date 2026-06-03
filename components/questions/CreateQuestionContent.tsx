@@ -46,6 +46,7 @@ const QuestionTextInput = dynamic(
 );
 import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
 import { flattenFormErrors, focusFirstFormError } from '@/lib/form-errors';
+import { generateOptionId } from '@/lib/option-ids';
 import { FormValidationAlerts } from '@/components/forms/FormValidationAlerts';
 
 interface CreateQuestionContentProps {
@@ -169,7 +170,7 @@ export default function CreateQuestionContent({
   }, [questionType, questionText, blanks?.length, blanksFields]);
 
   const handleAddOption = () =>
-    optionsFields.append({ id: crypto.randomUUID(), text: '', is_correct: false });
+    optionsFields.append({ id: generateOptionId(), text: '', is_correct: false });
   const handleRemoveOption = (index: number) => {
     if (optionsFields.fields.length > 2) optionsFields.remove(index);
   };

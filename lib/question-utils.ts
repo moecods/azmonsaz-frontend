@@ -1,4 +1,5 @@
 import { ExamQuestion } from '@/types';
+import { generateOptionId } from '@/lib/option-ids';
 
 /**
  * Get question text from exam question
@@ -52,7 +53,7 @@ export function buildCustomQuestionPayload(
   if (question.custom_options && question.custom_options.length > 0) {
     payload.options = question.custom_options.map((opt) =>
       typeof opt === 'string'
-        ? { id: crypto.randomUUID(), text: opt }
+        ? { id: generateOptionId(), text: opt }
         : { id: opt.id, text: opt.text }
     );
   }

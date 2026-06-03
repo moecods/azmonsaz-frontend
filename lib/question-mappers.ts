@@ -5,7 +5,7 @@
 
 import type { Question } from '@/types';
 import type { QuestionFormData } from '@/lib/validation';
-import { mapApiOptionsToForm } from '@/lib/option-ids';
+import { generateOptionId, mapApiOptionsToForm } from '@/lib/option-ids';
 
 /**
  * Map exam question payload (from exam_questions.payload) to QuestionFormData for the edit form.
@@ -23,8 +23,8 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
       : qType === 'true_false'
         ? mapApiOptionsToForm([], correctAnswer ?? null, 'true_false')
         : [
-            { id: crypto.randomUUID(), text: '', is_correct: false },
-            { id: crypto.randomUUID(), text: '', is_correct: false },
+            { id: generateOptionId(), text: '', is_correct: false },
+            { id: generateOptionId(), text: '', is_correct: false },
           ];
 
   const items = (payload.items as QuestionFormData['items']) ?? [];
