@@ -1,8 +1,6 @@
 "use client";
 
 import { Box, Button, Stack, Typography } from "@mui/material";
-import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
-import GradeIcon from "@mui/icons-material/Grade";
 import PrintIcon from "@mui/icons-material/Print";
 import type { ExamWithParticipants } from "@/services/exams/ExamService";
 import { computeParticipantStats } from "@/lib/exam-manage-utils";
@@ -16,20 +14,14 @@ import QuizIcon from "@mui/icons-material/Quiz";
 interface ExamManageOverviewTabProps {
   exam: ExamWithParticipants;
   stats: ReturnType<typeof computeParticipantStats>;
-  onQuestions: () => void;
-  onGrading: () => void;
   onPrint: () => void;
-  canGrade: boolean;
   isOffline: boolean;
 }
 
 export function ExamManageOverviewTab({
   exam,
   stats,
-  onQuestions,
-  onGrading,
   onPrint,
-  canGrade,
   isOffline,
 }: ExamManageOverviewTabProps) {
   return (
@@ -56,24 +48,16 @@ export function ExamManageOverviewTab({
         <ExamManageStatCard icon={<CheckCircleIcon />} label="قبول‌شده" value={stats.passedCount} tone="success" />
       </Box>
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
-        <Button variant="contained" startIcon={<QuestionAnswerIcon />} onClick={onQuestions}>
-          مدیریت سوالات
-        </Button>
-        {canGrade && (
-          <Button variant="outlined" startIcon={<GradeIcon />} onClick={onGrading}>
-            تصحیح
-          </Button>
-        )}
-        {isOffline && (
+      {isOffline && (
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <Button variant="outlined" startIcon={<PrintIcon />} onClick={onPrint}>
             چاپ برگه
           </Button>
-        )}
-      </Stack>
+        </Stack>
+      )}
 
       <Typography variant="caption" color="text.secondary">
-        برای افزودن شرکت‌کننده به تب «شرکت‌کنندگان» و گزارش زنده به تب «گزارش» بروید.
+        از دکمه‌های بالای صفحه برای مدیریت سوالات و تصحیح، و از منوی بخش‌ها برای شرکت‌کنندگان، گزارش و تنظیمات استفاده کنید.
       </Typography>
     </Stack>
   );

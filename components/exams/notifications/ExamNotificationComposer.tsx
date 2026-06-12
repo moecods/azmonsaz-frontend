@@ -2,19 +2,16 @@
 
 import {
   Alert,
-  Box,
   Button,
   CircularProgress,
   Stack,
   TextField,
   Typography,
-  alpha,
-  useTheme,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ParticipantSelector from "@/components/exams/ParticipantSelector";
 import type { ParticipantOption } from "@/components/exams/ParticipantSelector";
-import { SectionCard } from "@/components/exams/participants/participant-ui-shared";
+import { ManageSectionHeader } from "@/components/exams/participants/participant-ui-shared";
 
 const MAX_MESSAGE = 500;
 
@@ -45,68 +42,66 @@ export function ExamNotificationComposer({
   onSend,
   onResetError,
 }: ExamNotificationComposerProps) {
-  const theme = useTheme();
   const canSend =
     isPublished && message.trim().length > 0 && participants.length > 0 && !isPending;
 
   return (
-    <SectionCard title="ارسال اعلان جدید" icon={<SendIcon color="primary" fontSize="small" />}>
-      <Stack spacing={2.5}>
-        {!isPublished && (
-          <Alert severity="info">
-            فقط برای آزمون‌های منتشرشده می‌توانید اعلان بفرستید. ابتدا آزمون را منتشر کنید.
-          </Alert>
-        )}
+    <Stack spacing={1.5}>
+      <ManageSectionHeader
+        title="ارسال اعلان"
+        description={
+          participants.length > 0
+            ? `${participants.length.toLocaleString("fa-IR")} شرکت‌کننده قابل انتخاب`
+            : "ابتدا شرکت‌کننده اضافه کنید"
+        }
+      />
 
-        <TextField
-          label="متن پیام"
-          multiline
-          minRows={4}
-          maxRows={8}
-          value={message}
-          onChange={(e) => onMessageChange(e.target.value.slice(0, MAX_MESSAGE))}
-          placeholder="متن اعلان را برای شرکت‌کنندگان بنویسید..."
-          fullWidth
-          helperText={`${message.length.toLocaleString("fa-IR")} / ${MAX_MESSAGE.toLocaleString("fa-IR")}`}
+      {!isPublished && (
+        <Alert severity="info" sx={{ py: 0.5 }}>
+          فقط برای آزمون‌های منتشرشده می‌توانید اعلان بفرستید.
+        </Alert>
+      )}
+
+      <TextField
+        label="متن پیام"
+        size="small"
+        multiline
+        minRows={3}
+        maxRows={6}
+        value={message}
+        onChange={(e) => onMessageChange(e.target.value.slice(0, MAX_MESSAGE))}
+        placeholder="متن اعلان را بنویسید..."
+        fullWidth
+        helperText={`${message.length.toLocaleString("fa-IR")} / ${MAX_MESSAGE.toLocaleString("fa-IR")}`}
+      />
+
+      <Stack spacing={0.75}>
+        <Typography variant="body2" fontWeight={600} color="text.secondary">
+          گیرندگان
+        </Typography>
+        <ParticipantSelector
+          participants={participants}
+          selectedIds={recipientSelection}
+          onSelectionChange={onRecipientChange}
+          disabled={isPending || !isPublished}
         />
-
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            border: 1,
-            borderColor: "divider",
-            bgcolor: alpha(theme.palette.primary.main, 0.03),
-          }}
-        >
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
-            گیرندگان
-          </Typography>
-          <ParticipantSelector
-            participants={participants}
-            selectedIds={recipientSelection}
-            onSelectionChange={onRecipientChange}
-            disabled={isPending || !isPublished}
-          />
-        </Box>
-
-        {isError && (
-          <Alert severity="error" onClose={onResetError}>
-            {errorMessage || "خطا در ارسال اعلان"}
-          </Alert>
-        )}
-
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={isPending ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
-          onClick={onSend}
-          disabled={!canSend}
-          sx={{ alignSelf: { xs: "stretch", sm: "flex-start" }, minWidth: 160 }}
-        >
-          {isPending ? "در حال ارسال..." : "ارسال اعلان"}
-        </Button>
       </Stack>
-    </SectionCard>
+
+      {isError && (
+        <Alert severity="error" onClose={onResetError} sx={{ py: 0.5 }}>
+          {errorMessage || "خطا در ارسال اعلان"}
+        </Alert>
+      )}
+
+      <Button
+        variant="contained"
+        startIcon={isPending ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
+        onClick={onSend}
+        disabled={!canSend}
+        sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+      >
+        {isPending ? "در حال ارسال..." : "ارسال اعلان"}
+      </Button>
+    </Stack>
   );
 }

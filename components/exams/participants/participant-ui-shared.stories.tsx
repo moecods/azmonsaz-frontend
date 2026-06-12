@@ -3,7 +3,9 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
 import {
   SectionCard,
-  ParticipantStatusChip,
+  ManageSectionHeader,
+  ContentPanel,
+  ParticipantStatusBadge,
   ParticipantNameCell,
   ScoreCells,
 } from './participant-ui-shared';
@@ -23,6 +25,27 @@ const meta: Meta = {
 };
 
 export default meta;
+
+export const ManageSectionFlat: StoryObj = {
+  render: () => (
+    <Box sx={{ maxWidth: 560 }}>
+      <ManageSectionHeader
+        title="شرکت‌کنندگان"
+        description="۱۲ نفر"
+        action={
+          <Button size="small" variant="contained">
+            افزودن
+          </Button>
+        }
+      />
+      <ContentPanel>
+        <Typography variant="body2" color="text.secondary">
+          محتوای لیست یا جدول — بدون header/body جدا.
+        </Typography>
+      </ContentPanel>
+    </Box>
+  ),
+};
 
 export const SectionCardDefault: StoryObj = {
   render: () => (
@@ -59,10 +82,10 @@ function makeParticipant(overrides: Partial<UserParticipant>): UserParticipant {
   };
 }
 
-export const StatusChips: StoryObj = {
+export const StatusBadges: StoryObj = {
   render: () => (
     <Stack direction="row" flexWrap="wrap" gap={1}>
-      <ParticipantStatusChip
+      <ParticipantStatusBadge
         participant={makeParticipant({
           completed_at: '2026-01-01',
           passed: true,
@@ -70,7 +93,7 @@ export const StatusChips: StoryObj = {
           total_points: 20,
         })}
       />
-      <ParticipantStatusChip
+      <ParticipantStatusBadge
         participant={makeParticipant({
           completed_at: '2026-01-01',
           passed: false,
@@ -78,16 +101,16 @@ export const StatusChips: StoryObj = {
           total_points: 20,
         })}
       />
-      <ParticipantStatusChip
+      <ParticipantStatusBadge
         participant={makeParticipant({
           started_at: '2026-01-01',
           status: 'in_progress',
         })}
       />
-      <ParticipantStatusChip
+      <ParticipantStatusBadge
         participant={makeParticipant({ status: 'absent' })}
       />
-      <ParticipantStatusChip participant={makeParticipant({})} />
+      <ParticipantStatusBadge participant={makeParticipant({})} />
     </Stack>
   ),
 };

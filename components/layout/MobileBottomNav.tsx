@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Box,
@@ -15,16 +15,15 @@ import { useAuth } from "@/hooks";
 import { useStartNavigation } from "@/components/layout/NavigationProvider";
 import UserAvatar from "@/components/ui/UserAvatar";
 import MobileMenuSheet from "@/components/layout/MobileMenuSheet";
-import NotificationBell, {
-  useNotificationUnreadCount,
-} from "@/components/notifications/NotificationBell";
+import { useNotificationUnreadCount } from "@/components/notifications/NotificationBell";
 import {
   MOBILE_BOTTOM_NAV_HEIGHT,
 } from "@/components/layout/layout-constants";
 import {
+  canManageExams,
   getActiveMobileDockTabId,
   getMenuTabIcon,
-  mobileDockTabs,
+  resolveMobileDockTabs,
   type MobileDockTab,
 } from "@/lib/mobile-bottom-nav";
 
@@ -40,33 +39,30 @@ function DockTab({
   isActive: boolean;
   icon: React.ReactNode;
   badge?: number;
-  onPress: (el: HTMLElement) => void;
-  /** No primary ring/background when active (e.g. notifications + profile cluster). */
+  onPress: () => void;
+  /** No primary ring/background when active (e.g. profile avatar). */
   hideActiveHighlight?: boolean;
 }) {
   const theme = useTheme();
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const showHighlight = isActive && !hideActiveHighlight;
 
   return (
     <Box
-      ref={buttonRef}
       component="button"
       type="button"
-      onClick={() => {
-        if (buttonRef.current) onPress(buttonRef.current);
-      }}
+      onClick={() => onPress()}
       data-cy={`nav-mobile-${tab.id}`}
       aria-expanded={tab.action === "toggle-menu" && isActive ? true : undefined}
       aria-current={tab.path && isActive ? "page" : undefined}
+      aria-label={tab.label}
       sx={{
-        flex: 1,
         minWidth: 0,
+        width: "100%",
         border: "none",
         background: "transparent",
         cursor: "pointer",
         py: 0.75,
-        px: 0.25,
+        px: 0,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -86,6 +82,7 @@ function DockTab({
           justifyContent: "center",
           width: 32,
           height: 32,
+          flexShrink: 0,
           borderRadius: "50%",
           bgcolor: showHighlight ? alpha(theme.palette.primary.main, 0.12) : "transparent",
           "& .MuiSvgIcon-root": { fontSize: 22 },
@@ -94,10 +91,12 @@ function DockTab({
         {icon}
         {badge != null && badge > 0 && (
           <Box
+            component="span"
+            aria-hidden
             sx={{
               position: "absolute",
-              top: 2,
-              left: 2,
+              top: -2,
+              left: -2,
               minWidth: 16,
               height: 16,
               px: 0.5,
@@ -109,6 +108,7 @@ function DockTab({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              lineHeight: 1,
             }}
           >
             {badge > 9 ? "9+" : badge}
@@ -121,7 +121,8 @@ function DockTab({
           fontSize: "0.65rem",
           fontWeight: showHighlight ? 700 : 500,
           lineHeight: 1.2,
-          maxWidth: "100%",
+          width: "100%",
+          textAlign: "center",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -143,45 +144,36 @@ export default function MobileBottomNav() {
   const unreadCount = useNotificationUnreadCount();
 
   const [menuExpanded, setMenuExpanded] = useState(false);
-  const [notifAnchor, setNotifAnchor] = useState<HTMLElement | null>(null);
-  const [notifOpen, setNotifOpen] = useState(false);
 
   const closeMenu = useCallback(() => setMenuExpanded(false), []);
 
   useEffect(() => {
     closeMenu();
-    setNotifOpen(false);
-    setNotifAnchor(null);
   }, [pathname, closeMenu]);
 
   if (!isMobile || !user) {
     return null;
   }
 
+  const dockTabs = resolveMobileDockTabs(user);
+  const userCanManageExams = canManageExams(user);
+
   const activeId = getActiveMobileDockTabId(pathname, {
     menuExpanded,
-    notificationsOpen: notifOpen,
+    canManageExams: userCanManageExams,
   });
 
   const navigate = (path: string) => {
     closeMenu();
-    setNotifOpen(false);
     if (path !== pathname) {
       startNavigation();
       router.push(path);
     }
   };
 
-  const handleTabPress = (tab: MobileDockTab, el: HTMLElement) => {
+  const handleTabPress = (tab: MobileDockTab) => {
     if (tab.action === "toggle-menu") {
-      setNotifOpen(false);
       setMenuExpanded((prev) => !prev);
-      return;
-    }
-    if (tab.action === "notifications") {
-      setMenuExpanded(false);
-      setNotifAnchor(el);
-      setNotifOpen(true);
       return;
     }
     if (tab.path) {
@@ -196,20 +188,12 @@ export default function MobileBottomNav() {
         <UserAvatar
           name={user?.name}
           avatarUrl={user?.avatar_url}
-          sx={{ width: 28, height: 28, fontSize: "0.7rem" }}
+          sx={{ width: 24, height: 24, fontSize: "0.65rem" }}
         />
       );
     }
     return tab.icon;
   };
-
-  const mainTabs = mobileDockTabs.filter(
-    (t) => t.id === "home" || t.id === "my-exams"
-  );
-  const accountTabs = mobileDockTabs.filter(
-    (t) => t.id === "notifications" || t.id === "profile"
-  );
-  const menuTab = mobileDockTabs.find((t) => t.id === "menu");
 
   return (
     <>
@@ -225,16 +209,6 @@ export default function MobileBottomNav() {
           }}
         />
       )}
-
-      <NotificationBell
-        hideTrigger
-        anchorEl={notifAnchor}
-        open={notifOpen}
-        onClose={() => {
-          setNotifOpen(false);
-          setNotifAnchor(null);
-        }}
-      />
 
       <Paper
         component="nav"
@@ -272,53 +246,26 @@ export default function MobileBottomNav() {
 
         <Box
           sx={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: `repeat(${dockTabs.length}, minmax(0, 1fr))`,
             alignItems: "stretch",
             minHeight: MOBILE_BOTTOM_NAV_HEIGHT,
-            maxWidth: 560,
+            maxWidth: 480,
             mx: "auto",
+            px: 0.5,
           }}
         >
-          {mainTabs.map((tab) => (
+          {dockTabs.map((tab) => (
             <DockTab
               key={tab.id}
               tab={tab}
               isActive={tab.id === activeId}
+              hideActiveHighlight={tab.id === "profile"}
               icon={resolveIcon(tab, tab.id === activeId)}
-              onPress={(el) => handleTabPress(tab, el)}
+              badge={tab.id === "notifications" ? unreadCount : undefined}
+              onPress={() => handleTabPress(tab)}
             />
           ))}
-
-          <Box
-            sx={{
-              flex: "0 0 auto",
-              display: "flex",
-              alignItems: "stretch",
-              gap: 0.25,
-            }}
-          >
-            {accountTabs.map((tab) => (
-              <Box key={tab.id} sx={{ width: 56, display: "flex" }}>
-                <DockTab
-                  tab={tab}
-                  isActive={tab.id === activeId}
-                  hideActiveHighlight
-                  icon={resolveIcon(tab, tab.id === activeId)}
-                  badge={tab.id === "notifications" ? unreadCount : undefined}
-                  onPress={(el) => handleTabPress(tab, el)}
-                />
-              </Box>
-            ))}
-          </Box>
-
-          {menuTab && (
-            <DockTab
-              tab={menuTab}
-              isActive={menuTab.id === activeId}
-              icon={resolveIcon(menuTab, menuTab.id === activeId)}
-              onPress={(el) => handleTabPress(menuTab, el)}
-            />
-          )}
         </Box>
       </Paper>
     </>

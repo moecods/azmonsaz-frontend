@@ -146,6 +146,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     );
 
     userChannel.listen(REALTIME_EVENTS.teacherExamMessage, (payload: { message?: string; exam_title?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       showToast({
         message: payload.message ?? `اعلان جدید از معلم${payload.exam_title ? ` — ${payload.exam_title}` : ''}`,
         severity: 'warning',

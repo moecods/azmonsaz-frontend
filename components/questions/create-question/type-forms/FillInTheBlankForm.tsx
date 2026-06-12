@@ -30,6 +30,13 @@ export function FillInTheBlankForm({
   const blanksError = getArrayFieldError(errors as never, "blanks");
   const [chipInput, setChipInput] = useState<Record<number, string>>({});
 
+  const addAnswer = (index: number, answers: string[]) => {
+    const t = (chipInput[index] ?? "").trim();
+    if (!t || !setValue) return;
+    setValue(`blanks.${index}.correct_answers`, [...answers, t]);
+    setChipInput((s) => ({ ...s, [index]: "" }));
+  };
+
   return (
     <Box id="field-blanks">
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
@@ -107,7 +114,7 @@ export function FillInTheBlankForm({
                 )}
               </Stack>
               {!manual && (
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
                   <TextField
                     size="small"
                     fullWidth
@@ -118,17 +125,23 @@ export function FillInTheBlankForm({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        const t = (chipInput[index] ?? "").trim();
-                        if (t && setValue) {
-                          setValue(`blanks.${index}.correct_answers`, [...answers, t]);
-                          setChipInput((s) => ({ ...s, [index]: "" }));
-                        }
+                        addAnswer(index, answers);
                       }
                     }}
-                    placeholder="پاسخ قابل قبول + Enter"
+                    placeholder="پاسخ قابل قبول"
                     error={!!blankErr}
                     helperText={blankErr}
                   />
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => addAnswer(index, answers)}
+                    disabled={!(chipInput[index] ?? "").trim()}
+                    sx={{ minWidth: 44, height: 40, flexShrink: 0, px: 1.5 }}
+                    aria-label="افزودن پاسخ"
+                  >
+                    <AddIcon fontSize="small" />
+                  </Button>
                 </Stack>
               )}
               {!manual && (

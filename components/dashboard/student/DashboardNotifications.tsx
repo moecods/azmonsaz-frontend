@@ -14,21 +14,13 @@ import {
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import type { Notification } from "@/services/notifications/NotificationService";
 import { useRouter } from "next/navigation";
-
-function notificationTitle(n: Notification): string {
-  return n.data?.title ?? n.data?.exam_title ?? "اعلان";
-}
-
-function notificationBody(n: Notification): string {
-  return n.data?.message ?? "";
-}
-
-function notificationHref(n: Notification): string | null {
-  if (n.data?.exam_id) {
-    return `/exams/${n.data.exam_id}`;
-  }
-  return null;
-}
+import { useAuth } from "@/hooks";
+import { hasPermission } from "@/lib/permissions";
+import {
+  notificationBody,
+  notificationHref,
+  notificationTitle,
+} from "@/lib/notification-display";
 
 interface DashboardNotificationsProps {
   notifications: Notification[];
@@ -37,12 +29,14 @@ interface DashboardNotificationsProps {
 /** Renders notification list only; parent shows empty state when length is 0. */
 export default function DashboardNotifications({ notifications }: DashboardNotificationsProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const canManageExams = hasPermission(user?.permissions, "view exams");
 
   return (
     <Card variant="outlined" elevation={0}>
       <List disablePadding>
         {notifications.map((n, index) => {
-          const href = notificationHref(n);
+          const href = notificationHref(n, { canManageExams });
           const isUnread = !n.read_at;
 
           return (

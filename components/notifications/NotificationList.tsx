@@ -1,61 +1,56 @@
 "use client";
 
-import {
-  Box,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  CircularProgress,
-  Button,
-  Divider,
-} from '@mui/material';
-import { useNotifications, useMarkAllNotificationsAsRead } from '@/hooks/useNotifications';
-import type { Notification } from '@/services/notifications/NotificationService';
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMarkAllNotificationsAsRead, useMarkNotificationAsRead } from "@/hooks/useNotifications";
+import { useAuth } from "@/hooks";
+import { hasPermission } from "@/lib/permissions";
+import type { Notification } from "@/services/notifications/NotificationService";
+import { NotificationRow } from "@/components/notifications/NotificationRow";
+import { notificationHref } from "@/lib/notification-display";
 
 interface NotificationListProps {
   notifications: Notification[];
   isLoading: boolean;
-  onMarkAsRead: (id: string) => void;
   onClose?: () => void;
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'همین الان';
-  if (diffMins < 60) return `${diffMins} دقیقه پیش`;
-  if (diffHours < 24) return `${diffHours} ساعت پیش`;
-  if (diffDays < 7) return `${diffDays} روز پیش`;
-  return date.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function NotificationList({
   notifications,
   isLoading,
-  onMarkAsRead,
   onClose,
 }: NotificationListProps) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const canManageExams = hasPermission(user?.permissions, "view exams");
+  const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
-  const handleItemClick = (item: Notification) => {
+  const handlePress = (item: Notification) => {
     if (!item.read_at) {
-      onMarkAsRead(item.id);
+      markAsRead.mutate(item.id);
     }
     onClose?.();
+    const href = notificationHref(item, { canManageExams });
+    if (href) router.push(href);
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 200 }}>
-      <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="subtitle1" fontWeight="bold">
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: 200, maxHeight: 420 }}>
+      <Box
+        sx={{
+          px: 2,
+          py: 1.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="subtitle1" fontWeight={700}>
           اعلان‌ها
         </Typography>
         {unreadCount > 0 && (
@@ -69,54 +64,49 @@ export default function NotificationList({
         )}
       </Box>
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
           <CircularProgress size={32} />
         </Box>
       ) : notifications.length === 0 ? (
-        <Box sx={{ py: 4, textAlign: 'center' }}>
+        <Box sx={{ py: 4, textAlign: "center" }}>
           <Typography variant="body2" color="text.secondary">
             اعلانی وجود ندارد
           </Typography>
         </Box>
       ) : (
-        <List sx={{ overflow: 'auto', flex: 1 }}>
+        <Box sx={{ overflow: "auto", flex: 1, py: 0 }}>
           {notifications.map((item) => (
-            <ListItem key={item.id} disablePadding>
-              <ListItemButton
-                onClick={() => handleItemClick(item)}
-                sx={{
-                  py: 1.5,
-                  bgcolor: item.read_at ? 'transparent' : 'action.hover',
-                }}
-              >
-                <ListItemText
-                  primary={item.data?.title || item.data?.message || 'اعلان'}
-                  secondary={
-                    <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
-                      {item.data?.message && item.data?.title && (
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          color="text.secondary"
-                          noWrap
-                          sx={{ display: 'block' }}
-                        >
-                          {item.data.message}
-                        </Typography>
-                      )}
-                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {formatRelativeTime(item.created_at)}
-                      </Typography>
-                    </Box>
-                  }
-                  primaryTypographyProps={{ fontWeight: item.read_at ? 'normal' : 'medium' }}
-                  secondaryTypographyProps={{ component: 'div' }}
-                />
-              </ListItemButton>
-            </ListItem>
+            <NotificationRow
+              key={item.id}
+              item={item}
+              compact
+              canManageExams={canManageExams}
+              autoMarkRead
+              onMarkRead={(id) => markAsRead.mutate(id)}
+              onPress={handlePress}
+            />
           ))}
-        </List>
+        </Box>
       )}
+      <Box
+        sx={{
+          borderTop: 1,
+          borderColor: "divider",
+          px: 1.5,
+          py: 1,
+          textAlign: "center",
+        }}
+      >
+        <Button
+          component={Link}
+          href="/notifications"
+          size="small"
+          fullWidth
+          onClick={() => onClose?.()}
+        >
+          مشاهده همه
+        </Button>
+      </Box>
     </Box>
   );
 }

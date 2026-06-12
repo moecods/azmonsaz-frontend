@@ -39,6 +39,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
     render(<UserSidebar open={true} onClose={mockClose} />);
 
     expect(screen.getByText('داشبورد')).toBeInTheDocument();
+    expect(screen.getByText('اعلان‌ها')).toBeInTheDocument();
     expect(screen.getByText('مدیریت آزمون‌ها')).toBeInTheDocument();
     expect(screen.getByText('ایجاد آزمون')).toBeInTheDocument();
     expect(screen.getByText('بانک سوالات')).toBeInTheDocument();
@@ -58,6 +59,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
     render(<UserSidebar open={true} onClose={mockClose} />);
 
     expect(screen.getByText('داشبورد')).toBeInTheDocument();
+    expect(screen.getByText('اعلان‌ها')).toBeInTheDocument();
     expect(screen.getByText('بانک سوالات')).toBeInTheDocument();
     // Content manager should NOT see exam management
     expect(screen.queryByText('مدیریت آزمون‌ها')).not.toBeInTheDocument();
@@ -78,6 +80,7 @@ describe('UserSidebar - Role-based Menu Items', () => {
     render(<UserSidebar open={true} onClose={mockClose} />);
 
     expect(screen.getByText('داشبورد')).toBeInTheDocument();
+    expect(screen.getByText('اعلان‌ها')).toBeInTheDocument();
     expect(screen.getByText('مدیریت آزمون‌ها')).toBeInTheDocument();
     expect(screen.getByText('ایجاد آزمون')).toBeInTheDocument();
     expect(screen.getByText('بانک سوالات')).toBeInTheDocument();

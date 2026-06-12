@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Stack } from "@mui/material";
+import { Box } from "@mui/material";
 import { useExamNotifications, useSendExamNotification } from "@/hooks/useNotifications";
 import { ExamNotificationComposer } from "@/components/exams/notifications/ExamNotificationComposer";
 import { ExamNotificationHistory } from "@/components/exams/notifications/ExamNotificationHistory";
@@ -62,7 +62,14 @@ export default function ExamNotificationsTab({
   };
 
   return (
-    <Stack spacing={2.5}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) minmax(0, 1.1fr)" },
+        gap: { xs: 2, lg: 3 },
+        alignItems: "start",
+      }}
+    >
       <ExamNotificationComposer
         message={message}
         onMessageChange={setMessage}
@@ -85,6 +92,6 @@ export default function ExamNotificationsTab({
         error={error}
         participants={participants}
       />
-    </Stack>
+    </Box>
   );
 }

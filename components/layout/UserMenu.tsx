@@ -26,7 +26,7 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import InstallAppMenuItem from "@/components/pwa/InstallAppMenuItem";
 
 export interface UserMenuProps {
-  /** Shell: account actions only (nav is in sidebar). Public navbar: includes dashboard link. */
+  /** Shell: account actions only (nav is in sidebar / mobile dock). */
   variant?: "shell" | "public";
 }
 

@@ -13,7 +13,6 @@ import {
   Container,
   Divider,
   FormControl,
-  Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -35,6 +34,7 @@ import { useQuestionSubmit } from '@/hooks/useQuestionSubmit';
 import { TypeFormRenderer } from './create-question/type-forms';
 import DisplaySettingsPanel from './create-question/DisplaySettingsPanel';
 import { QuestionTypeSelector } from './create-question/QuestionTypeSelector';
+import { DifficultySelector } from './create-question/DifficultySelector';
 import { getQuestionTypeDefaults } from '@/lib/question-types/type-defaults';
 import type { QuestionTypeId } from '@/lib/question-types/constants';
 import { QuestionPreview, type PreviewAnswer } from './create-question/QuestionPreview';
@@ -44,7 +44,7 @@ const QuestionTextInput = dynamic(
   () => import('./create-question/QuestionTextInput').then((m) => m.QuestionTextInput),
   { ssr: false, loading: () => null }
 );
-import { QUESTION_TYPE_LABELS, DIFFICULTY_CONFIG } from '@/constants/question';
+import { QUESTION_TYPE_LABELS } from '@/constants/question';
 import { flattenFormErrors, focusFirstFormError } from '@/lib/form-errors';
 import { generateOptionId } from '@/lib/option-ids';
 import { FormValidationAlerts } from '@/components/forms/FormValidationAlerts';
@@ -291,59 +291,51 @@ export default function CreateQuestionContent({
                         value={questionType}
                         onChange={handleQuestionTypeChange}
                       />
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                          <Controller
-                            name="difficulty"
-                            control={control}
-                            render={({ field }) => (
-                              <FormControl fullWidth>
-                                <InputLabel>سطح دشواری</InputLabel>
-                                <Select {...field} label="سطح دشواری">
-                                  {Object.entries(DIFFICULTY_CONFIG).map(([value, { label }]) => (
-                                    <MenuItem key={value} value={value}>
-                                      {label}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            )}
-                          />
-                        </Grid>
-                      </Grid>
-
-                      <Controller
-                        name="category_id"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl fullWidth error={!!errors.category_id}>
-                            <InputLabel>دسته‌بندی</InputLabel>
-                            <Select
-                              {...field}
-                              label="دسته‌بندی"
-                              displayEmpty
-                              value={field.value ?? 0}
-                              onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }}>
+                        <Controller
+                          name="difficulty"
+                          control={control}
+                          render={({ field }) => (
+                            <DifficultySelector value={field.value} onChange={field.onChange} />
+                          )}
+                        />
+                        <Controller
+                          name="category_id"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl
+                              size="small"
+                              error={!!errors.category_id}
+                              sx={{ width: { xs: '100%', sm: 220 }, flexShrink: 0 }}
                             >
-                              <MenuItem value={0} disabled>
-                                {categories.length === 0
-                                  ? 'در حال بارگذاری...'
-                                  : 'دسته‌بندی را انتخاب کنید'}
-                              </MenuItem>
-                              {categories.map((category) => (
-                                <MenuItem key={category.id} value={category.id}>
-                                  {category.name}
+                              <InputLabel>دسته‌بندی</InputLabel>
+                              <Select
+                                {...field}
+                                label="دسته‌بندی"
+                                displayEmpty
+                                value={field.value ?? 0}
+                                onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                              >
+                                <MenuItem value={0} disabled>
+                                  {categories.length === 0
+                                    ? 'در حال بارگذاری...'
+                                    : 'انتخاب کنید'}
                                 </MenuItem>
-                              ))}
-                            </Select>
-                            {errors.category_id && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
-                                {errors.category_id.message}
-                              </Typography>
-                            )}
-                          </FormControl>
-                        )}
-                      />
+                                {categories.map((category) => (
+                                  <MenuItem key={category.id} value={category.id}>
+                                    {category.name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.category_id && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                                  {errors.category_id.message}
+                                </Typography>
+                              )}
+                            </FormControl>
+                          )}
+                        />
+                      </Stack>
                     </Stack>
                   </SectionCard>
 

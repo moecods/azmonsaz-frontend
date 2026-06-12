@@ -17,8 +17,6 @@ import {
   TableHead,
   TableRow,
   Typography,
-  alpha,
-  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -27,7 +25,10 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import ChatIcon from "@mui/icons-material/Chat";
 import type { ExamNotificationLog } from "@/services/notifications/NotificationService";
-import { SectionCard } from "@/components/exams/participants/participant-ui-shared";
+import {
+  ContentPanel,
+  ManageSectionHeader,
+} from "@/components/exams/participants/participant-ui-shared";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, { label: string; icon: ReactNode }> = {
   exam_reminder_1d: { label: "یادآوری یک روز قبل", icon: <ScheduleIcon fontSize="small" /> },
@@ -62,81 +63,88 @@ export function ExamNotificationHistory({
   error,
   participants,
 }: ExamNotificationHistoryProps) {
-  const theme = useTheme();
-
   const getTypeInfo = (type: string) =>
     NOTIFICATION_TYPE_LABELS[type] || {
       label: type,
       icon: <NotificationsIcon fontSize="small" />,
     };
 
+  const count = notifications?.length ?? 0;
+
   return (
-    <SectionCard
-      title="تاریخچه اعلان‌ها"
-      icon={<NotificationsIcon color="primary" fontSize="small" />}
-    >
+    <Stack spacing={1.5}>
+      <ManageSectionHeader
+        title="تاریخچه"
+        description={
+          count > 0
+            ? `${count.toLocaleString("fa-IR")} اعلان ارسال‌شده`
+            : "هنوز اعلانی ارسال نشده"
+        }
+      />
+
       {isLoading ? (
-        <Box display="flex" justifyContent="center" py={5}>
-          <CircularProgress />
+        <Box display="flex" justifyContent="center" py={3}>
+          <CircularProgress size={28} />
         </Box>
       ) : error ? (
-        <Alert severity="error">
+        <Alert severity="error" sx={{ py: 0.5 }}>
           {error instanceof Error ? error.message : "خطا در بارگذاری"}
         </Alert>
       ) : !notifications || notifications.length === 0 ? (
-        <Box textAlign="center" py={5}>
-          <NotificationsIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-          <Typography variant="body2" color="text.secondary">
-            هنوز اعلانی ارسال نشده است.
-          </Typography>
-        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
+          پس از اولین ارسال، تاریخچه اینجا نمایش داده می‌شود.
+        </Typography>
       ) : (
-        <Stack spacing={1}>
-          {notifications.map((log) => {
+        <ContentPanel noPadding>
+          {notifications.map((log, index) => {
             const typeInfo = getTypeInfo(log.notification_type);
             const readCount = log.recipients.filter((r) => r.read_at).length;
             return (
               <Accordion
                 key={log.id}
                 disableGutters
+                elevation={0}
                 sx={{
-                  border: 1,
+                  bgcolor: "transparent",
+                  borderTop: index > 0 ? 1 : 0,
                   borderColor: "divider",
-                  borderRadius: "12px !important",
                   "&:before": { display: "none" },
-                  overflow: "hidden",
                 }}
               >
                 <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
+                  expandIcon={<ExpandMoreIcon fontSize="small" />}
                   sx={{
-                    px: 2,
-                    "&:hover": { bgcolor: "action.hover" },
+                    minHeight: 48,
+                    px: { xs: 1.25, sm: 1.5 },
+                    py: 0,
+                    "& .MuiAccordionSummary-content": { my: 1 },
                   }}
                 >
                   <Stack
                     direction={{ xs: "column", sm: "row" }}
-                    spacing={1}
+                    spacing={0.75}
                     alignItems={{ xs: "flex-start", sm: "center" }}
-                    sx={{ width: "100%", pr: 1 }}
+                    sx={{ width: "100%", pr: 0.5 }}
                   >
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
-                      <Box sx={{ color: "primary.main" }}>{typeInfo.icon}</Box>
-                      <Typography variant="body2" fontWeight={700}>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ color: "primary.main", display: "flex" }}>{typeInfo.icon}</Box>
+                      <Typography variant="body2" fontWeight={600} noWrap>
                         {typeInfo.label}
                       </Typography>
                     </Stack>
-                    <Stack direction="row" flexWrap="wrap" gap={0.75}>
+                    <Stack direction="row" flexWrap="wrap" gap={0.5} alignItems="center">
                       <Chip
-                        label={`${log.recipient_count.toLocaleString("fa-IR")} گیرنده`}
+                        label={`${log.recipient_count.toLocaleString("fa-IR")} نفر`}
                         size="small"
                         variant="outlined"
+                        sx={{ height: 22, fontSize: "0.7rem" }}
                       />
                       <Chip
                         label={`${readCount.toLocaleString("fa-IR")} خوانده`}
                         size="small"
                         color="success"
                         variant="outlined"
+                        sx={{ height: 22, fontSize: "0.7rem" }}
                       />
                       <Typography variant="caption" color="text.secondary">
                         {formatDateTime(log.sent_at)}
@@ -144,28 +152,15 @@ export function ExamNotificationHistory({
                     </Stack>
                   </Stack>
                 </AccordionSummary>
-                <AccordionDetails
-                  sx={{
-                    px: 2,
-                    pb: 2,
-                    bgcolor: alpha(theme.palette.primary.main, 0.02),
-                  }}
-                >
+                <AccordionDetails sx={{ px: { xs: 1.25, sm: 1.5 }, pt: 0, pb: 1.5 }}>
                   {log.message && (
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        mb: 2,
-                        borderRadius: 2,
-                        bgcolor: "background.paper",
-                        border: 1,
-                        borderColor: "divider",
-                      }}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1.25, lineHeight: 1.7, whiteSpace: "pre-wrap" }}
                     >
-                      <Typography variant="body2" sx={{ lineHeight: 1.8 }}>
-                        {log.message}
-                      </Typography>
-                    </Box>
+                      {log.message}
+                    </Typography>
                   )}
                   {log.sent_by && (
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
@@ -176,8 +171,10 @@ export function ExamNotificationHistory({
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>کاربر</TableCell>
-                          <TableCell align="center">وضعیت</TableCell>
+                          <TableCell sx={{ py: 0.75, fontWeight: 600 }}>کاربر</TableCell>
+                          <TableCell align="center" sx={{ py: 0.75, fontWeight: 600 }}>
+                            وضعیت
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -186,18 +183,24 @@ export function ExamNotificationHistory({
                           const name = participant?.user?.name ?? `کاربر ${r.user_id}`;
                           return (
                             <TableRow key={r.user_id}>
-                              <TableCell>{name}</TableCell>
-                              <TableCell align="center">
+                              <TableCell sx={{ py: 0.75 }}>{name}</TableCell>
+                              <TableCell align="center" sx={{ py: 0.75 }}>
                                 {r.read_at ? (
                                   <Chip
-                                    icon={<CheckCircleIcon />}
-                                    label="خوانده شده"
+                                    icon={<CheckCircleIcon sx={{ fontSize: "14px !important" }} />}
+                                    label="خوانده"
                                     size="small"
                                     color="success"
                                     variant="outlined"
+                                    sx={{ height: 22, fontSize: "0.7rem" }}
                                   />
                                 ) : (
-                                  <Chip label="خوانده نشده" size="small" variant="outlined" />
+                                  <Chip
+                                    label="خوانده نشده"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ height: 22, fontSize: "0.7rem" }}
+                                  />
                                 )}
                               </TableCell>
                             </TableRow>
@@ -210,8 +213,8 @@ export function ExamNotificationHistory({
               </Accordion>
             );
           })}
-        </Stack>
+        </ContentPanel>
       )}
-    </SectionCard>
+    </Stack>
   );
 }

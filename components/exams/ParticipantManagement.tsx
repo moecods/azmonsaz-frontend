@@ -344,7 +344,7 @@ export default function ParticipantManagement({
   };
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.5}>
       <ParticipantListSection
         participants={participants}
         isDescriptiveGrading={isDescriptiveGrading}

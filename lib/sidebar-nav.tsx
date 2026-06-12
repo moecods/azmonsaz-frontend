@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import QuizIcon from "@mui/icons-material/Quiz";
 import GroupIcon from "@mui/icons-material/Group";
@@ -83,6 +84,12 @@ export const sidebarNavSections: SidebarNavSection[] = [
   {
     id: "account",
     items: [
+      {
+        label: "اعلان‌ها",
+        icon: <NotificationsIcon />,
+        path: "/notifications",
+        description: "پیام‌ها و یادآوری‌ها",
+      },
       {
         label: "پروفایل",
         icon: <PersonIcon />,

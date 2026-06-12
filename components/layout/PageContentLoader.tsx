@@ -13,7 +13,7 @@ interface PageContentLoaderProps {
 
 /**
  * Shows loading only in the main content area — sidebar stays interactive.
- * Background fetches use the sticky bar at the top of main (below navbar).
+ * Background fetches use the sticky bar at the top of main content.
  */
 export default function PageContentLoader({
   isLoading,

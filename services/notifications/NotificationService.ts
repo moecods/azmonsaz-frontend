@@ -10,6 +10,8 @@ export interface Notification {
   type: string;
   data: {
     exam_id?: number;
+    group_id?: number;
+    group_name?: string;
     notification_type?: string;
     title?: string;
     message?: string;
@@ -17,6 +19,7 @@ export interface Notification {
     exam_start_at?: string;
     sent_by?: number;
     sent_by_name?: string;
+    exam_notification_log_id?: number;
   };
   read_at: string | null;
   created_at: string;
@@ -38,15 +41,35 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface NotificationListParams {
+  per_page?: number;
+  page?: number;
+  unread_only?: boolean;
+}
+
+export interface SendBroadcastPayload {
+  message: string;
+  title?: string;
+  recipient_ids?: number[] | "all";
+  send_to_all?: boolean;
+}
+
+export interface SendGroupMessagePayload {
+  message: string;
+  recipient_ids?: number[] | "all";
+  send_to_all?: boolean;
+}
+
 export class NotificationService {
   constructor(private apiClient: ApiClient) {}
 
-  async getNotifications(params?: { per_page?: number; page?: number }): Promise<ApiResponse<NotificationsResponse>> {
+  async getNotifications(params?: NotificationListParams): Promise<ApiResponse<NotificationsResponse>> {
     const searchParams = new URLSearchParams();
-    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
-    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.per_page) searchParams.set("per_page", String(params.per_page));
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.unread_only) searchParams.set("unread_only", "1");
     const query = searchParams.toString();
-    const url = query ? `/notifications?${query}` : '/notifications';
+    const url = query ? `/notifications?${query}` : "/notifications";
     return this.apiClient.get<NotificationsResponse>(url);
   }
 
@@ -67,6 +90,17 @@ export class NotificationService {
     data: { message: string; recipient_ids?: number[]; send_to_all?: boolean }
   ): Promise<ApiResponse<{ sent_count: number }>> {
     return this.apiClient.post<{ sent_count: number }>(`/exams/${examId}/notifications`, data);
+  }
+
+  async sendAdminBroadcast(data: SendBroadcastPayload): Promise<ApiResponse<{ sent_count: number }>> {
+    return this.apiClient.post<{ sent_count: number }>("/notifications/broadcast", data);
+  }
+
+  async sendGroupMessage(
+    groupId: number,
+    data: SendGroupMessagePayload
+  ): Promise<ApiResponse<{ sent_count: number }>> {
+    return this.apiClient.post<{ sent_count: number }>(`/groups/${groupId}/notifications`, data);
   }
 }
 

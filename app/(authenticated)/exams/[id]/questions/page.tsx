@@ -22,12 +22,15 @@ import {
   DialogActions,
   Snackbar,
   TextField,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -44,6 +47,8 @@ import { useExam, useUpdateExamQuestion, useDeleteExamQuestion } from '@/hooks/u
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import EditIcon from '@mui/icons-material/Edit';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -70,7 +75,6 @@ import {
   wouldExceedExamMaxScore,
   type ExamWithGrading,
 } from '@/lib/exam-points';
-import {ArrowRightIcon} from "@mui/x-date-pickers";
 
 interface SortableQuestionItemProps {
   question: ExamQuestion;
@@ -83,6 +87,11 @@ interface SortableQuestionItemProps {
   onUpdatePoints: (question: ExamQuestion, points: number) => void;
   onPointsRejected: (message: string) => void;
   onEdit: (question: ExamQuestion) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  showMobileReorder?: boolean;
   isDeleting: boolean;
   isUpdating: boolean;
 }
@@ -98,6 +107,11 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
   onUpdatePoints,
   onPointsRejected,
   onEdit,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  showMobileReorder,
   isDeleting,
   isUpdating,
 }: SortableQuestionItemProps) {
@@ -149,40 +163,72 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
       style={style}
       variant="outlined"
       sx={{
-        mb: 2,
+        mb: { xs: 1, sm: 2 },
         border: isDragging ? '2px dashed' : '1px solid',
         borderColor: isDragging ? 'primary.main' : 'divider',
         backgroundColor: isDragging ? 'action.hover' : 'background.paper',
         transition: 'all 0.2s ease-in-out',
       }}
     >
-      <CardContent>
-        <Stack spacing={2}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
-              <Box
-                {...attributes}
-                {...listeners}
-                sx={{
-                  cursor: isDragging ? 'grabbing' : 'grab',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'primary.main',
-                  },
-                }}
-              >
-                <DragHandleIcon />
-              </Box>
+      <CardContent sx={{ p: { xs: 1.25, sm: 2 }, '&:last-child': { pb: { xs: 1.25, sm: 2 } } }}>
+        <Stack spacing={{ xs: 1, sm: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={0.5}>
+            <Stack direction="row" spacing={0.75} alignItems="flex-start" sx={{ flex: 1, minWidth: 0 }}>
+              <Stack spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
+                {showMobileReorder && (
+                  <Stack spacing={0}>
+                    <Tooltip title="انتقال به بالا">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={onMoveUp}
+                          disabled={!canMoveUp || isUpdating}
+                          aria-label="انتقال به بالا"
+                        >
+                          <KeyboardArrowUpIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="انتقال به پایین">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={onMoveDown}
+                          disabled={!canMoveDown || isUpdating}
+                          aria-label="انتقال به پایین"
+                        >
+                          <KeyboardArrowDownIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                )}
+                <Box
+                  {...attributes}
+                  {...listeners}
+                  sx={{
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    touchAction: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'text.secondary',
+                    p: 0.25,
+                    '&:hover': {
+                      color: 'primary.main',
+                    },
+                  }}
+                >
+                  <DragHandleIcon fontSize="small" />
+                </Box>
+              </Stack>
               <Box sx={{ flex: 1 }}>
                 <Stack
                     direction="row"
                     alignItems="center"
                     sx={{
-                      mb: 1,
-                      gap: 1, // Adds spacing in both directions (row and column)
-                      flexWrap: 'wrap' // Ensures items wrap to next line on mobile
+                      mb: 0.5,
+                      gap: 0.5,
+                      flexWrap: 'wrap',
                     }}
                 >
                   <Chip
@@ -288,6 +334,8 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
 function ExamQuestionsContent() {
   const params = useParams();
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const examId = params?.id ? parseInt(params.id as string) : null;
   const { viewMode, setViewMode, hydrated } = useExamQuestionsViewMode();
 
@@ -306,10 +354,92 @@ function ExamQuestionsContent() {
   const deleteQuestionMutation = useDeleteExamQuestion();
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
+  );
+
+  const persistReorder = useCallback(
+    (oldIndex: number, newIndex: number, newQuestions: ExamQuestion[]) => {
+      if (!examId || oldIndex === newIndex) return;
+
+      if (dragUpdateTimeoutRef.current) {
+        clearTimeout(dragUpdateTimeoutRef.current);
+      }
+
+      dragUpdateTimeoutRef.current = setTimeout(() => {
+        const startIndex = Math.min(oldIndex, newIndex);
+        const endIndex = Math.max(oldIndex, newIndex);
+
+        const updates: Array<{ questionId: number; payload: Record<string, unknown> }> = [];
+        for (let i = startIndex; i <= endIndex; i++) {
+          const question = newQuestions[i];
+          const newOrder = i + 1;
+          const currentOrder = question.payload?.order;
+
+          if (currentOrder !== newOrder) {
+            updates.push({
+              questionId: question.id,
+              payload: {
+                ...question.payload,
+                order: newOrder,
+              },
+            });
+          }
+        }
+
+        if (updates.length > 0) {
+          let completedCount = 0;
+          let hasError = false;
+
+          updates.forEach((update) => {
+            updateQuestionMutation.mutate(
+              {
+                examId: examId!,
+                questionId: update.questionId,
+                data: { payload: update.payload },
+              },
+              {
+                onSuccess: () => {
+                  completedCount++;
+                  if (completedCount === updates.length && !hasError) {
+                    setSnackbar({
+                      open: true,
+                      message: 'ترتیب سوالات با موفقیت به‌روزرسانی شد',
+                      severity: 'success',
+                    });
+                  }
+                },
+                onError: (error) => {
+                  if (!hasError) {
+                    hasError = true;
+                    handleError(error, { context: 'Update Question Order' });
+                    setSnackbar({
+                      open: true,
+                      message: 'خطا در به‌روزرسانی ترتیب سوالات',
+                      severity: 'error',
+                    });
+                  }
+                },
+              }
+            );
+          });
+        }
+      }, 500);
+    },
+    [examId, updateQuestionMutation]
+  );
+
+  const applyReorder = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+      const newQuestions = arrayMove(questions, oldIndex, newIndex);
+      setQuestions(newQuestions);
+      persistReorder(oldIndex, newIndex, newQuestions);
+    },
+    [questions, persistReorder]
   );
 
   // Update local state when exam data loads
@@ -371,81 +501,19 @@ function ExamQuestionsContent() {
     const oldIndex = questions.findIndex((q) => q.id === active.id);
     const newIndex = questions.findIndex((q) => q.id === over.id);
 
-    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-      const newQuestions = arrayMove(questions, oldIndex, newIndex);
-      setQuestions(newQuestions);
-
-      // Clear any pending timeout
-      if (dragUpdateTimeoutRef.current) {
-        clearTimeout(dragUpdateTimeoutRef.current);
-      }
-
-      // Debounce backend updates to avoid too many requests
-      dragUpdateTimeoutRef.current = setTimeout(() => {
-        // Only update questions that actually changed position
-        // Calculate the range of affected questions
-        const startIndex = Math.min(oldIndex, newIndex);
-        const endIndex = Math.max(oldIndex, newIndex);
-        
-        // Collect all updates that need to be made
-        const updates: Array<{ questionId: number; payload: Record<string, unknown> }> = [];
-        for (let i = startIndex; i <= endIndex; i++) {
-          const question = newQuestions[i];
-          const newOrder = i + 1;
-          const currentOrder = question.payload?.order;
-          
-          if (currentOrder !== newOrder) {
-            updates.push({
-              questionId: question.id,
-              payload: {
-                ...question.payload,
-                order: newOrder,
-              },
-            });
-          }
-        }
-
-        // Apply all updates
-        if (updates.length > 0) {
-          let completedCount = 0;
-          let hasError = false;
-
-          updates.forEach((update) => {
-            updateQuestionMutation.mutate(
-              {
-                examId: examId!,
-                questionId: update.questionId,
-                data: { payload: update.payload },
-              },
-              {
-                onSuccess: () => {
-                  completedCount++;
-                  if (completedCount === updates.length && !hasError) {
-                    setSnackbar({
-                      open: true,
-                      message: 'ترتیب سوالات با موفقیت به‌روزرسانی شد',
-                      severity: 'success',
-                    });
-                  }
-                },
-                onError: (error) => {
-                  if (!hasError) {
-                    hasError = true;
-                    handleError(error, { context: 'Update Question Order' });
-                    setSnackbar({
-                      open: true,
-                      message: 'خطا در به‌روزرسانی ترتیب سوالات',
-                      severity: 'error',
-                    });
-                  }
-                },
-              }
-            );
-          });
-        }
-      }, 500); // 500ms debounce
+    if (oldIndex !== -1 && newIndex !== -1) {
+      applyReorder(oldIndex, newIndex);
     }
-  }, [questions, examId, updateQuestionMutation]);
+  }, [questions, examId, applyReorder]);
+
+  const handleMoveQuestion = useCallback(
+    (index: number, direction: 'up' | 'down') => {
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= questions.length) return;
+      applyReorder(index, newIndex);
+    },
+    [questions.length, applyReorder]
+  );
 
   const examForPoints = examWithQuestions as ExamWithGrading | undefined;
   const defaultPoints = getDefaultQuestionPoints(examForPoints);
@@ -602,8 +670,8 @@ function ExamQuestionsContent() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Stack spacing={4}>
+    <Container maxWidth="xl" sx={{ py: { xs: 1.5, md: 4 }, px: { xs: 1.5, sm: 3 } }}>
+      <Stack spacing={{ xs: 2, md: 4 }}>
         <Breadcrumb items={[
           { label: 'مدیریت آزمون‌ها', href: '/exams' },
           { label: examWithQuestions.title, href: `/exams/${examId}` },
@@ -644,20 +712,19 @@ function ExamQuestionsContent() {
         )}
 
         {/* Exam questions list (top) */}
-        <Card>
-              <CardContent>
-                <Stack spacing={3}>
+        <Card variant="outlined" sx={{ overflow: 'visible' }}>
+              <CardContent sx={{ p: { xs: 1.5, sm: 3 }, '&:last-child': { pb: { xs: 1.5, sm: 3 } } }}>
+                <Stack spacing={{ xs: 1.5, sm: 3 }}>
                   <Box>
-                    <Typography variant="h6" gutterBottom>
+                    <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                       سوالات آزمون
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                       {questions.length} سوال • مجموع بارم: {totalPoints}
                       {examMaxScore != null ? ` / ${examMaxScore}` : ''}
                       {' • '}
                       آسان: {difficultyStats.easy}، متوسط: {difficultyStats.medium}، سخت: {difficultyStats.hard}
-                      {' • '}
-                      برای تغییر ترتیب، سوالات را بکشید و رها کنید
+                      {!isMobile && ' • برای تغییر ترتیب، سوالات را بکشید و رها کنید'}
                     </Typography>
                   </Box>
 
@@ -706,6 +773,11 @@ function ExamQuestionsContent() {
                             onUpdatePoints={handleUpdatePoints}
                             onPointsRejected={rejectPointsOverflow}
                             onEdit={handleEditQuestion}
+                            onMoveUp={() => handleMoveQuestion(index, 'up')}
+                            onMoveDown={() => handleMoveQuestion(index, 'down')}
+                            canMoveUp={index > 0}
+                            canMoveDown={index < questions.length - 1}
+                            showMobileReorder={isMobile}
                             isDeleting={deleteQuestionMutation.isPending}
                             isUpdating={updateQuestionMutation.isPending}
                           />
@@ -724,9 +796,14 @@ function ExamQuestionsContent() {
                         </Alert>
                       )}
 
-                      <Alert severity="info" icon={<DragHandleIcon />}>
+                      <Alert severity="info" icon={<DragHandleIcon />} sx={{ display: { xs: 'none', sm: 'flex' } }}>
                         برای تغییر ترتیب سوالات، روی آیکون دستگیره کلیک کرده و سوال را به موقعیت مورد نظر بکشید
                       </Alert>
+                      {isMobile && (
+                        <Alert severity="info" sx={{ py: 0.75 }}>
+                          برای تغییر ترتیب از دکمه‌های بالا/پایین یا دستگیره استفاده کنید
+                        </Alert>
+                      )}
                     </>
                   )}
                 </Stack>

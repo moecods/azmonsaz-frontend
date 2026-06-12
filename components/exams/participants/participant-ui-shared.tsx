@@ -1,9 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Box, Chip, Stack, Typography } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
+import { Box, Stack, Typography, alpha, useTheme } from "@mui/material";
 import GroupIcon from "@mui/icons-material/Group";
 import SearchIcon from "@mui/icons-material/Search";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -51,13 +49,19 @@ export const PARTICIPANT_ADD_METHODS: ReadonlyArray<{
   },
 ];
 
-export function ParticipantNameCell({ user }: { user: ExamUser | null | undefined }) {
+export function ParticipantNameCell({
+  user,
+  compact,
+}: {
+  user: ExamUser | null | undefined;
+  compact?: boolean;
+}) {
   const name = user?.name || "—";
   const email = user?.email;
   const nationalId = user?.national_id;
-  if (!email && !nationalId) {
+  if (compact || (!email && !nationalId)) {
     return (
-      <Typography variant="body2" fontWeight={600}>
+      <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: "100%" }}>
         {name}
       </Typography>
     );
@@ -74,25 +78,70 @@ export function ParticipantNameCell({ user }: { user: ExamUser | null | undefine
   );
 }
 
-export function ParticipantStatusChip({ participant }: { participant: UserParticipant }) {
+type StatusTone = "success" | "error" | "warning" | "info" | "default";
+
+function getParticipantStatus(participant: UserParticipant): { label: string; tone: StatusTone } {
   if (participant.completed_at) {
-    return (
-      <Chip
-        icon={participant.passed ? <CheckCircleIcon /> : <CancelIcon />}
-        label={participant.passed ? "قبول" : "رد"}
-        color={participant.passed ? "success" : "error"}
-        size="small"
-        variant="outlined"
-      />
-    );
+    return participant.passed
+      ? { label: "قبول", tone: "success" }
+      : { label: "رد", tone: "error" };
   }
-  if (participant.status === "absent") {
-    return <Chip label="غیبت" color="error" size="small" variant="outlined" />;
+  if (participant.status === "absent") return { label: "غیبت", tone: "error" };
+  if (participant.started_at) return { label: "در حال انجام", tone: "warning" };
+  return { label: "ثبت‌نام", tone: "info" };
+}
+
+export function ParticipantStatusBadge({ participant }: { participant: UserParticipant }) {
+  const theme = useTheme();
+  const { label, tone } = getParticipantStatus(participant);
+  const color =
+    tone === "default" ? theme.palette.text.secondary : theme.palette[tone].main;
+
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.6,
+        px: 1,
+        py: 0.35,
+        borderRadius: 10,
+        bgcolor: alpha(color, 0.1),
+        color,
+        flexShrink: 0,
+      }}
+    >
+      <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
+      <Typography variant="caption" fontWeight={700} lineHeight={1.2}>
+        {label}
+      </Typography>
+    </Box>
+  );
+}
+
+/** @deprecated Use ParticipantStatusBadge */
+export function ParticipantStatusChip({ participant }: { participant: UserParticipant }) {
+  return <ParticipantStatusBadge participant={participant} />;
+}
+
+export function formatParticipantScore(
+  participant: UserParticipant,
+  isDescriptive: boolean
+): { primary: string; secondary?: string } {
+  if (isDescriptive) {
+    const numeric =
+      participant.scaled_score != null
+        ? String(participant.scaled_score)
+        : participant.score !== null && participant.total_points !== null
+          ? `${participant.score}/${participant.total_points}`
+          : "—";
+    const label = participant.outcome_label;
+    return label ? { primary: numeric, secondary: label } : { primary: numeric };
   }
-  if (participant.started_at) {
-    return <Chip label="در حال انجام" color="warning" size="small" variant="outlined" />;
+  if (participant.score !== null && participant.total_points !== null) {
+    return { primary: `${participant.score}/${participant.total_points}` };
   }
-  return <Chip label="ثبت‌نام شده" color="info" size="small" variant="outlined" />;
+  return { primary: "—" };
 }
 
 export function ScoreCells({
@@ -102,26 +151,71 @@ export function ScoreCells({
   participant: UserParticipant;
   isDescriptive: boolean;
 }) {
-  if (isDescriptive) {
-    const numeric =
-      participant.scaled_score != null
-        ? String(participant.scaled_score)
-        : participant.score !== null && participant.total_points !== null
-          ? `${participant.score} / ${participant.total_points}`
-          : "—";
+  const score = formatParticipantScore(participant, isDescriptive);
+  if (isDescriptive && score.secondary) {
     return (
       <>
-        <Typography variant="body2">{numeric}</Typography>
-        <Typography variant="body2">{participant.outcome_label || "—"}</Typography>
+        <Typography variant="body2">{score.primary}</Typography>
+        <Typography variant="body2">{score.secondary}</Typography>
       </>
     );
   }
+  return <Typography variant="body2">{score.primary}</Typography>;
+}
+
+export function ManageSectionHeader({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
   return (
-    <Typography variant="body2">
-      {participant.score !== null && participant.total_points !== null
-        ? `${participant.score} / ${participant.total_points}`
-        : "—"}
-    </Typography>
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      alignItems={{ xs: "stretch", sm: "center" }}
+      justifyContent="space-between"
+      spacing={1}
+      sx={{ mb: { xs: 1, sm: 1.5 } }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.35 }}>
+          {title}
+        </Typography>
+        {description && (
+          <Typography variant="caption" color="text.secondary">
+            {description}
+          </Typography>
+        )}
+      </Box>
+      {action}
+    </Stack>
+  );
+}
+
+/** Bordered content area without header bar (tables, lists). */
+export function ContentPanel({
+  children,
+  noPadding,
+}: {
+  children: ReactNode;
+  noPadding?: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        border: 1,
+        borderColor: "divider",
+        borderRadius: 2,
+        overflow: "hidden",
+        bgcolor: "background.paper",
+        ...(noPadding ? undefined : { p: { xs: 1.5, sm: 2 } }),
+      }}
+    >
+      {children}
+    </Box>
   );
 }
 

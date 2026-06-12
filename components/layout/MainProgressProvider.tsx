@@ -36,7 +36,7 @@ const DataProgressContext = createContext<{
 }>({ setDataProgress: () => {} });
 
 /**
- * Registers page-level loading on the sticky bar at the top of main (below navbar).
+ * Registers page-level loading on the sticky bar at the top of main content.
  */
 export function useMainProgress(input: DataProgressInput | null | undefined) {
   const { setDataProgress } = useContext(DataProgressContext);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { IconButton, Badge, Popover } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import { useNotifications, useMarkNotificationAsRead } from "@/hooks/useNotifications";
+import { useNotifications } from "@/hooks/useNotifications";
 import NotificationList from "./NotificationList";
 
 export interface NotificationBellProps {
@@ -26,7 +26,6 @@ export default function NotificationBell({
   const anchorEl = isControlled ? (controlledAnchor ?? null) : internalAnchor;
   const open = isControlled ? Boolean(controlledOpen) : Boolean(internalAnchor);
   const { data, isLoading } = useNotifications({ per_page: 15 });
-  const markAsRead = useMarkNotificationAsRead();
 
   const unreadCount = data?.data?.filter((n) => !n.read_at).length ?? 0;
 
@@ -79,7 +78,6 @@ export default function NotificationBell({
         <NotificationList
           notifications={data?.data ?? []}
           isLoading={isLoading}
-          onMarkAsRead={(id) => markAsRead.mutate(id)}
           onClose={handleClose}
         />
       </Popover>

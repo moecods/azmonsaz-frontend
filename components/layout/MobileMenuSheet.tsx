@@ -18,7 +18,7 @@ import {
   sidebarMenuItems,
   type SidebarMenuItem,
 } from "@/lib/sidebar-nav";
-import { mobileDockQuickPaths } from "@/lib/mobile-bottom-nav";
+import { getMobileDockQuickPaths } from "@/lib/mobile-bottom-nav";
 
 interface MobileMenuSheetProps {
   onNavigate?: () => void;
@@ -131,11 +131,14 @@ function GridNavTile({
   );
 }
 
-function buildGridRows(sections: ReturnType<typeof getVisibleSidebarSections>): GridRow[] {
+function buildGridRows(
+  sections: ReturnType<typeof getVisibleSidebarSections>,
+  quickPaths: Set<string>
+): GridRow[] {
   const rows: GridRow[] = [];
 
   for (const section of sections) {
-    const items = section.items.filter((item) => !mobileDockQuickPaths.has(item.path));
+    const items = section.items.filter((item) => !quickPaths.has(item.path));
     if (items.length === 0) continue;
 
     if (section.label) {
@@ -163,7 +166,8 @@ export default function MobileMenuSheet({ onNavigate }: MobileMenuSheetProps) {
 
   const sections = useMemo(() => getVisibleSidebarSections(user), [user]);
   const flatItems = useMemo(() => sections.flatMap((s) => s.items), [sections]);
-  const gridRows = useMemo(() => buildGridRows(sections), [sections]);
+  const quickPaths = useMemo(() => getMobileDockQuickPaths(user), [user]);
+  const gridRows = useMemo(() => buildGridRows(sections, quickPaths), [sections, quickPaths]);
 
   const activePath = useMemo(
     () => resolveActiveMenuPath(pathname, flatItems),

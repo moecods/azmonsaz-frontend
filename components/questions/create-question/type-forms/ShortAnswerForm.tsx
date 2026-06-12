@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Box,
+  Button,
   TextField,
   Stack,
   Chip,
@@ -10,6 +11,7 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { Controller } from "react-hook-form";
 import type { TypeFormProps } from "./types";
 import { getNestedErrorMessage } from "./form-error-utils";
@@ -53,17 +55,27 @@ export function ShortAnswerForm({ control, errors, setValue, watch }: TypeFormPr
           <Typography variant="body2" color="text.secondary">
             پاسخ‌های قابل قبول (مترادف‌ها)
           </Typography>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
             <TextField
               size="small"
               fullWidth
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAnswer())}
-              placeholder="پاسخ را بنویسید و Enter بزنید"
+              placeholder="پاسخ قابل قبول"
               error={!!getNestedErrorMessage(errors as never, "correct_answers")}
               helperText={getNestedErrorMessage(errors as never, "correct_answers")}
             />
+            <Button
+              size="small"
+              variant="contained"
+              onClick={addAnswer}
+              disabled={!input.trim()}
+              sx={{ minWidth: 44, height: 40, flexShrink: 0, px: 1.5 }}
+              aria-label="افزودن پاسخ"
+            >
+              <AddIcon fontSize="small" />
+            </Button>
           </Stack>
           <Stack direction="row" flexWrap="wrap" gap={0.5}>
             {answers.map((a, i) => (

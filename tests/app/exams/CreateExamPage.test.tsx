@@ -10,6 +10,13 @@ import { createTheme } from '@mui/material/styles';
 
 const testTheme = createTheme({ direction: 'rtl' });
 
+vi.mock('next/dynamic', async () => {
+  const { ExamFormWizard } = await import('@/components/exams/ExamFormWizard');
+  return {
+    default: () => ExamFormWizard,
+  };
+});
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   usePathname: vi.fn(() => '/'),

@@ -4,11 +4,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '@/services';
+import type { Notification } from '@/services/notifications/NotificationService';
 import { queryKeys } from '@/lib/query-client';
 import { useIsAuthenticated } from './useAuth';
 
 export function useNotifications(
-  params?: { per_page?: number; page?: number },
+  params?: { per_page?: number; page?: number; unread_only?: boolean },
   options?: { enabled?: boolean }
 ) {
   const hasToken = useIsAuthenticated();
@@ -39,7 +40,28 @@ export function useMarkNotificationAsRead() {
         throw new Error(response.message || 'Failed to mark as read');
       }
     },
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const snapshots = queryClient.getQueriesData<{ data: Notification[]; meta: unknown }>({
+        queryKey: ['notifications'],
+      });
+      snapshots.forEach(([key, data]) => {
+        if (!data?.data) return;
+        queryClient.setQueryData(key, {
+          ...data,
+          data: data.data.map((n) =>
+            n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n
+          ),
+        });
+      });
+      return { snapshots };
+    },
+    onError: (_err, _id, context) => {
+      context?.snapshots.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
@@ -89,6 +111,41 @@ export function useMarkAllNotificationsAsRead() {
       if (!response.success) {
         throw new Error(response.message || 'Failed to mark all as read');
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useSendAdminBroadcast() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Parameters<typeof notificationService.sendAdminBroadcast>[0]) => {
+      const response = await notificationService.sendAdminBroadcast(data);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to send notification');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useSendGroupMessage(groupId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: Parameters<typeof notificationService.sendGroupMessage>[1]) => {
+      if (!groupId) throw new Error('Group ID required');
+      const response = await notificationService.sendGroupMessage(groupId, data);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to send notification');
+      }
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

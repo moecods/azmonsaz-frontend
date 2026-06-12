@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -9,8 +9,6 @@ import {
   Button,
   CircularProgress,
   Stack,
-  Tab,
-  Tabs,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -41,12 +39,12 @@ import {
   type ExamManageConfirmAction,
 } from "@/components/exams/manage/ExamManageConfirmDialogs";
 import { ExamReportsTab } from "@/components/exams/reports/ExamReportsTab";
+import { ExamManageLayout, ExamManageNav } from "@/components/exams/manage/ExamManageNav";
 import { computeParticipantStats } from "@/lib/exam-manage-utils";
 import { getExamCapabilities } from "@/lib/exam-capabilities";
 import {
-  examManageIndexFromTab,
-  examManageTabFromIndex,
   parseExamManageTab,
+  type ExamManageTab,
 } from "@/lib/exam-manage-tabs";
 
 function ExamManageContent() {
@@ -56,8 +54,8 @@ function ExamManageContent() {
   const queryClient = useQueryClient();
   const examId = params?.id ? parseInt(params.id as string, 10) : null;
 
-  const [tabIndex, setTabIndex] = useState(() =>
-    examManageIndexFromTab(parseExamManageTab(searchParams.get("tab")))
+  const [activeTab, setActiveTab] = useState<ExamManageTab>(() =>
+    parseExamManageTab(searchParams.get("tab"))
   );
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmAction, setConfirmAction] = useState<ExamManageConfirmAction>(null);
@@ -69,7 +67,6 @@ function ExamManageContent() {
 
   const { data: exam, isLoading, error } = useExamWithParticipants(examId);
   const caps = exam ? getExamCapabilities(exam) : null;
-  const reportsTab = caps?.can_view_reports && tabIndex === 2;
 
   useEffect(() => {
     if (!exam) return;
@@ -77,10 +74,10 @@ function ExamManageContent() {
     if (tab === "reports" && !getExamCapabilities(exam).can_view_reports) {
       tab = "overview";
     }
-    setTabIndex(examManageIndexFromTab(tab));
+    setActiveTab(tab);
   }, [searchParams, exam]);
 
-  useExamRealtime(examId, { grading: true, reports: reportsTab });
+  useExamRealtime(examId, { grading: true, reports: activeTab === "reports" });
 
   const publishExamMutation = usePublishExam();
   const unpublishExamMutation = useUnpublishExam();
@@ -93,14 +90,48 @@ function ExamManageContent() {
     setToast({ open: true, message, severity });
   };
 
-  const handleTabChange = (_: React.SyntheticEvent, newIndex: number) => {
-    setTabIndex(newIndex);
+  const handleSelectTab = (tab: ExamManageTab) => {
+    setActiveTab(tab);
     if (examId) {
-      router.replace(`/exams/${examId}?tab=${examManageTabFromIndex(newIndex)}`, {
-        scroll: false,
-      });
+      router.replace(`/exams/${examId}?tab=${tab}`, { scroll: false });
     }
   };
+
+  const navItems = useMemo(
+    () =>
+      caps
+        ? [
+            { tab: "overview" as const, label: "خلاصه", icon: <DashboardIcon fontSize="small" /> },
+            {
+              tab: "participants" as const,
+              label: "شرکت‌کنندگان",
+              icon: <PeopleIcon fontSize="small" />,
+              "data-cy": "exam-tab-participants",
+            },
+            ...(caps.can_view_reports
+              ? [
+                  {
+                    tab: "reports" as const,
+                    label: "گزارش",
+                    icon: <AssessmentIcon fontSize="small" />,
+                    "data-cy": "exam-tab-reports",
+                  },
+                ]
+              : []),
+            {
+              tab: "notifications" as const,
+              label: "اعلان‌ها",
+              icon: <NotificationsIcon fontSize="small" />,
+            },
+            {
+              tab: "settings" as const,
+              label: "تنظیمات",
+              icon: <SettingsIcon fontSize="small" />,
+            },
+          ]
+        : [],
+    [caps]
+  );
 
   const runConfirmAction = () => {
     if (!examId || !confirmAction) return;
@@ -212,6 +243,58 @@ function ExamManageContent() {
   const gradingMode = (exam as { grading_mode?: string }).grading_mode;
   const isOffline = exam.type === "offline";
 
+  const renderSection = () => {
+    switch (activeTab) {
+      case "overview":
+        return (
+          <ExamManageOverviewTab
+            exam={exam}
+            stats={stats}
+            onPrint={handlePrint}
+            isOffline={isOffline}
+          />
+        );
+      case "participants":
+        return (
+          <ParticipantManagement
+            examId={examId}
+            examTitle={exam.title}
+            participants={exam.participants}
+            gradingMode={gradingMode}
+            groups={exam.groups || []}
+            registrationLink={exam.registration_link}
+            examLink={exam.exam_link}
+            canManageParticipants={caps.can_manage_participants}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["exam", "manage", examId] });
+            }}
+          />
+        );
+      case "reports":
+        return caps.can_view_reports ? (
+          <ExamReportsTab examId={examId} canGrade={caps.can_grade} />
+        ) : null;
+      case "notifications":
+        return (
+          <ExamNotificationsTab
+            examId={examId}
+            participants={exam.participants}
+            isPublished={exam.status === "published"}
+          />
+        );
+      case "settings":
+        return (
+          <ExamManageSettingsTab
+            exam={exam}
+            onGenerateExamLink={handleGenerateLink}
+            isGeneratingLink={generateExamLinkMutation.isPending}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Stack spacing={2.5}>
       <Stack
@@ -266,78 +349,13 @@ function ExamManageContent() {
         onConfirm={runConfirmAction}
       />
 
-      <Tabs
-        value={tabIndex}
-        onChange={handleTabChange}
-        variant="scrollable"
-        allowScrollButtonsMobile
-        sx={{ borderBottom: 1, borderColor: "divider" }}
+      <ExamManageLayout
+        nav={
+          <ExamManageNav items={navItems} activeTab={activeTab} onSelect={handleSelectTab} />
+        }
       >
-        <Tab label="خلاصه" icon={<DashboardIcon />} iconPosition="start" />
-        <Tab
-          label="شرکت‌کنندگان"
-          icon={<PeopleIcon />}
-          iconPosition="start"
-          data-cy="exam-tab-participants"
-        />
-        {caps.can_view_reports && (
-          <Tab label="گزارش" icon={<AssessmentIcon />} iconPosition="start" data-cy="exam-tab-reports" />
-        )}
-        <Tab label="اعلان‌ها" icon={<NotificationsIcon />} iconPosition="start" />
-        <Tab label="تنظیمات" icon={<SettingsIcon />} iconPosition="start" />
-      </Tabs>
-
-      {tabIndex === 0 && (
-        <ExamManageOverviewTab
-          exam={exam}
-          stats={stats}
-          onQuestions={() => router.push(`/exams/${exam.id}/questions`)}
-          onGrading={() => router.push(`/exams/${exam.id}/grading`)}
-          onPrint={handlePrint}
-          canGrade={caps.can_grade}
-          isOffline={isOffline}
-        />
-      )}
-
-      {tabIndex === 1 && (
-        <Box>
-          <ParticipantManagement
-            examId={examId}
-            examTitle={exam.title}
-            participants={exam.participants}
-            gradingMode={gradingMode}
-            groups={exam.groups || []}
-            registrationLink={exam.registration_link}
-            examLink={exam.exam_link}
-            canManageParticipants={caps.can_manage_participants}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["exam", "manage", examId] });
-            }}
-          />
-        </Box>
-      )}
-
-      {caps.can_view_reports && tabIndex === 2 && (
-        <ExamReportsTab examId={examId} canGrade={caps.can_grade} />
-      )}
-
-      {tabIndex === (caps.can_view_reports ? 3 : 2) && (
-        <Box>
-          <ExamNotificationsTab
-            examId={examId}
-            participants={exam.participants}
-            isPublished={exam.status === "published"}
-          />
-        </Box>
-      )}
-
-      {tabIndex === (caps.can_view_reports ? 4 : 3) && (
-        <ExamManageSettingsTab
-          exam={exam}
-          onGenerateExamLink={handleGenerateLink}
-          isGeneratingLink={generateExamLinkMutation.isPending}
-        />
-      )}
+        <Box>{renderSection()}</Box>
+      </ExamManageLayout>
 
       <Toast
         open={toast.open}
