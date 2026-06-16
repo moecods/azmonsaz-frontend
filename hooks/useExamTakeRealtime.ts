@@ -7,6 +7,7 @@ import { REALTIME_EVENTS } from '@/lib/realtime-events';
 type ExamTakeRealtimeHandlers = {
   onTimeExpired?: () => void;
   onForceCompleted?: () => void;
+  onTimingChanged?: (payload: { remaining_seconds?: number | null }) => void;
   onTeacherMessage?: (payload: { message?: string; exam_title?: string }) => void;
 };
 
@@ -42,10 +43,18 @@ export function useExamTakeRealtime(
       handlersRef.current.onTeacherMessage?.(payload);
     };
 
+    const handleTimingChanged = (payload: { user_id?: number; remaining_seconds?: number | null }) => {
+      if (payload.user_id === userId) {
+        handlersRef.current.onTimingChanged?.(payload);
+      }
+    };
+
     examChannel.listen(REALTIME_EVENTS.examTimeExpired, handleTimeExpired);
     userChannel.listen(REALTIME_EVENTS.examTimeExpired, handleTimeExpired);
     examChannel.listen(REALTIME_EVENTS.participantStatusChanged, handleStatusChanged);
     userChannel.listen(REALTIME_EVENTS.participantStatusChanged, handleStatusChanged);
+    examChannel.listen(REALTIME_EVENTS.participantTimingChanged, handleTimingChanged);
+    userChannel.listen(REALTIME_EVENTS.participantTimingChanged, handleTimingChanged);
     examChannel.listen(REALTIME_EVENTS.teacherExamMessage, handleTeacherMessage);
     userChannel.listen(REALTIME_EVENTS.teacherExamMessage, handleTeacherMessage);
 
@@ -54,6 +63,8 @@ export function useExamTakeRealtime(
       userChannel.stopListening(REALTIME_EVENTS.examTimeExpired);
       examChannel.stopListening(REALTIME_EVENTS.participantStatusChanged);
       userChannel.stopListening(REALTIME_EVENTS.participantStatusChanged);
+      examChannel.stopListening(REALTIME_EVENTS.participantTimingChanged);
+      userChannel.stopListening(REALTIME_EVENTS.participantTimingChanged);
       examChannel.stopListening(REALTIME_EVENTS.teacherExamMessage);
       userChannel.stopListening(REALTIME_EVENTS.teacherExamMessage);
     };

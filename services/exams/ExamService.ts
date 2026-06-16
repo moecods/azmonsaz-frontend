@@ -230,6 +230,28 @@ export class ExamService {
     return this.apiClient.delete<null>(`/exams/${examId}/participants/${participantId}`);
   }
 
+  async applyParticipantAction(
+    examId: number,
+    participantId: number,
+    payload: {
+      action: string;
+      minutes?: number;
+      clear_answers?: boolean;
+      reason?: string;
+    }
+  ): Promise<ApiResponse<{
+    id: number;
+    status: string;
+    started_at: string | null;
+    completed_at: string | null;
+    score: number | null;
+    total_points: number | null;
+    passed: boolean;
+    time_extension_seconds: number;
+  }>> {
+    return this.apiClient.post(`/exams/${examId}/participants/${participantId}/actions`, payload);
+  }
+
   /**
    * Get available exams for logged-in user (exams they are registered for)
    */
@@ -312,6 +334,15 @@ export class ExamService {
    */
   async submitExam(id: number): Promise<ApiResponse<ExamSubmissionResult>> {
     return this.apiClient.post<ExamSubmissionResult>(`/exams/${id}/submit`);
+  }
+
+  /**
+   * Auto-complete when time expires (allows empty answers).
+   */
+  async autoCompleteExam(id: number): Promise<ApiResponse<ExamSubmissionResult & { already_completed?: boolean }>> {
+    return this.apiClient.post<ExamSubmissionResult & { already_completed?: boolean }>(
+      `/exams/${id}/auto-complete`
+    );
   }
 
   /**

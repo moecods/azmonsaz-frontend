@@ -99,6 +99,8 @@ export default function AdminDashboard({ userName }: AdminDashboardProps) {
               </Stack>
             )}
 
+            <DashboardWeekCalendar days={dashboard.weekCalendar} />
+
             <Box>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
                 اعلان‌ها
@@ -111,8 +113,6 @@ export default function AdminDashboard({ userName }: AdminDashboardProps) {
                 <Typography variant="body2" color="text.disabled">اعلان جدیدی نیست.</Typography>
               )}
             </Box>
-
-            <DashboardWeekCalendar days={dashboard.weekCalendar} />
 
             <DashboardGradingPanel
               exams={dashboard.needsGrading}

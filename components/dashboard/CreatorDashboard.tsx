@@ -112,6 +112,8 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
               </Stack>
             )}
 
+            <DashboardWeekCalendar days={dashboard.weekCalendar} />
+
             <Box>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
                 اعلان‌ها
@@ -128,8 +130,6 @@ export default function CreatorDashboard({ userName }: CreatorDashboardProps) {
                 </Typography>
               )}
             </Box>
-
-            <DashboardWeekCalendar days={dashboard.weekCalendar} />
 
             <DashboardGradingPanel
               exams={dashboard.needsGrading}

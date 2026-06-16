@@ -39,18 +39,6 @@ export const sidebarNavSections: SidebarNavSection[] = [
     ],
   },
   {
-    id: "student",
-    label: "شرکت در آزمون",
-    items: [
-      {
-        label: "آزمون‌های من",
-        icon: <AssignmentIcon />,
-        path: "/exams/available",
-        description: "ثبت‌نام و شرکت",
-      },
-    ],
-  },
-  {
     id: "teaching",
     label: "مدیریت آموزشی",
     items: [
@@ -78,6 +66,18 @@ export const sidebarNavSections: SidebarNavSection[] = [
         icon: <GroupIcon />,
         path: "/groups",
         permission: "create exams",
+      },
+    ],
+  },
+  {
+    id: "student",
+    label: "شرکت در آزمون",
+    items: [
+      {
+        label: "آزمون‌های من",
+        icon: <AssignmentIcon />,
+        path: "/exams/available",
+        description: "ثبت‌نام و شرکت",
       },
     ],
   },

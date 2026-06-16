@@ -2,7 +2,6 @@
 
 import {
   Box,
-  IconButton,
   Stack,
   Tooltip,
   Typography,
@@ -10,7 +9,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { ParticipantActionsMenu } from "@/components/exams/participants/ParticipantActionsMenu";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import UserAvatar from "@/components/ui/UserAvatar";
@@ -23,6 +22,7 @@ import {
 import { participantGridColumns } from "@/components/exams/participants/participant-grid-columns";
 
 interface ParticipantRowProps {
+  examId?: number;
   participant: UserParticipant;
   isDescriptiveGrading: boolean;
   groupAvatarById?: Map<number, string | null | undefined>;
@@ -287,6 +287,7 @@ function StudentCell({ participant }: { participant: UserParticipant }) {
 }
 
 export function ParticipantRow({
+  examId,
   participant,
   isDescriptiveGrading,
   groupAvatarById,
@@ -345,24 +346,13 @@ export function ParticipantRow({
 
         <CompactTimeCell participant={participant} />
 
-        {showActions && (
+        {showActions && examId && (
           <Box className="participant-row-actions" sx={{ opacity: 0, transition: "opacity 0.12s" }}>
-            <Tooltip title="حذف از آزمون">
-              <IconButton
-                size="small"
-                aria-label="حذف شرکت‌کننده"
-                onClick={() => onRemoveParticipant!(participant)}
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": {
-                    color: "error.main",
-                    bgcolor: alpha(theme.palette.error.main, 0.08),
-                  },
-                }}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ParticipantActionsMenu
+              examId={examId}
+              participant={participant}
+              onRemove={onRemoveParticipant}
+            />
           </Box>
         )}
       </Box>
@@ -401,15 +391,12 @@ export function ParticipantRow({
               <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1.35 }}>
                 {participant.user?.name ?? "—"}
               </Typography>
-              {showActions && (
-                <IconButton
-                  size="small"
-                  aria-label="حذف"
-                  onClick={() => onRemoveParticipant!(participant)}
-                  sx={{ mt: -0.5, color: "text.secondary", flexShrink: 0 }}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+              {showActions && examId && (
+                <ParticipantActionsMenu
+                  examId={examId}
+                  participant={participant}
+                  onRemove={onRemoveParticipant}
+                />
               )}
             </Stack>
             <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>

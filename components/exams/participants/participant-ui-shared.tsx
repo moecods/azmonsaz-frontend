@@ -87,6 +87,9 @@ function getParticipantStatus(participant: UserParticipant): { label: string; to
       : { label: "رد", tone: "error" };
   }
   if (participant.status === "absent") return { label: "غیبت", tone: "error" };
+  if (participant.is_pending_finalize) {
+    return { label: "منقضی — در انتظار ثبت", tone: "warning" };
+  }
   if (participant.started_at) return { label: "در حال انجام", tone: "warning" };
   return { label: "ثبت‌نام", tone: "info" };
 }

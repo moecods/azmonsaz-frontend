@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Alert, Button, Box, Snackbar, Stack } from '@mui/material';
-import { useStartExam, useSaveAnswer, useSubmitExam, useExamInfo } from '@/hooks/useExams';
+import { useStartExam, useSaveAnswer, useSubmitExam, useAutoCompleteExam, useExamInfo } from '@/hooks/useExams';
 import { useExamTakeRealtime } from '@/hooks/useExamTakeRealtime';
 import { useMe } from '@/hooks/useAuth';
 import { TakeExamProvider, useTakeExamContext } from '@/hooks/exams/useTakeExam';
@@ -18,6 +18,7 @@ import {
   TakeExamSubmitDialog,
   TakeExamSuccess,
   TakeExamLoading,
+  TakeExamTimeExpiredDialog,
   isQuestionAnswered,
 } from '@/components/exams/take';
 import type { ExamTakeTimingDescriptor } from '@/lib/exam-take-timing';
@@ -110,6 +111,8 @@ function TakeExamPageContent({
     hint: null,
   });
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showTimeExpiredDialog, setShowTimeExpiredDialog] = useState(false);
+  const [examLocked, setExamLocked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({
@@ -126,6 +129,7 @@ function TakeExamPageContent({
   const startExamMutation = useStartExam();
   const saveAnswerMutation = useSaveAnswer();
   const submitExamMutation = useSubmitExam();
+  const autoCompleteMutation = useAutoCompleteExam();
   const { data: examInfo, isLoading: isLoadingExamInfo, error: examInfoError } = useExamInfo(examRef);
   const { data: currentUser } = useMe();
   
@@ -145,6 +149,15 @@ function TakeExamPageContent({
         router.push(`/exams/${examId}/result`);
       }
     },
+    onTimingChanged: (payload) => {
+      if (payload.remaining_seconds != null) {
+        setExamTiming((prev) => ({
+          ...prev,
+          visible: true,
+          remaining_seconds: payload.remaining_seconds,
+        }));
+      }
+    },
     onTeacherMessage: (payload) => {
       setSnackbar({
         open: true,
@@ -154,22 +167,7 @@ function TakeExamPageContent({
     },
   });
 
-  // Check exam time status (uses start_at, end_at from API)
-  const getExamTimeStatus = useCallback(() => {
-    const startAt = examInfo?.start_at && typeof examInfo.start_at === 'string'
-      ? (() => { try { return new Date(examInfo.start_at); } catch { return null; } })()
-      : null;
-    const endAt = examInfo?.end_at && typeof examInfo.end_at === 'string'
-      ? (() => { try { return new Date(examInfo.end_at); } catch { return null; } })()
-      : null;
-    const hasTimeRestriction = startAt !== null || endAt !== null;
-    const now = new Date();
-    const isBeforeStart = startAt ? now < startAt : false;
-    const isAfterEnd = endAt ? now > endAt : false;
-    return { hasTimeRestriction, isBeforeStart, isAfterEnd, startAt, endAt };
-  }, [examInfo?.start_at, examInfo?.end_at]);
-  const timeStatus = getExamTimeStatus();
-  const canAccessQuestions = !timeStatus.hasTimeRestriction || !timeStatus.isBeforeStart;
+  const canStartFromApi = examInfo?.can_start ?? false;
 
   // Helper to map API questions to our format
   const mapApiQuestionsToState = useCallback((apiQuestions: Array<{ id: number; payload: Record<string, unknown> }>): Question[] => {
@@ -323,21 +321,52 @@ function TakeExamPageContent({
     }
   }, [examId, submitted, submitExamMutation, flushPendingSave]);
 
-  const handleAutoSubmit = useCallback(() => {
-    if (!submitted && examId) {
-      handleSubmitConfirm();
+  const handleAutoComplete = useCallback(async () => {
+    if (!examId || submitted || autoCompleteMutation.isPending) return;
+
+    setShowTimeExpiredDialog(true);
+    setExamLocked(true);
+    flushPendingSave();
+
+    try {
+      const autoResult = await autoCompleteMutation.mutateAsync(examId);
+      setResult(autoResult);
+      setSubmitted(true);
+      setShowTimeExpiredDialog(false);
+    } catch (error) {
+      setShowTimeExpiredDialog(false);
+      setSnackbar({
+        open: true,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'ثبت خودکار ناموفق بود. نتیجه به‌زودی ثبت می‌شود.',
+        severity: 'warning',
+      });
     }
-  }, [submitted, examId, handleSubmitConfirm]);
+  }, [examId, submitted, autoCompleteMutation, flushPendingSave]);
+
+  const handleTimerWarning = useCallback((secondsLeft: number) => {
+    const minutes = Math.ceil(secondsLeft / 60);
+    setSnackbar({
+      open: true,
+      message: `${minutes.toLocaleString('fa-IR')} دقیقه تا پایان زمان آزمون باقی مانده است.`,
+      severity: 'warning',
+    });
+  }, []);
 
   const takeTimer = useTakeExamTimer({
     timing: examTiming,
-    onExpire: handleAutoSubmit,
-    enabled: examStarted && !submitted,
+    onExpire: handleAutoComplete,
+    onWarning: handleTimerWarning,
+    enabled: examStarted && !submitted && !examLocked,
   });
 
   useEffect(() => () => flushPendingSave(), [flushPendingSave]);
 
   const handleAnswerChange = useCallback((questionId: number, answer: any) => {
+    if (examLocked) return;
+
     setAnswer(questionId, answer);
 
     if (!examId) return;
@@ -354,7 +383,7 @@ function TakeExamPageContent({
         });
       }
     }, SAVE_DEBOUNCE_MS);
-  }, [examId, saveAnswerMutation, setAnswer]);
+  }, [examId, saveAnswerMutation, setAnswer, examLocked]);
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
@@ -474,15 +503,7 @@ function TakeExamPageContent({
     );
   }
 
-  if (timeStatus.hasTimeRestriction && timeStatus.isBeforeStart && timeStatus.startAt) {
-    const startLabel = timeStatus.startAt.toLocaleString('fa-IR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Tehran',
-    });
+  if (shouldShowStartButton && !examStarted && !canStartFromApi && examInfo?.time_message) {
     return (
       <TakeExamShell maxWidth="sm">
         <TakeExamGate
@@ -502,35 +523,7 @@ function TakeExamPageContent({
           }
         >
           <Alert severity="warning" sx={{ borderRadius: 2 }}>
-            آزمون هنوز شروع نشده است. زمان شروع: {startLabel}
-          </Alert>
-        </TakeExamGate>
-      </TakeExamShell>
-    );
-  }
-
-  if (timeStatus.hasTimeRestriction && timeStatus.isAfterEnd && timeStatus.endAt) {
-    const endLabel = timeStatus.endAt.toLocaleString('fa-IR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Tehran',
-    });
-    return (
-      <TakeExamShell maxWidth="sm">
-        <TakeExamGate
-          title={examInfo?.title || 'آزمون'}
-          icon={<EventBusyOutlinedIcon sx={{ fontSize: 36 }} />}
-          actions={
-            <Button variant="outlined" fullWidth onClick={() => router.push('/exams/available')}>
-              بازگشت به لیست آزمون‌ها
-            </Button>
-          }
-        >
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
-            زمان آزمون به پایان رسیده است. پایان: {endLabel}
+            {examInfo.time_message}
           </Alert>
         </TakeExamGate>
       </TakeExamShell>
@@ -548,7 +541,7 @@ function TakeExamPageContent({
           timeMessage={examInfo?.time_message}
           timingPreview={examInfo?.timing_preview}
           isStarting={startExamMutation.isPending}
-          canStart={canAccessQuestions}
+          canStart={canStartFromApi}
           errorMessage={
             startExamMutation.isError && startExamMutation.error instanceof Error
               ? startExamMutation.error.message
@@ -641,7 +634,7 @@ function TakeExamPageContent({
           alignItems: 'start',
         }}
       >
-        <Stack spacing={0}>
+        <Stack spacing={0} sx={{ pointerEvents: examLocked ? 'none' : 'auto', opacity: examLocked ? 0.65 : 1 }}>
           {currentQuestion && (
             <TakeExamQuestionCard
               questionNumber={currentIndex + 1}
@@ -664,7 +657,7 @@ function TakeExamPageContent({
             onPrevious={handlePrevious}
             onNext={handleNext}
             onSubmit={handleSubmitClick}
-            isSubmitting={submitExamMutation.isPending}
+            isSubmitting={submitExamMutation.isPending || autoCompleteMutation.isPending}
           />
         </Stack>
 
@@ -688,6 +681,11 @@ function TakeExamPageContent({
           onSelect={handleGoToQuestion}
         />
       </Box>
+
+      <TakeExamTimeExpiredDialog
+        open={showTimeExpiredDialog}
+        isCompleting={autoCompleteMutation.isPending}
+      />
 
       <TakeExamSubmitDialog
         open={showSubmitDialog}

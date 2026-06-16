@@ -9,6 +9,8 @@ import { Partner, ApiResponse, PaginatedResponse } from '@/types';
 export interface PartnerFilters {
   page?: number;
   per_page?: number;
+  search?: string;
+  is_active?: string;
 }
 
 export interface CreatePartnerData {

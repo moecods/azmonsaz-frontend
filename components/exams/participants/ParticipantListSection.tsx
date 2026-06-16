@@ -36,6 +36,7 @@ import {
 } from "@/lib/participant-list-stats";
 
 interface ParticipantListSectionProps {
+  examId: number;
   participants: UserParticipant[];
   isDescriptiveGrading: boolean;
   groupAvatarById?: Map<number, string | null | undefined>;
@@ -47,6 +48,7 @@ interface ParticipantListSectionProps {
 }
 
 function ParticipantListBody({
+  examId,
   rows,
   isDescriptiveGrading,
   groupAvatarById,
@@ -55,6 +57,7 @@ function ParticipantListBody({
   showGroup = true,
   embedded = false,
 }: {
+  examId: number;
   rows: UserParticipant[];
   isDescriptiveGrading: boolean;
   groupAvatarById?: Map<number, string | null | undefined>;
@@ -83,6 +86,7 @@ function ParticipantListBody({
       {rows.map((p, i) => (
         <ParticipantRow
           key={p.id}
+          examId={examId}
           participant={p}
           isDescriptiveGrading={isDescriptiveGrading}
           groupAvatarById={groupAvatarById}
@@ -115,6 +119,7 @@ function ParticipantListBody({
 }
 
 export function ParticipantListSection({
+  examId,
   participants,
   isDescriptiveGrading,
   groupAvatarById,
@@ -214,6 +219,7 @@ export function ParticipantListSection({
         <EmptyState title="موردی پیدا نشد" message="فیلتر یا عبارت جستجو را تغییر دهید." />
       ) : viewMode === "all" ? (
         <ParticipantListBody
+          examId={examId}
           rows={filtered}
           isDescriptiveGrading={isDescriptiveGrading}
           groupAvatarById={groupAvatarById}
@@ -261,6 +267,7 @@ export function ParticipantListSection({
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: 0 }}>
                   <ParticipantListBody
+                    examId={examId}
                     rows={rows}
                     isDescriptiveGrading={isDescriptiveGrading}
                     groupAvatarById={groupAvatarById}
@@ -298,6 +305,7 @@ export function ParticipantListSection({
               </AccordionSummary>
               <AccordionDetails sx={{ p: 0 }}>
                 <ParticipantListBody
+                  examId={examId}
                   rows={grouped.ungrouped}
                   isDescriptiveGrading={isDescriptiveGrading}
                   canManageParticipants={canManageParticipants}

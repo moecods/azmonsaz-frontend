@@ -346,6 +346,7 @@ export default function ParticipantManagement({
   return (
     <Stack spacing={1.5}>
       <ParticipantListSection
+        examId={examId}
         participants={participants}
         isDescriptiveGrading={isDescriptiveGrading}
         groupAvatarById={groupAvatarById}

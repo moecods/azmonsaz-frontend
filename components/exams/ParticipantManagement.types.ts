@@ -34,6 +34,7 @@ export interface UserParticipant {
   status?: string;
   started_at: string | null;
   completed_at: string | null;
+  is_pending_finalize?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════

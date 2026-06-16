@@ -91,3 +91,25 @@ export function useSubmitExam() {
     },
   });
 }
+
+export function useAutoCompleteExam() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (examId: number) => {
+      const response = await examService.autoCompleteExam(examId);
+      if (!response.success) {
+        throw new ApiError(
+          response.message || "Failed to auto-complete exam",
+          undefined,
+          (response as { errors?: unknown }).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: ["exams", "available"] });
+      queryClient.invalidateQueries({ queryKey: ["exam", "info", examId] });
+    },
+  });
+}

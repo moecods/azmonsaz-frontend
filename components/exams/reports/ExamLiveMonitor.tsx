@@ -33,6 +33,7 @@ function toStatusParticipant(row: ExamLiveParticipantRow): UserParticipant {
     user_id: row.user_id,
     status: row.status,
     started_at: row.started_at,
+    is_pending_finalize: row.is_pending_finalize,
     completed_at: null,
     score: null,
     total_points: null,

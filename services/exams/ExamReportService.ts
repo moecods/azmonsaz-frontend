@@ -33,6 +33,7 @@ export interface ExamLiveParticipantRow {
   last_activity_at: string | null;
   started_at: string | null;
   remaining_seconds: number | null;
+  is_pending_finalize?: boolean;
 }
 
 export interface ExamLiveReport {

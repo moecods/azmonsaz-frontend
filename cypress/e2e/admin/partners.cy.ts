@@ -1,7 +1,6 @@
 describe('Admin Partners', () => {
   beforeEach(() => {
     cy.logout();
-    // Login as admin (use fixture admin credentials; backend must have this user)
     cy.fixture('auth').then((auth: { admin: { phone: string; password: string } }) => {
       if (auth.admin?.phone && auth.admin?.password) {
         cy.login(auth.admin.phone, auth.admin.password);
@@ -9,11 +8,11 @@ describe('Admin Partners', () => {
         cy.login();
       }
     });
-    cy.visit('/admin');
+    cy.visit('/admin/partners');
   });
 
-  it('shows partners tab and add button', () => {
-    cy.getByTestId('admin-tab-partners').should('be.visible');
+  it('shows partners section and add button', () => {
+    cy.getByTestId('admin-nav-partners').should('have.attr', 'aria-current', 'page');
     cy.getByTestId('admin-add-partner').should('be.visible');
   });
 
@@ -25,7 +24,6 @@ describe('Admin Partners', () => {
 
   it('lists partners when API returns data', () => {
     cy.contains('مدیریت شرکا').should('be.visible');
-    // Either table with rows or empty state
     cy.get('table').should('exist');
   });
 });

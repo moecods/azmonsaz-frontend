@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -12,15 +12,14 @@ import {
   DialogTitle,
   FormControl,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -28,6 +27,7 @@ import {
   CircularProgress,
   Pagination,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema, UserFormData } from '@/lib/validation';
@@ -39,21 +39,140 @@ import {
   useImpersonateUser,
 } from '@/hooks';
 import { User } from '@/types';
+import UserAvatar from '@/components/ui/UserAvatar';
+import {
+  ADMIN_ASSIGNABLE_ROLES,
+  ADMIN_ROLE_LABELS,
+  filterAssignableRoles,
+  getAdminRoleChipColor,
+  getAdminRoleLabel,
+} from '@/components/admin/admin-roles';
+import {
+  AdminEmptyState,
+  AdminFilterPanel,
+  AdminSectionHeader,
+  AdminTableShell,
+  adminTableHeadSx,
+  adminTableRowSx,
+} from '@/components/admin/admin-shared';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import LoginIcon from '@mui/icons-material/Login';
+import SearchIcon from '@mui/icons-material/Search';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 
-interface AdminUsersTabProps {
-  isActive: boolean;
+type StatusFilter = '' | '1' | '0';
+type ProFilter = '' | '1' | '0';
+type RoleFilter = '' | 'admin' | 'content_manager' | 'creator' | 'none';
+
+const EMPTY_FILTERS = {
+  search: '',
+  role: '' as RoleFilter,
+  is_active: '' as StatusFilter,
+  has_pro: '' as ProFilter,
+};
+
+function formatCreatedDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fa-IR', {
+    calendar: 'persian',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
-export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
+function formatSubscriptionLabel(endsAt: string): string {
+  return new Date(endsAt).toLocaleDateString('fa-IR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function UserIdentityCell({ user }: { user: User }) {
+  return (
+    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+      <UserAvatar
+        name={user.name}
+        avatarUrl={user.avatar_url}
+        sx={{ width: 44, height: 44, fontSize: '0.9rem', flexShrink: 0 }}
+      />
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="body2" fontWeight={700} noWrap title={user.name}>
+          {user.name}
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          noWrap
+          dir="ltr"
+          sx={{ display: 'block', textAlign: 'right' }}
+        >
+          {user.phone_number}
+        </Typography>
+        {user.email ? (
+          <Typography variant="caption" color="text.disabled" noWrap sx={{ display: 'block' }}>
+            {user.email}
+          </Typography>
+        ) : null}
+      </Box>
+    </Stack>
+  );
+}
+
+function UserRolesCell({ roles }: { roles: string[] }) {
+  if (!roles.length) {
+    return (
+      <Typography variant="body2" color="text.disabled">
+        بدون نقش
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+      {roles.map((role) => (
+        <Chip
+          key={role}
+          label={getAdminRoleLabel(role)}
+          color={getAdminRoleChipColor(role)}
+          size="small"
+          variant="outlined"
+        />
+      ))}
+    </Stack>
+  );
+}
+
+function SubscriptionCell({ user }: { user: User }) {
+  const endsAt = user.subscription?.ends_at;
+  if (!endsAt) {
+    return <Chip label="ندارد" size="small" color="default" variant="outlined" />;
+  }
+
+  const active = new Date(endsAt) > new Date();
+  if (active) {
+    return (
+      <Chip
+        label={`فعال تا ${formatSubscriptionLabel(endsAt)}`}
+        color="success"
+        size="small"
+        variant="outlined"
+      />
+    );
+  }
+
+  return <Chip label="منقضی" color="default" size="small" />;
+}
+
+export function AdminUsersTab() {
+  const theme = useTheme();
   const [userOpen, setUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userPage, setUserPage] = useState(1);
-  const [userSearch, setUserSearch] = useState('');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const userForm = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -66,14 +185,39 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
     },
   });
 
-  const { data: usersData, isLoading: usersLoading, isError: usersError, error: usersErrorDetail } = useUsers(
-    isActive ? { page: userPage, per_page: 15, search: userSearch || undefined } : undefined
+  const apiFilters = useMemo(
+    () => ({
+      page: userPage,
+      per_page: 15,
+      search: filters.search.trim() || undefined,
+      role: filters.role || undefined,
+      is_active: filters.is_active || undefined,
+      has_pro: filters.has_pro || undefined,
+    }),
+    [userPage, filters]
   );
+
+  const hasActiveFilters = Boolean(
+    filters.search.trim() || filters.role || filters.is_active || filters.has_pro
+  );
+
+  const { data: usersData, isLoading: usersLoading, isError: usersError, error: usersErrorDetail } =
+    useUsers(apiFilters);
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const toggleUserActiveMutation = useToggleUserActive();
   const impersonateUserMutation = useImpersonateUser();
+
+  const resetFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setUserPage(1);
+  };
+
+  const updateFilter = <K extends keyof typeof EMPTY_FILTERS>(key: K, value: (typeof EMPTY_FILTERS)[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setUserPage(1);
+  };
 
   const handleOpenCreateUser = () => {
     setEditingUser(null);
@@ -89,16 +233,12 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
 
   const handleOpenEditUser = (user: User) => {
     setEditingUser(user);
-    const validRoles = ['admin', 'content_manager', 'creator'] as const;
-    const filtered = user.roles?.filter((r): r is typeof validRoles[number] =>
-      validRoles.includes(r as typeof validRoles[number])
-    ) ?? [];
-    const roles = filtered.length ? filtered : ['creator'];
+    const roles = filterAssignableRoles(user.roles);
     userForm.reset({
       name: user.name,
       phone_number: user.phone_number,
       password: '',
-      role: roles[0] ?? 'creator',
+      role: roles[0],
       roles,
     });
     setUserOpen(true);
@@ -111,9 +251,6 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
   const handleImpersonateUser = (user: User) => {
     if (window.confirm(`آیا می‌خواهید با اکانت ${user.name} وارد شوید؟`)) {
       impersonateUserMutation.mutate(user.id, {
-        onSuccess: () => {
-          window.location.href = '/dashboard';
-        },
         onError: (error: unknown) => {
           const err = error as { message?: string };
           alert(err.message || 'خطا در ورود به اکانت کاربر');
@@ -152,46 +289,21 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
       }
       updateUserMutation.mutate(
         { id: editingUser.id, data: updateData },
-        {
-          onSuccess: () => {
-            setUserOpen(false);
-            setEditingUser(null);
-            userForm.reset({
-              name: '',
-              phone_number: '',
-              password: '',
-              role: 'content_manager',
-              roles: ['content_manager'],
-            });
-          },
-        }
+        { onSuccess: handleCloseUser }
       );
     } else {
       if (!data.password || data.password.trim() === '') {
         userForm.setError('password', { message: 'رمز عبور برای کاربران جدید الزامی است' });
         return;
       }
-      const createRoles = (data.roles ?? []) as string[];
       createUserMutation.mutate(
         {
           name: data.name,
           phone_number: data.phone_number,
           password: data.password,
-          roles: createRoles,
+          roles: (data.roles ?? []) as string[],
         },
-        {
-          onSuccess: () => {
-            setUserOpen(false);
-            setEditingUser(null);
-            userForm.reset({
-              name: '',
-              phone_number: '',
-              password: '',
-              role: 'content_manager',
-              roles: ['content_manager'],
-            });
-          },
-        }
+        { onSuccess: handleCloseUser }
       );
     }
   };
@@ -201,129 +313,148 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
 
   return (
     <>
-      <Stack spacing={3}>
+      <Stack spacing={2.5}>
         {usersError && (
           <Alert severity="error">
             {usersErrorDetail instanceof Error ? usersErrorDetail.message : 'خطا در بارگذاری لیست کاربران'}
           </Alert>
         )}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">مدیریت کاربران</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateUser}
-            data-cy="admin-add-user"
-          >
-            افزودن کاربر
-          </Button>
-        </Stack>
 
-        <TextField
-          size="small"
-          placeholder="جستجو نام، موبایل، ایمیل…"
-          value={userSearch}
-          onChange={(e) => {
-            setUserSearch(e.target.value);
-            setUserPage(1);
-          }}
-          sx={{ maxWidth: 360 }}
+        <AdminSectionHeader
+          icon={<PeopleOutlineIcon fontSize="small" />}
+          title="مدیریت کاربران"
+          subtitle="جستجو، فیلتر و ویرایش نقش"
+          count={usersMeta?.total}
+          action={
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateUser}
+              data-cy="admin-add-user"
+            >
+              افزودن کاربر
+            </Button>
+          }
         />
 
+        <AdminFilterPanel onReset={resetFilters} showReset={hasActiveFilters}>
+          <TextField
+            size="small"
+            placeholder="جستجو نام، موبایل، ایمیل…"
+            value={filters.search}
+            onChange={(e) => updateFilter('search', e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: { xs: '100%', md: 260 }, flex: { md: '1 1 260px' } }}
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>نقش</InputLabel>
+            <Select
+              label="نقش"
+              value={filters.role}
+              onChange={(e) => updateFilter('role', e.target.value as RoleFilter)}
+            >
+              <MenuItem value="">همه</MenuItem>
+              <MenuItem value="none">بدون نقش</MenuItem>
+              {ADMIN_ASSIGNABLE_ROLES.map((role) => (
+                <MenuItem key={role} value={role}>
+                  {ADMIN_ROLE_LABELS[role]}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel>وضعیت</InputLabel>
+            <Select
+              label="وضعیت"
+              value={filters.is_active}
+              onChange={(e) => updateFilter('is_active', e.target.value as StatusFilter)}
+            >
+              <MenuItem value="">همه</MenuItem>
+              <MenuItem value="1">فعال</MenuItem>
+              <MenuItem value="0">غیرفعال</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>اشتراک Pro</InputLabel>
+            <Select
+              label="اشتراک Pro"
+              value={filters.has_pro}
+              onChange={(e) => updateFilter('has_pro', e.target.value as ProFilter)}
+            >
+              <MenuItem value="">همه</MenuItem>
+              <MenuItem value="1">دارای Pro</MenuItem>
+              <MenuItem value="0">بدون Pro</MenuItem>
+            </Select>
+          </FormControl>
+        </AdminFilterPanel>
+
         {usersLoading ? (
-          <Box display="flex" justifyContent="center" p={3}>
+          <Box display="flex" justifyContent="center" py={6}>
             <CircularProgress />
           </Box>
+        ) : users.length === 0 ? (
+          <AdminEmptyState
+            icon={<PeopleOutlineIcon />}
+            title="کاربری یافت نشد"
+            description={
+              hasActiveFilters
+                ? 'فیلترها را تغییر دهید یا کاربر جدید اضافه کنید.'
+                : 'هنوز کاربری ثبت نشده است.'
+            }
+          />
         ) : (
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
+          <AdminTableShell>
+            <Table size="medium">
               <TableHead>
-                <TableRow>
-                  <TableCell key="user-name">نام</TableCell>
-                  <TableCell key="user-phone">شماره تلفن</TableCell>
-                  <TableCell key="user-role">نقش</TableCell>
-                  <TableCell key="user-status">وضعیت</TableCell>
-                  <TableCell key="user-subscription">اشتراک Pro</TableCell>
-                  <TableCell key="user-created">تاریخ ایجاد</TableCell>
-                  <TableCell key="user-actions">عملیات</TableCell>
+                <TableRow sx={adminTableHeadSx(theme)}>
+                  <TableCell sx={{ minWidth: 240 }}>کاربر</TableCell>
+                  <TableCell sx={{ minWidth: 160 }}>نقش</TableCell>
+                  <TableCell align="center" sx={{ width: 100 }}>وضعیت</TableCell>
+                  <TableCell sx={{ minWidth: 140 }}>اشتراک Pro</TableCell>
+                  <TableCell sx={{ width: 120 }}>تاریخ ایجاد</TableCell>
+                  <TableCell align="center" sx={{ width: 132 }}>عملیات</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.phone_number}</TableCell>
-                    <TableCell>
-                      {user.roles && user.roles.length > 0 ? (
-                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                          {user.roles.map((role) => (
-                            <Chip
-                              key={role}
-                              label={
-                                role === 'admin'
-                                  ? 'مدیر'
-                                  : role === 'content_manager'
-                                    ? 'مدیر محتوا'
-                                    : role === 'creator'
-                                      ? 'سازنده'
-                                      : role
-                              }
-                              color={
-                                role === 'admin'
-                                  ? 'error'
-                                  : role === 'content_manager'
-                                    ? 'primary'
-                                    : role === 'creator'
-                                      ? 'success'
-                                      : 'default'
-                              }
-                              size="small"
-                            />
-                          ))}
-                        </Stack>
-                      ) : (
-                        <Chip label="بدون نقش" size="small" color="default" />
-                      )}
+                {users.map((user, index) => (
+                  <TableRow key={user.id} hover sx={adminTableRowSx(theme, index)}>
+                    <TableCell sx={{ py: 1.75 }}>
+                      <UserIdentityCell user={user} />
                     </TableCell>
                     <TableCell>
+                      <UserRolesCell roles={user.roles ?? []} />
+                    </TableCell>
+                    <TableCell align="center">
                       <Chip
                         label={user.is_active ? 'فعال' : 'غیرفعال'}
                         color={user.is_active ? 'success' : 'default'}
                         size="small"
+                        variant={user.is_active ? 'filled' : 'outlined'}
                       />
                     </TableCell>
                     <TableCell>
-                      {user.subscription?.ends_at ? (
-                        new Date(user.subscription.ends_at) > new Date() ? (
-                          <Chip
-                            label={`فعال تا ${new Date(user.subscription.ends_at).toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' })}`}
-                            color="success"
-                            size="small"
-                          />
-                        ) : (
-                          <Chip label="منقضی" color="default" size="small" />
-                        )
-                      ) : (
-                        <Chip label="ندارد" color="default" size="small" variant="outlined" />
-                      )}
+                      <SubscriptionCell user={user} />
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString('fa-IR', {
-                        calendar: 'persian',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      <Typography variant="body2" color="text.secondary">
+                        {formatCreatedDate(user.created_at)}
+                      </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.25} justifyContent="center">
                         <IconButton
                           size="small"
                           onClick={() => handleOpenEditUser(user)}
                           title="ویرایش کاربر"
                           aria-label="ویرایش کاربر"
                         >
-                          <EditIcon />
+                          <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
@@ -333,7 +464,7 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                           title="ورود به اکانت کاربر"
                           aria-label="ورود به اکانت کاربر"
                         >
-                          <LoginIcon />
+                          <LoginIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
@@ -343,7 +474,11 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                           title={user.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
                           aria-label={user.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
                         >
-                          {user.is_active ? <ToggleOnIcon /> : <ToggleOffIcon />}
+                          {user.is_active ? (
+                            <ToggleOnIcon fontSize="small" />
+                          ) : (
+                            <ToggleOffIcon fontSize="small" />
+                          )}
                         </IconButton>
                       </Stack>
                     </TableCell>
@@ -351,11 +486,11 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </AdminTableShell>
         )}
 
         {usersMeta && usersMeta.last_page > 1 && (
-          <Box display="flex" justifyContent="center" mt={3}>
+          <Box display="flex" justifyContent="center">
             <Pagination
               count={usersMeta.last_page}
               page={userPage}
@@ -369,12 +504,29 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
       </Stack>
 
       <Dialog open={userOpen} onClose={handleCloseUser} maxWidth="sm" fullWidth>
-        <DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
           {editingUser ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}
         </DialogTitle>
         <DialogContent>
           <form onSubmit={userForm.handleSubmit(onSubmitUser)}>
-            <Stack spacing={3} sx={{ mt: 2 }}>
+            <Stack spacing={2.5} sx={{ mt: 1 }}>
+              {editingUser ? (
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 0.5 }}>
+                  <UserAvatar
+                    name={editingUser.name}
+                    avatarUrl={editingUser.avatar_url}
+                    sx={{ width: 56, height: 56, fontSize: '1rem' }}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={700}>
+                      {editingUser.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" dir="ltr" sx={{ display: 'block', textAlign: 'right' }}>
+                      {editingUser.phone_number}
+                    </Typography>
+                  </Box>
+                </Stack>
+              ) : null}
               <Controller
                 name="name"
                 control={userForm.control}
@@ -430,27 +582,31 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
                 control={userForm.control}
                 render={({ field }) => (
                   <FormControl fullWidth>
-                    <InputLabel>نقش‌ها</InputLabel>
+                    <InputLabel id="admin-user-roles-label">نقش‌ها</InputLabel>
                     <Select
                       {...field}
+                      labelId="admin-user-roles-label"
                       multiple
+                      displayEmpty
                       label="نقش‌ها"
-                      renderValue={(selected) =>
-                        (selected as string[])
-                          .map(
-                            (r) =>
-                              ({
-                                admin: 'مدیر',
-                                content_manager: 'مدیر محتوا',
-                                creator: 'سازنده',
-                              } as Record<string, string>)[r] ?? r
-                          )
-                          .join('، ')
-                      }
+                      value={field.value ?? []}
+                      renderValue={(selected) => {
+                        const items = selected as string[];
+                        if (items.length === 0) {
+                          return (
+                            <Typography component="span" variant="body2" color="text.secondary">
+                              {'\u00A0'}
+                            </Typography>
+                          );
+                        }
+                        return items.map(getAdminRoleLabel).join('، ');
+                      }}
                     >
-                      <MenuItem value="admin">مدیر</MenuItem>
-                      <MenuItem value="content_manager">مدیر محتوا</MenuItem>
-                      <MenuItem value="creator">سازنده</MenuItem>
+                      {ADMIN_ASSIGNABLE_ROLES.map((role) => (
+                        <MenuItem key={role} value={role}>
+                          {ADMIN_ROLE_LABELS[role]}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 )}
@@ -458,7 +614,7 @@ export function AdminUsersTab({ isActive }: AdminUsersTabProps) {
             </Stack>
           </form>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseUser}>لغو</Button>
           <Button
             onClick={userForm.handleSubmit(onSubmitUser)}

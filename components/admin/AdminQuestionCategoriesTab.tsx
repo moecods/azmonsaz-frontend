@@ -1,27 +1,27 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
-  Paper,
+  InputAdornment,
   Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
   Typography,
-  CircularProgress,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { questionCategorySchema, QuestionCategoryFormData } from '@/lib/validation';
@@ -32,24 +32,38 @@ import {
   useDeleteQuestionCategory,
 } from '@/hooks';
 import { QuestionCategory } from '@/types';
+import {
+  AdminEmptyState,
+  AdminFilterPanel,
+  AdminSectionHeader,
+  AdminTableShell,
+  adminTableHeadSx,
+  adminTableRowSx,
+} from '@/components/admin/admin-shared';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import CategoryIcon from '@mui/icons-material/Category';
 
-interface AdminQuestionCategoriesTabProps {
-  isActive: boolean;
+function formatCreatedDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fa-IR', {
+    calendar: 'persian',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
-export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategoriesTabProps) {
+export function AdminQuestionCategoriesTab() {
+  const theme = useTheme();
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<QuestionCategory | null>(null);
+  const [search, setSearch] = useState('');
 
   const categoryForm = useForm<QuestionCategoryFormData>({
     resolver: zodResolver(questionCategorySchema),
-    defaultValues: {
-      name: '',
-      description: '',
-    },
+    defaultValues: { name: '', description: '' },
   });
 
   const {
@@ -57,18 +71,25 @@ export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategories
     isLoading: categoriesLoading,
     isError: categoriesError,
     error: categoriesErrorDetail,
-  } = useQuestionCategories(isActive);
+  } = useQuestionCategories(true);
 
   const createCategoryMutation = useCreateQuestionCategory();
   const updateCategoryMutation = useUpdateQuestionCategory();
   const deleteCategoryMutation = useDeleteQuestionCategory();
 
+  const filteredCategories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.description ?? '').toLowerCase().includes(q)
+    );
+  }, [categories, search]);
+
   const handleOpenCreateCategory = () => {
     setEditingCategory(null);
-    categoryForm.reset({
-      name: '',
-      description: '',
-    });
+    categoryForm.reset({ name: '', description: '' });
     setCategoryOpen(true);
   };
 
@@ -90,10 +111,7 @@ export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategories
   const handleCloseCategory = () => {
     setCategoryOpen(false);
     setEditingCategory(null);
-    categoryForm.reset({
-      name: '',
-      description: '',
-    });
+    categoryForm.reset({ name: '', description: '' });
   };
 
   const onSubmitCategory = (data: QuestionCategoryFormData) => {
@@ -101,35 +119,21 @@ export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategories
       updateCategoryMutation.mutate(
         {
           id: editingCategory.id,
-          data: {
-            name: data.name,
-            description: data.description || undefined,
-          },
+          data: { name: data.name, description: data.description || undefined },
         },
-        {
-          onSuccess: () => {
-            handleCloseCategory();
-          },
-        }
+        { onSuccess: handleCloseCategory }
       );
     } else {
       createCategoryMutation.mutate(
-        {
-          name: data.name,
-          description: data.description || undefined,
-        },
-        {
-          onSuccess: () => {
-            handleCloseCategory();
-          },
-        }
+        { name: data.name, description: data.description || undefined },
+        { onSuccess: handleCloseCategory }
       );
     }
   };
 
   return (
     <>
-      <Stack spacing={3}>
+      <Stack spacing={2.5}>
         {categoriesError && (
           <Alert severity="error">
             {categoriesErrorDetail instanceof Error
@@ -137,105 +141,124 @@ export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategories
               : 'خطا در بارگذاری لیست دسته‌بندی‌ها'}
           </Alert>
         )}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">مدیریت دسته‌بندی سوالات</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateCategory}
-            data-cy="admin-add-question-category"
-          >
-            افزودن دسته‌بندی
-          </Button>
-        </Stack>
+
+        <AdminSectionHeader
+          icon={<CategoryIcon fontSize="small" />}
+          title="مدیریت دسته‌بندی سوالات"
+          subtitle="طبقه‌بندی بانک سوال"
+          count={categories.length}
+          action={
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateCategory}
+              data-cy="admin-add-question-category"
+            >
+              افزودن دسته‌بندی
+            </Button>
+          }
+        />
+
+        <AdminFilterPanel showReset={Boolean(search.trim())} onReset={() => setSearch('')}>
+          <TextField
+            size="small"
+            placeholder="جستجو نام یا توضیحات…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: { xs: '100%', md: 320 } }}
+          />
+        </AdminFilterPanel>
 
         {categoriesLoading ? (
-          <Box display="flex" justifyContent="center" p={3}>
+          <Box display="flex" justifyContent="center" py={6}>
             <CircularProgress />
           </Box>
+        ) : filteredCategories.length === 0 ? (
+          <AdminEmptyState
+            icon={<CategoryIcon />}
+            title="دسته‌بندی‌ای یافت نشد"
+            description={
+              search.trim()
+                ? 'عبارت جستجو را تغییر دهید یا دسته‌بندی جدید اضافه کنید.'
+                : 'هنوز دسته‌بندی‌ای ایجاد نشده است.'
+            }
+          />
         ) : (
-          <TableContainer component={Paper} variant="outlined">
+          <AdminTableShell>
             <Table>
               <TableHead>
-                <TableRow>
+                <TableRow sx={adminTableHeadSx(theme)}>
                   <TableCell>نام</TableCell>
                   <TableCell>توضیحات</TableCell>
                   <TableCell>تاریخ ایجاد</TableCell>
-                  <TableCell>عملیات</TableCell>
+                  <TableCell align="center">عملیات</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {categories.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        هنوز دسته‌بندی‌ای ایجاد نشده است.
+                {filteredCategories.map((category, index) => (
+                  <TableRow key={category.id} hover sx={adminTableRowSx(theme, index)}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <CategoryIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" fontWeight={700}>
+                          {category.name}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
+                        {category.description || '—'}
                       </Typography>
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  categories.map((category) => (
-                    <TableRow key={category.id}>
-                      <TableCell>{category.name}</TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            maxWidth: 300,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatCreatedDate(category.created_at)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.25} justifyContent="center">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEditCategory(category)}
+                          title="ویرایش دسته‌بندی"
+                          aria-label="ویرایش دسته‌بندی"
                         >
-                          {category.description || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(category.created_at).toLocaleDateString('fa-IR', {
-                          calendar: 'persian',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleOpenEditCategory(category)}
-                            title="ویرایش دسته‌بندی"
-                            aria-label="ویرایش دسته‌بندی"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteCategory(category)}
-                            disabled={deleteCategoryMutation.isPending}
-                            title="حذف دسته‌بندی"
-                            aria-label="حذف دسته‌بندی"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteCategory(category)}
+                          disabled={deleteCategoryMutation.isPending}
+                          title="حذف دسته‌بندی"
+                          aria-label="حذف دسته‌بندی"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </AdminTableShell>
         )}
       </Stack>
 
       <Dialog open={categoryOpen} onClose={handleCloseCategory} maxWidth="sm" fullWidth>
-        <DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
           {editingCategory ? 'ویرایش دسته‌بندی' : 'ایجاد دسته‌بندی جدید'}
         </DialogTitle>
         <DialogContent>
           <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)}>
-            <Stack spacing={3} sx={{ mt: 2 }}>
+            <Stack spacing={2.5} sx={{ mt: 1 }}>
               <Controller
                 name="name"
                 control={categoryForm.control}
@@ -267,14 +290,12 @@ export function AdminQuestionCategoriesTab({ isActive }: AdminQuestionCategories
             </Stack>
           </form>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseCategory}>لغو</Button>
           <Button
             onClick={categoryForm.handleSubmit(onSubmitCategory)}
             variant="contained"
-            disabled={
-              createCategoryMutation.isPending || updateCategoryMutation.isPending
-            }
+            disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
           >
             {createCategoryMutation.isPending || updateCategoryMutation.isPending
               ? 'در حال ذخیره...'

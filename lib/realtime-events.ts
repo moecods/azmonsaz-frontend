@@ -1,5 +1,6 @@
 export const REALTIME_EVENTS = {
   participantStatusChanged: '.participant.status.changed',
+  participantTimingChanged: '.participant.timing.changed',
   examStatusChanged: '.exam.status.changed',
   examTimeExpired: '.exam.time.expired',
   teacherExamMessage: '.teacher.exam.message',

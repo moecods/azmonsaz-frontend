@@ -77,6 +77,8 @@ export default function StudentDashboard({ userName }: StudentDashboardProps) {
               </Stack>
             )}
 
+            <DashboardWeekCalendar days={dashboard.weekCalendar} />
+
             <Box>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
                 اعلان‌ها
@@ -93,8 +95,6 @@ export default function StudentDashboard({ userName }: StudentDashboardProps) {
                 </Typography>
               )}
             </Box>
-
-            <DashboardWeekCalendar days={dashboard.weekCalendar} />
 
             <DashboardResultsPanel
               recentResults={dashboard.recentResults}

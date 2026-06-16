@@ -462,6 +462,7 @@ export {
   useExamQuestions,
   useSaveAnswer,
   useSubmitExam,
+  useAutoCompleteExam,
 } from "./exams/useExamTaking";
 
 export { useMyExamResult, useExamAiReview, useGraderNoteEngagement, useMarkResultViewed } from "./exams/useExamResult";
@@ -587,6 +588,48 @@ export function useRemoveGroupFromExam() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
+    },
+  });
+}
+
+export function useParticipantAction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      examId,
+      participantId,
+      action,
+      minutes,
+      clear_answers,
+      reason,
+    }: {
+      examId: number;
+      participantId: number;
+      action: string;
+      minutes?: number;
+      clear_answers?: boolean;
+      reason?: string;
+    }) => {
+      const response = await examService.applyParticipantAction(examId, participantId, {
+        action,
+        minutes,
+        clear_answers,
+        reason,
+      });
+      if (!response.success) {
+        throw new ApiError(
+          response.message || 'Failed to apply participant action',
+          undefined,
+          (response as { errors?: unknown }).errors
+        );
+      }
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['exam', 'manage', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: ['exam', variables.examId, 'reports'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.exam(variables.examId) });
     },
   });

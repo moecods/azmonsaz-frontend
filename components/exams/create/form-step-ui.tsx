@@ -10,6 +10,41 @@ import {
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
+function StepAccentIconBox({
+  children,
+  size = "md",
+  emphasized = false,
+}: {
+  children: ReactNode;
+  size?: "sm" | "md";
+  emphasized?: boolean;
+}) {
+  const theme = useTheme();
+  const dim = size === "sm" ? 32 : 40;
+
+  return (
+    <Box
+      sx={{
+        width: dim,
+        height: dim,
+        borderRadius: size === "sm" ? 1.5 : 2,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: alpha(
+          theme.palette.primary.main,
+          emphasized ? 0.16 : theme.palette.mode === "dark" ? 0.14 : 0.1
+        ),
+        color: "primary.main",
+        "& .MuiSvgIcon-root": { fontSize: size === "sm" ? 18 : 22 },
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 export function FormStepSection({
   title,
   description,
@@ -21,6 +56,8 @@ export function FormStepSection({
   icon?: ReactNode;
   children: ReactNode;
 }) {
+  const theme = useTheme();
+
   return (
     <Box
       sx={{
@@ -37,13 +74,14 @@ export function FormStepSection({
           py: 1.5,
           borderBottom: 1,
           borderColor: "divider",
-          bgcolor: (t) => (t.palette.mode === "dark" ? "action.hover" : "grey.50"),
+          bgcolor: alpha(
+            theme.palette.primary.main,
+            theme.palette.mode === "dark" ? 0.08 : 0.04
+          ),
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          {icon && (
-            <Box sx={{ color: "primary.main", mt: 0.25, display: "flex" }}>{icon}</Box>
-          )}
+        <Stack direction="row" spacing={1.25} alignItems="flex-start">
+          {icon && <StepAccentIconBox size="sm">{icon}</StepAccentIconBox>}
           <Box>
             <Typography variant="subtitle2" fontWeight={800}>
               {title}
@@ -98,9 +136,7 @@ export function SelectableOptionCard({
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Box sx={{ color: selected ? "primary.main" : "text.secondary", display: "flex" }}>
-          {icon}
-        </Box>
+        <StepAccentIconBox emphasized={selected}>{icon}</StepAccentIconBox>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <Typography variant="body2" fontWeight={700}>

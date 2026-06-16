@@ -3,6 +3,7 @@ export {
   useExamQuestions,
   useSaveAnswer,
   useSubmitExam,
+  useAutoCompleteExam,
 } from "./useExamTaking";
 
 export { useMyExamResult, useExamAiReview, useGraderNoteEngagement, useMarkResultViewed } from "./useExamResult";

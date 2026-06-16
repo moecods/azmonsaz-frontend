@@ -172,12 +172,12 @@ export function ExamFormWizard({
                           ? "primary.main"
                           : isDone
                             ? alpha(theme.palette.success.main, 0.2)
-                            : alpha(theme.palette.action.hover, 0.8),
+                            : alpha(theme.palette.primary.main, 0.1),
                         color: isActive
                           ? "primary.contrastText"
                           : isDone
                             ? "success.dark"
-                            : "text.secondary",
+                            : "primary.main",
                       }}
                     >
                       {isDone ? (
@@ -289,9 +289,10 @@ export function ExamFormWizard({
               py: 3,
               minHeight: 280,
               bgcolor: (t) =>
-                t.palette.mode === "dark"
-                  ? alpha(t.palette.background.default, 0.4)
-                  : alpha(t.palette.grey[100], 0.65),
+                alpha(
+                  t.palette.primary.main,
+                  t.palette.mode === "dark" ? 0.04 : 0.03
+                ),
             }}
           >
             {activeStep === 0 && (

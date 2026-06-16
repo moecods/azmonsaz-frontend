@@ -10,6 +10,9 @@ export interface UserFilters {
   page?: number;
   per_page?: number;
   search?: string;
+  role?: string;
+  is_active?: string;
+  has_pro?: string;
 }
 
 export interface CreateUserData {

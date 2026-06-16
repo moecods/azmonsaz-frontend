@@ -9,4 +9,5 @@ export { TakeExamSubmitDialog } from "./TakeExamSubmitDialog";
 export { TakeExamSuccess } from "./TakeExamSuccess";
 export { TakeExamLoading } from "./TakeExamLoading";
 export { TakeExamTimer } from "./TakeExamTimer";
+export { TakeExamTimeExpiredDialog } from "./TakeExamTimeExpiredDialog";
 export { isQuestionAnswered } from "./is-question-answered";

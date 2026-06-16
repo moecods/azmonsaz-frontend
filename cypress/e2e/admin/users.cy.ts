@@ -8,17 +8,16 @@ describe('Admin Users', () => {
         cy.login();
       }
     });
-    cy.visit('/admin');
+    cy.visit('/admin/users');
   });
 
-  it('can switch to users tab', () => {
-    cy.getByTestId('admin-tab-users').click();
+  it('shows users section', () => {
+    cy.getByTestId('admin-nav-users').should('have.attr', 'aria-current', 'page');
     cy.getByTestId('admin-add-user').should('be.visible');
     cy.contains('مدیریت کاربران').should('be.visible');
   });
 
   it('opens create user dialog when clicking add user', () => {
-    cy.getByTestId('admin-tab-users').click();
     cy.getByTestId('admin-add-user').click();
     cy.contains('ایجاد کاربر جدید').should('be.visible');
   });
