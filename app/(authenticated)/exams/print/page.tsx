@@ -4,13 +4,14 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useExam, useExamWithParticipants } from '@/hooks/useExams';
 import ExamPrintView from '@/components/ExamPrintView';
+import type { ExamForPrint } from '@/lib/exam-print/types';
 import { Container, Box, CircularProgress, Alert } from '@mui/material';
 
 function PrintExamContent() {
   const searchParams = useSearchParams();
   const examIdParam = searchParams.get('exam_id');
   const examId = examIdParam ? parseInt(examIdParam, 10) : null;
-  const template = searchParams.get('template') || 'default';
+  const template = searchParams.get('template') || 'formal_school';
 
   const { data: examData, isLoading: examLoading, error: examError } = useExam(examId);
   const { data: manageData, isLoading: manageLoading } = useExamWithParticipants(examId);
@@ -20,7 +21,7 @@ function PrintExamContent() {
 
   if (!examId || Number.isNaN(examId)) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">شناسه آزمون معتبر نیست.</Alert>
       </Container>
     );
@@ -28,7 +29,7 @@ function PrintExamContent() {
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>
@@ -38,7 +39,7 @@ function PrintExamContent() {
 
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">
           خطا در بارگذاری آزمون: {(error as Error).message}
         </Alert>
@@ -48,15 +49,25 @@ function PrintExamContent() {
 
   if (!examData) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">آزمون یافت نشد.</Alert>
       </Container>
     );
   }
 
-  const examForPrint = {
-    ...examData,
-    exam_questions: (examData as { exam_questions?: unknown }).exam_questions ?? (examData as { questions?: unknown }).questions ?? [],
+  const examForPrint: ExamForPrint = {
+    id: examData.id,
+    title: examData.title,
+    partner_id: examData.partner_id,
+    type: examData.type,
+    meta: examData.meta as ExamForPrint["meta"],
+    print_settings: examData.print_settings as ExamForPrint["print_settings"],
+    partner: examData.partner ? { name: examData.partner.name } : undefined,
+    exam_questions: (
+      (examData as { exam_questions?: ExamForPrint["exam_questions"] }).exam_questions ??
+      (examData.questions as ExamForPrint["exam_questions"]) ??
+      []
+    ),
   };
 
   const rawParticipants =
@@ -82,6 +93,9 @@ function PrintExamContent() {
     teacherName: searchParams.get('teacher_name') ?? undefined,
   };
 
+  const answerKeyFromUrl = searchParams.get('answer_key');
+  const printModeFromUrl = searchParams.get('mode');
+
   return (
     <ExamPrintView
       exam={examForPrint}
@@ -91,6 +105,8 @@ function PrintExamContent() {
       orientationFromUrl={orientationFromUrl}
       marginFromUrl={marginFromUrl}
       headerFromUrl={headerFromUrl}
+      answerKeyFromUrl={answerKeyFromUrl}
+      printModeFromUrl={printModeFromUrl}
     />
   );
 }
@@ -98,7 +114,7 @@ function PrintExamContent() {
 export default function ExamPrintPage() {
   return (
     <Suspense fallback={
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>

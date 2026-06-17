@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
+import { Fade } from "@mui/material";
 import type { ColorMode } from "@/theme/ColorModeProvider";
-import { paletteTokens, spacingUnit, typographyTokens } from "@/theme/tokens";
+import { motionTokens, paletteTokens, spacingUnit, typographyTokens } from "@/theme/tokens";
 
 type Direction = "ltr" | "rtl";
 type Locale = "en" | "fa";
@@ -54,7 +55,15 @@ export function createAppTheme(
             padding: "6px 16px",
             fontWeight: 500,
             boxShadow: "none",
+            transition: `background-color ${motionTokens.duration.fast}ms ${motionTokens.easing}, color ${motionTokens.duration.fast}ms ${motionTokens.easing}, border-color ${motionTokens.duration.fast}ms ${motionTokens.easing}, transform ${motionTokens.duration.fast}ms ${motionTokens.easing}`,
             "&:hover": { boxShadow: "none" },
+            "&:active": {
+              transform: "scale(0.98)",
+            },
+            "@media (prefers-reduced-motion: reduce)": {
+              transition: "none",
+              "&:active": { transform: "none" },
+            },
           },
         },
       },
@@ -76,8 +85,28 @@ export function createAppTheme(
         },
       },
       MuiDialog: {
+        defaultProps: {
+          TransitionComponent: Fade,
+          transitionDuration: {
+            enter: motionTokens.duration.normal,
+            exit: motionTokens.duration.fast,
+          },
+        },
         styleOverrides: {
           paper: { borderRadius: 12 },
+        },
+      },
+      MuiSnackbar: {
+        defaultProps: {
+          transitionDuration: {
+            enter: motionTokens.duration.normal,
+            exit: motionTokens.duration.fast,
+          },
+        },
+      },
+      MuiCollapse: {
+        defaultProps: {
+          timeout: motionTokens.duration.normal,
         },
       },
       MuiPaper: {

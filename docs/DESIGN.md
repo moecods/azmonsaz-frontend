@@ -51,6 +51,15 @@ Storybook: `npm run storybook` — rules in `AGENTS.md` and backlog in `docs/sto
 - CTA اصلی: `variant="contained"` + `color="primary"`.
 - دکمه‌های برجسته روی پنل برند: پس‌زمینه `background.paper`، متن `primary.main`.
 
+### Motion و بازخورد اکشن
+
+- توکن‌ها: `motionTokens` در [`theme/tokens.ts`](../theme/tokens.ts) — helperها در [`theme/motion.ts`](../theme/motion.ts).
+- مدت‌ها: micro **120ms**، feedback **200ms**، layout **200–250ms**، decorative **300ms**.
+- از `useReducedMotion()` برای خاموش کردن transform/slide وقتی OS `prefers-reduced-motion: reduce` دارد.
+- Toast سراسری: `useToast()` از [`providers/ToastProvider`](../providers/ToastProvider.tsx).
+- اکشن‌های mutate: `LoadingButton` + toast موفقیت/خطا؛ تأیید بحرانی: `ConfirmDialog` (نه `window.confirm`).
+- انیمیشن تزئینی سنگین یا کتابخانه جدید (مثل framer-motion) بدون ثبت در این سند اضافه نکنید.
+
 ## کجا استایل بگذاریم؟
 
 | نوع صفحه | محل استایل |

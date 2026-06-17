@@ -34,6 +34,7 @@ const DEFAULT_VALUES: QuestionFormData = {
   manual_grading: false,
   matching_mode: 'one_to_one',
   display_settings: { ...OPTION_TYPE_DISPLAY_DEFAULTS },
+  print_settings: {},
 };
 
 export interface UseQuestionFormOptions {

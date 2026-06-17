@@ -100,6 +100,8 @@ export interface Question {
   category?: QuestionCategory;
   tags: string[];
   difficulty: Difficulty;
+  display_settings?: Record<string, unknown>;
+  print_settings?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -137,6 +139,7 @@ export interface Exam {
   duration_minutes?: number | null;
   passing_score?: number | null;
   instructions?: string | null;
+  print_settings?: Record<string, unknown> | null;
   tags?: string[] | null;
   points_per_question?: number;
   exam_date?: string | null;
@@ -210,6 +213,7 @@ export interface UpdateExamRequest {
   result_release_after_exam_end?: boolean;
   result_release_after_grading_complete?: boolean;
   result_release_requires_manual?: boolean;
+  print_settings?: Record<string, unknown> | null;
 }
 
 export interface CreateQuestionRequest {
@@ -221,6 +225,7 @@ export interface CreateQuestionRequest {
   tags: string[];
   difficulty: Difficulty;
   display_settings?: QuestionDisplaySettings | Record<string, unknown>;
+  print_settings?: Record<string, unknown>;
 }
 
 export interface UpdateQuestionRequest {
@@ -232,6 +237,7 @@ export interface UpdateQuestionRequest {
   tags?: string[];
   difficulty?: Difficulty;
   display_settings?: QuestionDisplaySettings | Record<string, unknown>;
+  print_settings?: Record<string, unknown>;
 }
 
 export interface ApiResponse<T> {

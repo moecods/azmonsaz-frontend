@@ -71,9 +71,7 @@ export function useQuestionManagement() {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm('آیا مطمئن هستید که می‌خواهید این سوال را حذف کنید؟')) {
-      deleteQuestionMutation.mutate(id);
-    }
+    deleteQuestionMutation.mutate(id);
   };
 
   return {

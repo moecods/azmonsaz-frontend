@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Snackbar,
   TextField,
   useMediaQuery,
   useTheme,
@@ -50,6 +49,7 @@ import DragHandleIcon from '@mui/icons-material/DragHandle';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import EditIcon from '@mui/icons-material/Edit';
+import PrintIcon from '@mui/icons-material/Print';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import Breadcrumb from '@/components/Breadcrumb';
 import { ExamQuestionsToolbar } from '@/components/exams/exam-questions/ExamQuestionsToolbar';
@@ -63,11 +63,18 @@ import { htmlToPlainText } from '@/components/editor';
 import { ExamQuestion, Question } from '@/types';
 import { getQuestionTypeLabel } from '@/lib/question-types/registry';
 import {
+  hasCustomPrintSettings,
+  type QuestionPrintSettings,
+} from '@/lib/question-types/print-settings';
+import QuestionPrintSettingsDrawer from '@/components/questions/QuestionPrintSettingsDrawer';
+import { supportsQuestionPrintSettings } from '@/components/questions/QuestionPrintSettingsPanel';
+import {
   getQuestionText,
   getQuestionType,
   sortQuestionsByOrder,
 } from '@/lib/question-utils';
 import { handleError, getErrorMessage } from '@/lib/error-handler';
+import { useToast } from '@/hooks/useToast';
 import {
   getDefaultQuestionPoints,
   getExamMaxScore,
@@ -87,6 +94,9 @@ interface SortableQuestionItemProps {
   onUpdatePoints: (question: ExamQuestion, points: number) => void;
   onPointsRejected: (message: string) => void;
   onEdit: (question: ExamQuestion) => void;
+  onPrintSettings?: (question: ExamQuestion) => void;
+  showPrintSettings?: boolean;
+  hasCustomPrint?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   canMoveUp?: boolean;
@@ -107,6 +117,9 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
   onUpdatePoints,
   onPointsRejected,
   onEdit,
+  onPrintSettings,
+  showPrintSettings = false,
+  hasCustomPrint = false,
   onMoveUp,
   onMoveDown,
   canMoveUp,
@@ -247,6 +260,9 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
                       size="small"
                       variant="outlined"
                   />
+                  {hasCustomPrint && (
+                    <Chip label="چاپ سفارشی" size="small" color="warning" variant="outlined" />
+                  )}
                   <Tooltip title="بارم سوال">
                     <TextField
                         size="small"
@@ -300,6 +316,21 @@ const SortableQuestionItem = memo(function SortableQuestionItem({
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5}>
+              {showPrintSettings && onPrintSettings && supportsQuestionPrintSettings(questionType) && (
+                <Tooltip title="تنظیمات چاپ">
+                  <span>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => onPrintSettings(question)}
+                      disabled={isUpdating}
+                      aria-label="تنظیمات چاپ"
+                    >
+                      <PrintIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
               <Tooltip title="ویرایش سوال (سوال از بانک به‌صورت کپی در آزمون ذخیره شده و قابل ویرایش است)">
                 <span>
                   <IconButton
@@ -342,11 +373,9 @@ function ExamQuestionsContent() {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<ExamQuestion | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const [printSettingsQuestion, setPrintSettingsQuestion] = useState<ExamQuestion | null>(null);
+  const [printDrawerOpen, setPrintDrawerOpen] = useState(false);
+  const toast = useToast();
   const dragUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: examWithQuestions, isLoading, error } = useExam(examId);
@@ -405,22 +434,14 @@ function ExamQuestionsContent() {
                 onSuccess: () => {
                   completedCount++;
                   if (completedCount === updates.length && !hasError) {
-                    setSnackbar({
-                      open: true,
-                      message: 'ترتیب سوالات با موفقیت به‌روزرسانی شد',
-                      severity: 'success',
-                    });
+                    toast.success('ترتیب سوالات با موفقیت به‌روزرسانی شد');
                   }
                 },
                 onError: (error) => {
                   if (!hasError) {
                     hasError = true;
                     handleError(error, { context: 'Update Question Order' });
-                    setSnackbar({
-                      open: true,
-                      message: 'خطا در به‌روزرسانی ترتیب سوالات',
-                      severity: 'error',
-                    });
+                    toast.error('خطا در به‌روزرسانی ترتیب سوالات');
                   }
                 },
               }
@@ -516,12 +537,16 @@ function ExamQuestionsContent() {
   );
 
   const examForPoints = examWithQuestions as ExamWithGrading | undefined;
+  const isOfflineExam = examWithQuestions?.type === 'offline';
   const defaultPoints = getDefaultQuestionPoints(examForPoints);
   const examMaxScore = getExamMaxScore(examForPoints);
 
-  const rejectPointsOverflow = useCallback((message: string) => {
-    setSnackbar({ open: true, message, severity: 'error' });
-  }, []);
+  const rejectPointsOverflow = useCallback(
+    (message: string) => {
+      toast.error(message);
+    },
+    [toast]
+  );
 
   const handleDeleteQuestion = useCallback((questionId: number) => {
     const question = questions.find((q) => q.id === questionId);
@@ -536,6 +561,33 @@ function ExamQuestionsContent() {
       if (examId) router.push(`/exams/${examId}/questions/${question.id}/edit`);
     },
     [examId, router]
+  );
+
+  const handleOpenPrintSettings = useCallback((question: ExamQuestion) => {
+    setPrintSettingsQuestion(question);
+    setPrintDrawerOpen(true);
+  }, []);
+
+  const handleSavePrintSettings = useCallback(
+    async (settings: QuestionPrintSettings) => {
+      if (!examId || !printSettingsQuestion) return;
+      const payload = {
+        ...(printSettingsQuestion.payload ?? {}),
+        print_settings: settings,
+      };
+      await updateQuestionMutation.mutateAsync({
+        examId,
+        questionId: printSettingsQuestion.id,
+        data: { payload },
+      });
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q.id === printSettingsQuestion.id ? { ...q, payload } : q
+        )
+      );
+      toast.success('تنظیمات چاپ ذخیره شد');
+    },
+    [examId, printSettingsQuestion, updateQuestionMutation, toast]
   );
 
   const handleUpdatePoints = useCallback(
@@ -575,24 +627,16 @@ function ExamQuestionsContent() {
                   : q
               )
             );
-            setSnackbar({
-              open: true,
-              message: 'بارم سوال با موفقیت به‌روزرسانی شد',
-              severity: 'success',
-            });
+            toast.success('بارم سوال با موفقیت به‌روزرسانی شد');
           },
           onError: (error) => {
             handleError(error, { context: 'Update Question Points' });
-            setSnackbar({
-              open: true,
-              message: getErrorMessage(error, 'خطا در به‌روزرسانی بارم'),
-              severity: 'error',
-            });
+            toast.error(getErrorMessage(error, 'خطا در به‌روزرسانی بارم'));
           },
         }
       );
     },
-    [examId, updateQuestionMutation, examForPoints, questions, defaultPoints, rejectPointsOverflow]
+    [examId, updateQuestionMutation, examForPoints, questions, defaultPoints, rejectPointsOverflow, toast]
   );
 
   const confirmDeleteQuestion = useCallback(() => {
@@ -602,25 +646,17 @@ function ExamQuestionsContent() {
       { examId, questionId: questionToDelete.id },
       {
         onSuccess: () => {
-          setSnackbar({
-            open: true,
-            message: 'سوال با موفقیت حذف شد',
-            severity: 'success',
-          });
+          toast.success('سوال با موفقیت حذف شد');
           setDeleteDialogOpen(false);
           setQuestionToDelete(null);
         },
         onError: (error) => {
           handleError(error, { context: 'Delete Question' });
-          setSnackbar({
-            open: true,
-            message: getErrorMessage(error, 'خطا در حذف سوال'),
-            severity: 'error',
-          });
+          toast.error(getErrorMessage(error, 'خطا در حذف سوال'));
         },
       }
     );
-  }, [examId, questionToDelete, deleteQuestionMutation]);
+  }, [examId, questionToDelete, deleteQuestionMutation, toast]);
 
   const totalPoints = useMemo(
     () =>
@@ -773,6 +809,9 @@ function ExamQuestionsContent() {
                             onUpdatePoints={handleUpdatePoints}
                             onPointsRejected={rejectPointsOverflow}
                             onEdit={handleEditQuestion}
+                            onPrintSettings={handleOpenPrintSettings}
+                            showPrintSettings={isOfflineExam}
+                            hasCustomPrint={hasCustomPrintSettings(question.payload ?? {})}
                             onMoveUp={() => handleMoveQuestion(index, 'up')}
                             onMoveDown={() => handleMoveQuestion(index, 'down')}
                             canMoveUp={index > 0}
@@ -865,21 +904,25 @@ function ExamQuestionsContent() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {printSettingsQuestion && (
+        <QuestionPrintSettingsDrawer
+          open={printDrawerOpen}
+          onClose={() => {
+            setPrintDrawerOpen(false);
+            setPrintSettingsQuestion(null);
+          }}
+          title={`تنظیمات چاپ — سوال ${printSettingsQuestion.payload?.order ?? ""}`}
+          questionType={getQuestionType(printSettingsQuestion)}
+          initialSettings={printSettingsQuestion.payload?.print_settings as QuestionPrintSettings | undefined}
+          blankCount={
+            Array.isArray(printSettingsQuestion.payload?.blanks)
+              ? (printSettingsQuestion.payload?.blanks as unknown[]).length
+              : undefined
+          }
+          saving={updateQuestionMutation.isPending}
+          onSave={handleSavePrintSettings}
+        />
+      )}
     </Container>
   );
 }

@@ -102,6 +102,21 @@ export const transitions = {
   easing: "cubic-bezier(0.4, 0, 0.2, 1)",
 } as const;
 
+/** Motion durations (ms) — use via theme/motion.ts helpers */
+export const motionTokens = {
+  duration: {
+    instant: 0,
+    fast: 120,
+    normal: 200,
+    slow: 300,
+  },
+  easing: transitions.easing,
+  distance: {
+    sm: 4,
+    md: 8,
+  },
+} as const;
+
 export const breakpoints = {
   xs: 0,
   sm: 600,

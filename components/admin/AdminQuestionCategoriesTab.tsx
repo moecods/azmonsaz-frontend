@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -14,7 +13,6 @@ import {
   InputAdornment,
   Stack,
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableRow,
@@ -30,13 +28,20 @@ import {
   useCreateQuestionCategory,
   useUpdateQuestionCategory,
   useDeleteQuestionCategory,
+  useToast,
+  useReducedMotion,
 } from '@/hooks';
+import { LoadingButton } from '@/components/feedback/LoadingButton';
+import { useConfirmDialog } from '@/components/feedback/ConfirmDialog';
+import { AnimatedListBody } from '@/components/feedback/AnimatedListBody';
+import { dialogTransitionProps } from '@/theme/motion';
 import { QuestionCategory } from '@/types';
 import {
   AdminEmptyState,
   AdminFilterPanel,
   AdminSectionHeader,
   AdminTableShell,
+  AdminTableSkeleton,
   adminTableHeadSx,
   adminTableRowSx,
 } from '@/components/admin/admin-shared';
@@ -57,6 +62,9 @@ function formatCreatedDate(iso: string): string {
 
 export function AdminQuestionCategoriesTab() {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<QuestionCategory | null>(null);
   const [search, setSearch] = useState('');
@@ -102,10 +110,18 @@ export function AdminQuestionCategoriesTab() {
     setCategoryOpen(true);
   };
 
-  const handleDeleteCategory = (category: QuestionCategory) => {
-    if (window.confirm(`آیا از حذف دسته‌بندی «${category.name}» اطمینان دارید؟`)) {
-      deleteCategoryMutation.mutate(category.id);
-    }
+  const handleDeleteCategory = async (category: QuestionCategory) => {
+    const ok = await confirm({
+      title: 'حذف دسته‌بندی',
+      message: `آیا از حذف دسته‌بندی «${category.name}» اطمینان دارید؟`,
+      confirmLabel: 'حذف',
+      confirmColor: 'error',
+    });
+    if (!ok) return;
+    deleteCategoryMutation.mutate(category.id, {
+      onSuccess: () => toast.success('دسته‌بندی حذف شد'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'خطا در حذف'),
+    });
   };
 
   const handleCloseCategory = () => {
@@ -121,12 +137,24 @@ export function AdminQuestionCategoriesTab() {
           id: editingCategory.id,
           data: { name: data.name, description: data.description || undefined },
         },
-        { onSuccess: handleCloseCategory }
+        {
+          onSuccess: () => {
+            toast.success('دسته‌بندی به‌روزرسانی شد');
+            handleCloseCategory();
+          },
+          onError: (e) => toast.error(e instanceof Error ? e.message : 'خطا'),
+        }
       );
     } else {
       createCategoryMutation.mutate(
         { name: data.name, description: data.description || undefined },
-        { onSuccess: handleCloseCategory }
+        {
+          onSuccess: () => {
+            toast.success('دسته‌بندی ایجاد شد');
+            handleCloseCategory();
+          },
+          onError: (e) => toast.error(e instanceof Error ? e.message : 'خطا'),
+        }
       );
     }
   };
@@ -177,9 +205,7 @@ export function AdminQuestionCategoriesTab() {
         </AdminFilterPanel>
 
         {categoriesLoading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
+          <AdminTableSkeleton rows={4} />
         ) : filteredCategories.length === 0 ? (
           <AdminEmptyState
             icon={<CategoryIcon />}
@@ -201,9 +227,9 @@ export function AdminQuestionCategoriesTab() {
                   <TableCell align="center">عملیات</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <AnimatedListBody animationKey={search}>
                 {filteredCategories.map((category, index) => (
-                  <TableRow key={category.id} hover sx={adminTableRowSx(theme, index)}>
+                  <TableRow key={category.id} hover sx={adminTableRowSx(theme, index, reducedMotion)}>
                     <TableCell>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <CategoryIcon fontSize="small" color="primary" />
@@ -246,13 +272,19 @@ export function AdminQuestionCategoriesTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </AnimatedListBody>
             </Table>
           </AdminTableShell>
         )}
       </Stack>
 
-      <Dialog open={categoryOpen} onClose={handleCloseCategory} maxWidth="sm" fullWidth>
+      <Dialog
+        open={categoryOpen}
+        onClose={handleCloseCategory}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={dialogTransitionProps(reducedMotion)}
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {editingCategory ? 'ویرایش دسته‌بندی' : 'ایجاد دسته‌بندی جدید'}
         </DialogTitle>
@@ -292,19 +324,17 @@ export function AdminQuestionCategoriesTab() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseCategory}>لغو</Button>
-          <Button
+          <LoadingButton
             onClick={categoryForm.handleSubmit(onSubmitCategory)}
             variant="contained"
-            disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+            loading={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+            loadingText="در حال ذخیره..."
           >
-            {createCategoryMutation.isPending || updateCategoryMutation.isPending
-              ? 'در حال ذخیره...'
-              : editingCategory
-                ? 'به‌روزرسانی'
-                : 'ایجاد'}
-          </Button>
+            {editingCategory ? 'به‌روزرسانی' : 'ایجاد'}
+          </LoadingButton>
         </DialogActions>
       </Dialog>
+      {confirmDialog}
     </>
   );
 }

@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import {
   Alert,
   Box,
+  Card,
   Chip,
-  CircularProgress,
   Pagination,
+  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
@@ -29,6 +30,7 @@ import {
   QuestionBankEmptyState,
 } from "@/components/questions/question-bank";
 import { useMainProgress } from "@/components/layout/MainProgressProvider";
+import { AnimatedContent } from "@/components/feedback/AnimatedListBody";
 import {
   computeExamsStats,
   sortExamsClient,
@@ -42,6 +44,32 @@ const DEFAULT_FILTERS: ExamsListFilters = {
   type: "all",
   sort: "newest",
 };
+
+function ExamListSkeleton() {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          xl: "repeat(3, 1fr)",
+        },
+        gap: 2,
+      }}
+    >
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Card key={index} variant="outlined" sx={{ borderRadius: 2.5, p: 2 }}>
+          <Skeleton variant="rounded" width="45%" height={24} sx={{ mb: 1 }} />
+          <Skeleton variant="text" height={28} sx={{ mb: 1.5 }} />
+          <Skeleton variant="text" width="80%" />
+          <Skeleton variant="text" width="60%" />
+          <Skeleton variant="rounded" height={6} sx={{ mt: 2 }} />
+        </Card>
+      ))}
+    </Box>
+  );
+}
 
 export default function ExamsPage() {
   return (
@@ -172,9 +200,7 @@ function ExamsPageContent() {
         filters={<ExamsFiltersPanel {...filterPanelProps} />}
       >
         {isLoading ? (
-          <Stack alignItems="center" py={8}>
-            <CircularProgress />
-          </Stack>
+          <ExamListSkeleton />
         ) : exams.length === 0 ? (
           <QuestionBankEmptyState
             title="آزمونی یافت نشد"
@@ -202,21 +228,26 @@ function ExamsPageContent() {
           />
         ) : (
           <>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  xl: "repeat(3, 1fr)",
-                },
-                gap: 2,
-              }}
+            <AnimatedContent
+              animationKey={`${page}-${debouncedSearch}-${filters.status}-${filters.type}-${filters.sort}`}
+              loading={isFetching && !isLoading}
             >
-              {exams.map((exam) => (
-                <ExamCard key={exam.id} exam={exam} />
-              ))}
-            </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, 1fr)",
+                    xl: "repeat(3, 1fr)",
+                  },
+                  gap: 2,
+                }}
+              >
+                {exams.map((exam) => (
+                  <ExamCard key={exam.id} exam={exam} />
+                ))}
+              </Box>
+            </AnimatedContent>
 
             {meta && meta.last_page > 1 && (
               <Stack spacing={1} alignItems="center" sx={{ pt: 1 }}>

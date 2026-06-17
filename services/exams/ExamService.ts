@@ -39,7 +39,7 @@ export class ExamService {
    * Get redirect URL for exam print page (offline exams only).
    * Backend returns 302 with Location header to frontend print page.
    */
-  async getExamPrintRedirectUrl(examId: number, template: string = 'default'): Promise<string | null> {
+  async getExamPrintRedirectUrl(examId: number, template: string = 'formal_school'): Promise<string | null> {
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     const token = this.apiClient.getToken();
     const url = `${baseURL}/exams/${examId}/download?template=${encodeURIComponent(template)}`;

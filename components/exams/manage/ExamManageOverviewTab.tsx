@@ -2,6 +2,7 @@
 
 import { Box, Button, Stack, Typography } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
+import KeyIcon from "@mui/icons-material/Key";
 import type { ExamWithParticipants } from "@/services/exams/ExamService";
 import { computeParticipantStats } from "@/lib/exam-manage-utils";
 import { ExamManageStatCard } from "@/components/exams/manage/ExamManageStatCard";
@@ -15,6 +16,7 @@ interface ExamManageOverviewTabProps {
   exam: ExamWithParticipants;
   stats: ReturnType<typeof computeParticipantStats>;
   onPrint: () => void;
+  onPrintAnswerKey: () => void;
   isOffline: boolean;
 }
 
@@ -22,6 +24,7 @@ export function ExamManageOverviewTab({
   exam,
   stats,
   onPrint,
+  onPrintAnswerKey,
   isOffline,
 }: ExamManageOverviewTabProps) {
   return (
@@ -52,6 +55,9 @@ export function ExamManageOverviewTab({
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <Button variant="outlined" startIcon={<PrintIcon />} onClick={onPrint}>
             چاپ برگه
+          </Button>
+          <Button variant="outlined" startIcon={<KeyIcon />} onClick={onPrintAnswerKey}>
+            چاپ پاسخنامه
           </Button>
         </Stack>
       )}

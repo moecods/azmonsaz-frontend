@@ -11,6 +11,8 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { Box, LinearProgress } from "@mui/material";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionTransition } from "@/theme/motion";
 
 const StartNavigationContext = createContext<(() => void) | null>(null);
 
@@ -67,6 +69,7 @@ function MainTopProgressBar({
   isNavigating: boolean;
   dataProgress: DataProgressState | null;
 }) {
+  const reducedMotion = useReducedMotion();
   const show = isNavigating || (dataProgress?.active ?? false);
   if (!show) return null;
 
@@ -97,7 +100,7 @@ function MainTopProgressBar({
           height: 3,
           borderRadius: 0,
           "& .MuiLinearProgress-bar": {
-            transition: hasDeterminate ? "transform 0.25s ease" : undefined,
+            transition: motionTransition("transform", "slow", reducedMotion),
           },
         }}
       />

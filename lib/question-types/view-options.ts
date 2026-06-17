@@ -1,5 +1,5 @@
-/** How a question is rendered across bank, take, and result surfaces. */
-export type QuestionViewMode = "authoring" | "take" | "result";
+/** How a question is rendered across bank, take, result, and print surfaces. */
+export type QuestionViewMode = "authoring" | "take" | "result" | "print";
 
 export interface QuestionViewOptions {
   mode: QuestionViewMode;

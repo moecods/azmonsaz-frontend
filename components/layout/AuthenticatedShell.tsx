@@ -10,6 +10,7 @@ import UserLayout from "@/components/layout/UserLayout";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import { MainProgressProvider } from "@/components/layout/MainProgressProvider";
+import { PageContentFade } from "@/components/layout/PageContentFade";
 import { RealtimeProvider } from "@/providers/RealtimeProvider";
 import { SIDEBAR_WIDTH } from "@/components/layout/layout-constants";
 import { isTakeExamRoute } from "@/lib/take-exam-path";
@@ -95,7 +96,7 @@ export default function AuthenticatedShell({ children }: { children: ReactNode }
                   >
                     <ImpersonationBanner />
                     {!isTakeExam && <StartedExamsAlert />}
-                    {children}
+                    <PageContentFade contentKey={pathname ?? ""}>{children}</PageContentFade>
                   </Box>
                 </MainProgressProvider>
               </Box>

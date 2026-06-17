@@ -24,7 +24,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import QuizIcon from "@mui/icons-material/Quiz";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Toast } from "@/components/feedback/Alert/Alert";
+import { useToast } from "@/hooks/useToast";
+import { useConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { GroupAvatarUpload } from "@/components/groups/GroupAvatarUpload";
 import { GroupMembersPanel } from "@/components/groups/GroupMembersPanel";
 import { GroupTeachersPanel } from "@/components/groups/GroupTeachersPanel";
@@ -71,11 +72,8 @@ export default function GroupDetailPage() {
   const [accessOpen, setAccessOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [alert, setAlert] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "warning";
-  }>({ open: false, message: "", severity: "success" });
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
@@ -104,9 +102,14 @@ export default function GroupDetailPage() {
     }
   }, [group?.id, group?.name, group?.description]);
 
-  const showAlert = useCallback((message: string, severity: "success" | "error" | "warning") => {
-    setAlert({ open: true, message, severity });
-  }, []);
+  const showAlert = useCallback(
+    (message: string, severity: "success" | "error" | "warning") => {
+      if (severity === "success") toast.success(message);
+      else if (severity === "warning") toast.warning(message);
+      else toast.error(message);
+    },
+    [toast]
+  );
 
   const handleTabChange = (_: unknown, value: TabKey) => {
     setTab(value);
@@ -155,7 +158,13 @@ export default function GroupDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("گروه حذف شود؟ این عمل قابل بازگشت نیست.")) return;
+    const ok = await confirm({
+      title: "حذف گروه",
+      message: "گروه حذف شود؟ این عمل قابل بازگشت نیست.",
+      confirmLabel: "حذف",
+      confirmColor: "error",
+    });
+    if (!ok) return;
     try {
       await deleteMutation.mutateAsync(group.id);
       router.push("/groups");
@@ -283,7 +292,13 @@ export default function GroupDetailPage() {
             }
           }}
           onRemoveUser={async (userId) => {
-            if (!confirm("این عضو از گروه حذف شود؟")) return;
+            const ok = await confirm({
+              title: "حذف عضو",
+              message: "این عضو از گروه حذف شود؟",
+              confirmLabel: "حذف",
+              confirmColor: "error",
+            });
+            if (!ok) return;
             try {
               await removeUserMutation.mutateAsync({ groupId: group.id, userId });
               showAlert("عضو حذف شد", "success");
@@ -391,14 +406,7 @@ export default function GroupDetailPage() {
         onError={(msg) => showAlert(msg, "error")}
       />
 
-      {alert.open && (
-        <Toast
-          open={alert.open}
-          onClose={() => setAlert((a) => ({ ...a, open: false }))}
-          message={alert.message}
-          severity={alert.severity}
-        />
-      )}
+      {confirmDialog}
     </Stack>
   );
 }

@@ -27,7 +27,7 @@ import {
 } from "@/hooks/useExams";
 import { useExamRealtime } from "@/hooks/useExamRealtime";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Toast } from "@/components/feedback/Alert/Alert";
+import { useToast } from "@/hooks/useToast";
 import ParticipantManagement from "@/components/exams/ParticipantManagement";
 import ExamNotificationsTab from "@/components/exams/ExamNotificationsTab";
 import { ExamManageHero } from "@/components/exams/manage/ExamManageHero";
@@ -59,11 +59,7 @@ function ExamManageContent() {
   );
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmAction, setConfirmAction] = useState<ExamManageConfirmAction>(null);
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
+  const toast = useToast();
 
   const { data: exam, isLoading, error } = useExamWithParticipants(examId);
   const caps = exam ? getExamCapabilities(exam) : null;
@@ -87,7 +83,8 @@ function ExamManageContent() {
   const releaseExamResultsMutation = useReleaseExamResults();
 
   const showToast = (message: string, severity: "success" | "error") => {
-    setToast({ open: true, message, severity });
+    if (severity === "success") toast.success(message);
+    else toast.error(message);
   };
 
   const handleSelectTab = (tab: ExamManageTab) => {
@@ -204,7 +201,13 @@ function ExamManageContent() {
   const handlePrint = () => {
     if (!examId) return;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    window.open(`${origin}/exams/print?exam_id=${examId}&template=default`, "_blank");
+    window.open(`${origin}/exams/print?exam_id=${examId}`, "_blank");
+  };
+
+  const handlePrintAnswerKey = () => {
+    if (!examId) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    window.open(`${origin}/exams/print?exam_id=${examId}&answer_key=1`, "_blank");
   };
 
   const handleGenerateLink = () => {
@@ -251,6 +254,7 @@ function ExamManageContent() {
             exam={exam}
             stats={stats}
             onPrint={handlePrint}
+            onPrintAnswerKey={handlePrintAnswerKey}
             isOffline={isOffline}
           />
         );
@@ -339,6 +343,7 @@ function ExamManageContent() {
         onActivate={() => setConfirmAction("activate")}
         onDeactivate={() => setConfirmAction("deactivate")}
         onPrint={handlePrint}
+        onPrintAnswerKey={handlePrintAnswerKey}
         onReleaseResults={() => setConfirmAction("releaseResults")}
       />
 
@@ -356,13 +361,6 @@ function ExamManageContent() {
       >
         <Box>{renderSection()}</Box>
       </ExamManageLayout>
-
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        severity={toast.severity}
-        onClose={() => setToast((t) => ({ ...t, open: false }))}
-      />
     </Stack>
   );
 }

@@ -8,6 +8,7 @@ import { prefixer } from "stylis";
 import { ThemeProvider } from "@mui/material/styles";
 import { ColorModeProvider, useColorMode } from "@/theme/ColorModeProvider";
 import { createAppTheme } from "@/theme/createAppTheme";
+import { ToastProvider } from "@/providers/ToastProvider";
 
 type Direction = "ltr" | "rtl";
 type Locale = "en" | "fa";
@@ -51,7 +52,11 @@ function ThemedApp({ children }: { children: React.ReactNode }) {
     [mode, direction, locale]
   );
 
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+  return (
+    <ThemeProvider theme={theme}>
+      <ToastProvider>{children}</ToastProvider>
+    </ThemeProvider>
+  );
 }
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {

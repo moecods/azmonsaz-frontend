@@ -8,7 +8,7 @@ import QuizIcon from "@mui/icons-material/Quiz";
 import { useAuth, useAvailableExams, useExams } from "@/hooks";
 import { useGroups } from "@/hooks/useGroups";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Toast } from "@/components/feedback/Alert/Alert";
+import { useToast } from "@/hooks/useToast";
 import ShellContentLoader from "@/components/layout/ShellContentLoader";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ProfileActivityPanel } from "@/components/profile/ProfileActivityPanel";
@@ -20,11 +20,7 @@ import { normalizeAvailableExams as normalizeFromDashboard } from "@/lib/student
 export default function ProfilePage() {
   const { user } = useAuth();
   const [tab, setTab] = useState(0);
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
+  const toast = useToast();
 
   const isCreator = isCreatorRole(user?.roles);
 
@@ -113,9 +109,7 @@ export default function ProfilePage() {
             {tab === 0 && (
               <ProfileAccountPanel
                 user={user}
-                onSuccess={(message) =>
-                  setToast({ open: true, message, severity: "success" })
-                }
+                onSuccess={(message) => toast.success(message)}
               />
             )}
             {tab === 1 && (
@@ -124,15 +118,6 @@ export default function ProfilePage() {
             {tab === 2 && <ProfileExamsPanel exams={availableExams} />}
           </Box>
         </Card>
-
-        {toast.open && (
-          <Toast
-            open={toast.open}
-            onClose={() => setToast((t) => ({ ...t, open: false }))}
-            message={toast.message}
-            severity={toast.severity}
-          />
-        )}
       </Stack>
     </ShellContentLoader>
   );

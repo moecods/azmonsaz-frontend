@@ -35,7 +35,8 @@ import type { ExamWithGrading } from "@/lib/exam-points";
 import type { Question } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
-import { Toast } from "@/components/feedback/Alert/Alert";
+import { useConfirmDialog } from "@/components/feedback/ConfirmDialog";
+import { useToast } from "@/hooks/useToast";
 import {
   QuestionBankLayout,
   QuestionBankPageHeader,
@@ -60,11 +61,8 @@ export default function ExamQuestionsFromBankPage() {
     current: number;
     total: number;
   } | null>(null);
-  const [alert, setAlert] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "warning";
-  }>({ open: false, message: "", severity: "success" });
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const debouncedSearch = useDebounce(filters.searchTerm, 400);
 
@@ -122,13 +120,19 @@ export default function ExamQuestionsFromBankPage() {
     [cart, inExamQuestionIds]
   );
 
-  const handleClearCart = useCallback(() => {
+  const handleClearCart = useCallback(async () => {
     if (cart.count === 0) return;
-    if (cart.count > 5 && !window.confirm("همه سوالات از سبد حذف شوند؟")) {
-      return;
+    if (cart.count > 5) {
+      const ok = await confirm({
+        title: "پاک کردن سبد",
+        message: "همه سوالات از سبد حذف شوند؟",
+        confirmLabel: "پاک کردن",
+        confirmColor: "warning",
+      });
+      if (!ok) return;
     }
     cart.clear();
-  }, [cart]);
+  }, [cart, confirm]);
 
   const handleCommit = useCallback(async () => {
     if (!examId || !examData || cart.count === 0) return;
@@ -152,11 +156,7 @@ export default function ExamQuestionsFromBankPage() {
       });
 
       if (result.abortedByMaxScore) {
-        setAlert({
-          open: true,
-          message: result.maxScoreMessage || "مجموع بارم از حد مجاز بیشتر است.",
-          severity: "error",
-        });
+        toast.error(result.maxScoreMessage || "مجموع بارم از حد مجاز بیشتر است.");
         return;
       }
 
@@ -175,26 +175,20 @@ export default function ExamQuestionsFromBankPage() {
       }
 
       if (result.successCount > 0 && result.failedIds.length > 0) {
-        setAlert({
-          open: true,
-          message: `${result.successCount.toLocaleString("fa-IR")} سوال اضافه شد. ${result.failedIds.length.toLocaleString("fa-IR")} سوال ناموفق بود.`,
-          severity: "warning",
-        });
+        toast.warning(
+          `${result.successCount.toLocaleString("fa-IR")} سوال اضافه شد. ${result.failedIds.length.toLocaleString("fa-IR")} سوال ناموفق بود.`
+        );
         return;
       }
 
       if (result.errors.length > 0) {
-        setAlert({
-          open: true,
-          message: result.errors[0] || "خطا در افزودن سوالات",
-          severity: "error",
-        });
+        toast.error(result.errors[0] || "خطا در افزودن سوالات");
       }
     } finally {
       setIsCommitting(false);
       setCommitProgress(null);
     }
-  }, [examId, examData, cart, inExamQuestionIds, queryClient, router]);
+  }, [examId, examData, cart, inExamQuestionIds, queryClient, router, toast]);
 
   useMainProgress(
     !questionsLoading && (questionsRefetching || isFetchingNextPage)
@@ -325,14 +319,7 @@ export default function ExamQuestionsFromBankPage() {
         onClear={handleClearCart}
       />
 
-      {alert.open && (
-        <Toast
-          open={alert.open}
-          onClose={() => setAlert((a) => ({ ...a, open: false }))}
-          message={alert.message}
-          severity={alert.severity}
-        />
-      )}
+      {confirmDialog}
     </>
   );
 }

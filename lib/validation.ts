@@ -56,6 +56,7 @@ export const questionSchema = z.object({
   manual_grading: z.boolean().optional(),
   matching_mode: z.enum(['one_to_one', 'one_to_many']).optional(),
   display_settings: z.record(z.unknown()).optional(),
+  print_settings: z.record(z.unknown()).optional(),
 }).superRefine((data, ctx) => {
   const kind = getQuestionTypeKind(data.type);
   const t = data.type;

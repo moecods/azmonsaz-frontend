@@ -13,6 +13,8 @@ import {
 import PeopleIcon from "@mui/icons-material/People";
 import QuizIcon from "@mui/icons-material/Quiz";
 import { useRouter } from "next/navigation";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { hoverLiftSx } from "@/theme/motion";
 import type { Group } from "@/services/groups/GroupService";
 import { getGroupMemberCount } from "@/lib/groups-list-utils";
 import { GroupAvatar } from "@/components/groups/GroupAvatar";
@@ -25,6 +27,7 @@ interface GroupCardProps {
 export function GroupCard({ group }: GroupCardProps) {
   const theme = useTheme();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
   const memberCount = getGroupMemberCount(group);
   const teachers = group.teachers ?? [];
   const memberPreview =
@@ -38,8 +41,7 @@ export function GroupCard({ group }: GroupCardProps) {
       sx={{
         height: "100%",
         borderRadius: 2.5,
-        transition: "box-shadow 0.2s ease, transform 0.15s ease",
-        "&:hover": { boxShadow: 4, transform: "translateY(-2px)" },
+        ...hoverLiftSx(theme, reducedMotion),
       }}
     >
       <CardActionArea onClick={openDetail} sx={{ height: "100%", alignItems: "stretch" }}>

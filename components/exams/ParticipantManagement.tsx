@@ -12,8 +12,8 @@ import {
 } from "@/hooks/useExams";
 import { useGroups, useCreateGroup } from "@/hooks/useGroups";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/hooks/useToast";
 import { getErrorMessage } from "@/lib/error-handler";
-import { Toast } from "@/components/feedback/Alert/Alert";
 import type { ParticipantManagementProps } from "@/components/exams/ParticipantManagement.types";
 import type { ParticipantAddMethod } from "@/components/exams/participants/participant-ui-shared";
 import type { GroupPickItem } from "@/components/exams/participants/GroupPickCard";
@@ -75,11 +75,11 @@ export default function ParticipantManagement({
   const [removeParticipantTarget, setRemoveParticipantTarget] =
     useState<UserParticipant | null>(null);
   const removeParticipantMutation = useRemoveExamParticipant();
-  const [toast, setToast] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
+  const toast = useToast();
+  const showToast = (message: string, severity: "success" | "error") => {
+    if (severity === "success") toast.success(message);
+    else toast.error(message);
+  };
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { data: searchResults, isLoading: isSearching } = useSearchUsers(
@@ -129,10 +129,6 @@ export default function ParticipantManagement({
   const addGroupsMutation = useAddGroupsToExam();
   const removeGroupMutation = useRemoveGroupFromExam();
   const createGroupMutation = useCreateGroup();
-
-  const showToast = (message: string, severity: "success" | "error") => {
-    setToast({ open: true, message, severity });
-  };
 
   const openAdd = () => setAddOpen(true);
 
@@ -405,12 +401,6 @@ export default function ParticipantManagement({
         }}
       />
 
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        severity={toast.severity}
-        onClose={() => setToast((t) => ({ ...t, open: false }))}
-      />
     </Stack>
   );
 }

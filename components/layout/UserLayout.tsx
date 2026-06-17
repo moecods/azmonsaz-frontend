@@ -7,6 +7,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import StartedExamsAlert from "@/components/StartedExamsAlert";
 import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 import { MainProgressProvider } from "@/components/layout/MainProgressProvider";
+import { PageContentFade } from "@/components/layout/PageContentFade";
 import {
   MOBILE_BOTTOM_NAV_HEIGHT,
   SHELL_CONTENT_PADDING,
@@ -72,7 +73,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
           >
             <ImpersonationBanner />
             {showMobileChrome && <StartedExamsAlert />}
-            {children}
+            <PageContentFade contentKey={pathname ?? ""}>{children}</PageContentFade>
           </Box>
         </MainProgressProvider>
       </Box>

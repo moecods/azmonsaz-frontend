@@ -115,6 +115,18 @@ body {
   .exam-print-content [class*="MuiPaper-root"] {
     box-shadow: none !important;
   }
+  .exam-print-question {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .exam-print-teacher-key {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .exam-print-root--answer-key .exam-print-teacher-key {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .exam-print-footer {
     position: fixed;
     bottom: 0;
@@ -215,4 +227,41 @@ body {
     direction: ltr !important;
     text-align: center !important;
     display: inline-block;
+}
+
+/* Print answer line styles (offline exam customization) */
+@media print {
+  .print-answer-line--solid {
+    border-bottom: 1px solid #000 !important;
+  }
+  .print-answer-line--dotted {
+    border-bottom: 1px dotted #000 !important;
+  }
+  .print-answer-line--grid,
+  .print-answer-line--grid.print-answer-line {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-answer-space--blank {
+    border: none !important;
+  }
+}
+
+/* Print preview page guides — screen only */
+.print-preview-page-guides {
+  isolation: isolate;
+}
+@media print {
+  .print-preview-page-frame,
+  .print-preview-page-break-line,
+  .print-preview-page-break-label,
+  .print-preview-page-guides [aria-hidden="true"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }

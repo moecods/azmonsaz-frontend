@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Alert, Button, Box, Snackbar, Stack } from '@mui/material';
+import { Alert, Button, Box, Stack } from '@mui/material';
+import { useToast } from '@/hooks/useToast';
 import { useStartExam, useSaveAnswer, useSubmitExam, useAutoCompleteExam, useExamInfo } from '@/hooks/useExams';
 import { useExamTakeRealtime } from '@/hooks/useExamTakeRealtime';
 import { useMe } from '@/hooks/useAuth';
@@ -115,11 +116,7 @@ function TakeExamPageContent({
   const [examLocked, setExamLocked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }>({
-    open: false,
-    message: '',
-    severity: 'error',
-  });
+  const toast = useToast();
   const hasStartedRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef<{ questionId: number; answer: any } | null>(null);
@@ -159,11 +156,7 @@ function TakeExamPageContent({
       }
     },
     onTeacherMessage: (payload) => {
-      setSnackbar({
-        open: true,
-        message: payload.message ?? 'اعلان جدید از معلم',
-        severity: 'warning',
-      });
+      toast.warning(payload.message ?? 'اعلان جدید از معلم');
     },
   });
 
@@ -237,13 +230,9 @@ function TakeExamPageContent({
       hasStartedRef.current = false; // Reset on error so user can retry
       // Show error toast
       const errorMessage = error instanceof Error ? error.message : 'خطا در شروع آزمون';
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: 'error',
-      });
+      toast.error(errorMessage);
     }
-  }, [examId, examStarted, startExamMutation.isPending, startExamMutation.mutateAsync, applyStartExamResponse]);
+  }, [examId, examStarted, startExamMutation.isPending, startExamMutation.mutateAsync, applyStartExamResponse, toast]);
 
   // When resuming (status 'started'), call startExam to load questions + answers + remaining_seconds
   const hasLoadedResumeRef = useRef(false);
@@ -279,13 +268,9 @@ function TakeExamPageContent({
       const errorMessage = startExamMutation.error instanceof Error 
         ? startExamMutation.error.message 
         : 'خطا در شروع آزمون';
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: 'error',
-      });
+      toast.error(errorMessage);
     }
-  }, [startExamMutation.isError, startExamMutation.error]);
+  }, [startExamMutation.isError, startExamMutation.error, toast]);
 
   const flushPendingSave = useCallback(() => {
     if (saveTimeoutRef.current) {
@@ -335,25 +320,20 @@ function TakeExamPageContent({
       setShowTimeExpiredDialog(false);
     } catch (error) {
       setShowTimeExpiredDialog(false);
-      setSnackbar({
-        open: true,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'ثبت خودکار ناموفق بود. نتیجه به‌زودی ثبت می‌شود.',
-        severity: 'warning',
-      });
+      toast.warning(
+        error instanceof Error
+          ? error.message
+          : 'ثبت خودکار ناموفق بود. نتیجه به‌زودی ثبت می‌شود.'
+      );
     }
-  }, [examId, submitted, autoCompleteMutation, flushPendingSave]);
+  }, [examId, submitted, autoCompleteMutation, flushPendingSave, toast]);
 
   const handleTimerWarning = useCallback((secondsLeft: number) => {
     const minutes = Math.ceil(secondsLeft / 60);
-    setSnackbar({
-      open: true,
-      message: `${minutes.toLocaleString('fa-IR')} دقیقه تا پایان زمان آزمون باقی مانده است.`,
-      severity: 'warning',
-    });
-  }, []);
+    toast.warning(
+      `${minutes.toLocaleString('fa-IR')} دقیقه تا پایان زمان آزمون باقی مانده است.`
+    );
+  }, [toast]);
 
   const takeTimer = useTakeExamTimer({
     timing: examTiming,
@@ -696,21 +676,6 @@ function TakeExamPageContent({
         onClose={() => setShowSubmitDialog(false)}
         onConfirm={handleSubmitConfirm}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%', borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </TakeExamShell>
   );
 }

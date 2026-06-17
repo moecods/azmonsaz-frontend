@@ -4,14 +4,23 @@ import type { ReactNode } from 'react';
 import {
   Box,
   Button,
+  Grow,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
   TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import type { SxProps } from '@mui/material/styles';
+import { SkeletonLoading } from '@/components/feedback/Loading/Loading';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { motionTransition } from '@/theme/motion';
 
 export function adminTableHeadSx(theme: Theme): SxProps<Theme> {
   return {
@@ -26,9 +35,9 @@ export function adminTableHeadSx(theme: Theme): SxProps<Theme> {
   };
 }
 
-export function adminTableRowSx(theme: Theme, index: number): SxProps<Theme> {
+export function adminTableRowSx(theme: Theme, index: number, reducedMotion?: boolean): SxProps<Theme> {
   return {
-    transition: 'background-color 0.12s ease',
+    transition: motionTransition('background-color', 'fast', reducedMotion),
     '&:last-child td': { borderBottom: 0 },
     '&:hover': {
       bgcolor: alpha(theme.palette.primary.main, 0.03),
@@ -139,25 +148,28 @@ interface AdminEmptyStateProps {
 
 export function AdminEmptyState({ icon, title, description }: AdminEmptyStateProps) {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        py: 6,
-        px: 3,
-        textAlign: 'center',
-        bgcolor: alpha(theme.palette.action.hover, 0.04),
-      }}
-    >
-      <Box sx={{ color: 'text.disabled', mb: 1, '& svg': { fontSize: 40 } }}>{icon}</Box>
-      <Typography variant="subtitle1" fontWeight={700}>
-        {title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        {description}
-      </Typography>
-    </Paper>
+    <Grow in appear={!reducedMotion} timeout={reducedMotion ? 0 : undefined}>
+      <Paper
+        variant="outlined"
+        sx={{
+          py: 6,
+          px: 3,
+          textAlign: 'center',
+          bgcolor: alpha(theme.palette.action.hover, 0.04),
+        }}
+      >
+        <Box sx={{ color: 'text.disabled', mb: 1, '& svg': { fontSize: 40 } }}>{icon}</Box>
+        <Typography variant="subtitle1" fontWeight={700}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {description}
+        </Typography>
+      </Paper>
+    </Grow>
   );
 }
 
@@ -170,5 +182,30 @@ export function AdminTableShell({ children }: AdminTableShellProps) {
     <TableContainer component={Paper} variant="outlined" sx={{ overflow: 'hidden' }}>
       {children}
     </TableContainer>
+  );
+}
+
+export function AdminTableSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <AdminTableShell>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell colSpan={6}>
+              <SkeletonLoading lines={1} width="30%" />
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell colSpan={6}>
+                <SkeletonLoading showAvatar lines={1} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </AdminTableShell>
   );
 }

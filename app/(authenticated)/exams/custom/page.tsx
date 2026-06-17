@@ -9,7 +9,6 @@ import {
   CardContent,
   Button,
   Alert,
-  Snackbar,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,6 +16,9 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
+import { useToast } from '@/hooks/useToast';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { dialogTransitionProps } from '@/theme/motion';
 import {
   Preview as PreviewIcon,
   Quiz as QuizIcon,
@@ -48,44 +50,30 @@ export default function CustomExamPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [exam, setExam] = useState<Exam | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
+  const toast = useToast();
+  const reducedMotion = useReducedMotion();
 
   const handleSaveExam = (savedExam: Exam) => {
     setExam(savedExam);
-    setSnackbar({
-      open: true,
-      message: 'Exam saved successfully!',
-      severity: 'success',
-    });
+    toast.success('Exam saved successfully!');
   };
 
   const handlePreviewExam = () => {
     if (exam && exam.questions.length > 0) {
       setIsPreviewOpen(true);
     } else {
-      setSnackbar({
-        open: true,
-        message: 'Please create an exam with questions first.',
-        severity: 'warning',
-      });
+      toast.warning('Please create an exam with questions first.');
     }
   };
 
   const handleExamComplete = (answers: unknown[], score: number, totalPoints: number) => {
-    // Exam completed - score calculated and displayed to user
-    setSnackbar({
-      open: true,
-      message: `Exam completed! Score: ${score}/${totalPoints} (${Math.round((score/totalPoints)*100)}%)`,
-      severity: 'info',
-    });
+    toast.info(
+      `Exam completed! Score: ${score}/${totalPoints} (${Math.round((score / totalPoints) * 100)}%)`
+    );
   };
 
   const handleClosePreview = () => {
     setIsPreviewOpen(false);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -131,11 +119,7 @@ export default function CustomExamPage() {
                     title={exam.title}
                     filename={`${exam.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`}
                     onExportComplete={(_url) => {
-                      setSnackbar({
-                        open: true,
-                        message: 'PDF exported successfully!',
-                        severity: 'success',
-                      });
+                      toast.success('PDF exported successfully!');
                     }}
                   />
                   <Button
@@ -223,6 +207,7 @@ export default function CustomExamPage() {
         onClose={handleClosePreview}
         maxWidth="lg"
         fullWidth
+        TransitionProps={dialogTransitionProps(reducedMotion)}
       >
         <DialogTitle>
           {exam?.title} - Exam Preview
@@ -247,17 +232,6 @@ export default function CustomExamPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 }

@@ -60,6 +60,7 @@ export function payloadToFormData(payload: Record<string, unknown>): QuestionFor
     matches,
     blanks,
     display_settings: (payload.display_settings as QuestionFormData['display_settings']) ?? {},
+    print_settings: (payload.print_settings as QuestionFormData['print_settings']) ?? {},
     matching_mode:
       (payload.matching_mode as QuestionFormData['matching_mode']) ??
       (optionsObj?.matching_mode as QuestionFormData['matching_mode']) ??
@@ -112,6 +113,7 @@ export function questionToFormData(question: Question): QuestionFormData {
     blanks,
     matches: matches,
     display_settings: question.display_settings ?? (q.display_settings as QuestionFormData['display_settings']) ?? {},
+    print_settings: question.print_settings ?? (q.print_settings as QuestionFormData['print_settings']) ?? {},
     matching_mode:
       (q.matching_mode as QuestionFormData['matching_mode']) ??
       (optsNested?.matching_mode as QuestionFormData['matching_mode']) ??

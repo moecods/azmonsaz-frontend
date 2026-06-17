@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { useQuestionManagement } from "@/hooks";
 import { useQuestionBankViewMode } from "@/hooks/useQuestionBankViewMode";
+import { useConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { QuestionFilters, QuestionList } from "@/components/questions";
 import { QuestionBankViewToggle } from "@/components/questions/QuestionBankViewToggle";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -20,6 +21,7 @@ import { useMainProgress } from "@/components/layout/MainProgressProvider";
 export default function QuestionsPage() {
   const router = useRouter();
   const { viewMode, setViewMode, hydrated } = useQuestionBankViewMode();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const {
     filters,
@@ -40,6 +42,16 @@ export default function QuestionsPage() {
     handleOpenEdit,
     handleDelete,
   } = useQuestionManagement();
+
+  const handleDeleteWithConfirm = async (id: number) => {
+    const ok = await confirm({
+      title: "حذف سوال",
+      message: "آیا مطمئن هستید که می‌خواهید این سوال را حذف کنید؟",
+      confirmLabel: "حذف",
+      confirmColor: "error",
+    });
+    if (ok) handleDelete(id);
+  };
 
   useMainProgress(
     !isLoading && (isRefetching || isFetchingNextPage) ? { active: true } : null
@@ -113,10 +125,11 @@ export default function QuestionsPage() {
             loadedCount={loadedCount}
             totalCount={totalCount}
             onEdit={handleOpenEdit}
-            onDelete={handleDelete}
+            onDelete={handleDeleteWithConfirm}
           />
         </QuestionBankLayout>
       </Stack>
+      {confirmDialog}
     </ShellContentLoader>
   );
 }

@@ -15,10 +15,13 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { adminNavItems, isAdminNavActive } from '@/components/admin/admin-nav';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { motionTransition } from '@/theme/motion';
 
 function AdminDesktopNav() {
   const pathname = usePathname();
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
 
   return (
     <Paper
@@ -53,11 +56,16 @@ function AdminDesktopNav() {
               selected={active}
               aria-current={active ? 'page' : undefined}
               data-cy={item.dataCy}
-              sx={{
-                borderRadius: 1.5,
-                mx: 0.5,
-                mb: 0.25,
-                '&.Mui-selected': {
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 0.5,
+                  mb: 0.25,
+                  transition: motionTransition(
+                    ['background-color', 'color'],
+                    'fast',
+                    reducedMotion
+                  ),
+                  '&.Mui-selected': {
                   bgcolor: alpha(theme.palette.primary.main, 0.1),
                   color: 'primary.main',
                   '& .MuiListItemIcon-root': { color: 'primary.main' },
@@ -86,6 +94,7 @@ function AdminDesktopNav() {
 
 function AdminMobileNav() {
   const pathname = usePathname();
+  const reducedMotion = useReducedMotion();
 
   return (
     <Box
@@ -128,6 +137,14 @@ function AdminMobileNav() {
                 textTransform: 'none',
                 fontWeight: active ? 700 : 600,
                 whiteSpace: 'nowrap',
+                transition: motionTransition(
+                  ['background-color', 'box-shadow', 'transform'],
+                  'fast',
+                  reducedMotion
+                ),
+                ...(active && !reducedMotion
+                  ? { transform: 'translateY(-1px)' }
+                  : {}),
               }}
             >
               {item.label}

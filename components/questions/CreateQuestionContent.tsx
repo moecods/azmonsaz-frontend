@@ -32,7 +32,11 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { useQuestionForm } from '@/hooks/useQuestionForm';
 import { useQuestionSubmit } from '@/hooks/useQuestionSubmit';
 import { TypeFormRenderer } from './create-question/type-forms';
+import PrintIcon from '@mui/icons-material/Print';
 import DisplaySettingsPanel from './create-question/DisplaySettingsPanel';
+import QuestionPrintSettingsPanel, {
+  supportsQuestionPrintSettings,
+} from './QuestionPrintSettingsPanel';
 import { QuestionTypeSelector } from './create-question/QuestionTypeSelector';
 import { DifficultySelector } from './create-question/DifficultySelector';
 import { getQuestionTypeDefaults } from '@/lib/question-types/type-defaults';
@@ -122,6 +126,7 @@ export default function CreateQuestionContent({
   const matches = watch('matches');
   const blanks = watch('blanks');
   const displaySettings = watch('display_settings') ?? {};
+  const printSettings = watch('print_settings') ?? {};
 
   const previewPayload = useMemo(
     () =>
@@ -380,6 +385,21 @@ export default function CreateQuestionContent({
                       onChange={(s) => setValue('display_settings', s, { shouldDirty: true })}
                     />
                   </SectionCard>
+
+                  {!isExamQuestionEdit && supportsQuestionPrintSettings(questionType) && (
+                    <SectionCard
+                      id="section-print"
+                      icon={<PrintIcon color="primary" />}
+                      title="تنظیمات چاپ"
+                      subtitle="پیش‌فرض فضای پاسخ هنگام افزودن سوال به آزمون آفلاین"
+                    >
+                      <QuestionPrintSettingsPanel
+                        questionType={questionType}
+                        value={printSettings}
+                        onChange={(s) => setValue('print_settings', s as Record<string, unknown>, { shouldDirty: true })}
+                      />
+                    </SectionCard>
+                  )}
 
                   <Divider />
 

@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Toast } from '@/components/feedback/Alert/Alert';
+import { useToast } from '@/hooks/useToast';
 import { connectEcho, disconnectEcho, getEcho, isRealtimeEnabled, reconnectEcho } from '@/lib/echo';
 import {
   REALTIME_EVENTS,
@@ -46,22 +46,17 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { data: user } = useMe();
   const [echoConnected, setEchoConnected] = useState(false);
-  const [toast, setToast] = useState<RealtimeToastPayload & { open: boolean }>({
-    open: false,
-    message: '',
-    severity: 'info',
-  });
+  const toast = useToast();
 
   const examChannelRefs = useMemo(() => new Map<number, number>(), []);
   const gradingChannelRefs = useMemo(() => new Map<number, number>(), []);
 
-  const showToast = useCallback((payload: RealtimeToastPayload) => {
-    setToast({
-      open: true,
-      message: payload.message,
-      severity: payload.severity ?? 'info',
-    });
-  }, []);
+  const showToast = useCallback(
+    (payload: RealtimeToastPayload) => {
+      toast.show(payload.message, payload.severity ?? 'info');
+    },
+    [toast]
+  );
 
   useEffect(() => {
     return subscribeRealtimeToast(showToast);
@@ -259,17 +254,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return (
-    <RealtimeContext.Provider value={value}>
-      {children}
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        severity={toast.severity}
-        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-      />
-    </RealtimeContext.Provider>
-  );
+  return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
 }
 
 export { emitRealtimeToast };

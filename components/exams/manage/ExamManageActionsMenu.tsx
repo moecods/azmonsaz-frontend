@@ -12,6 +12,7 @@ import UnpublishedIcon from "@mui/icons-material/Unpublished";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
 import PrintIcon from "@mui/icons-material/Print";
+import KeyIcon from "@mui/icons-material/Key";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { ExamCapabilities, ExamWithParticipants } from "@/services/exams/ExamService";
 
@@ -25,6 +26,7 @@ export interface ExamManageActionsMenuProps {
   onActivate: () => void;
   onDeactivate: () => void;
   onPrint: () => void;
+  onPrintAnswerKey: () => void;
   onReleaseResults: () => void;
 }
 
@@ -38,6 +40,7 @@ export function ExamManageActionsMenu({
   onActivate,
   onDeactivate,
   onPrint,
+  onPrintAnswerKey,
   onReleaseResults,
 }: ExamManageActionsMenuProps) {
   const questionsCount = exam.questions_count || 0;
@@ -68,17 +71,30 @@ export function ExamManageActionsMenu({
         )}
 
       {exam.type === "offline" && (
-        <MenuItem
-          onClick={() => {
-            onPrint();
-            onClose();
-          }}
-        >
-          <ListItemIcon>
-            <PrintIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>چاپ برگه امتحان</ListItemText>
-        </MenuItem>
+        <>
+          <MenuItem
+            onClick={() => {
+              onPrint();
+              onClose();
+            }}
+          >
+            <ListItemIcon>
+              <PrintIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>چاپ برگه امتحان</ListItemText>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              onPrintAnswerKey();
+              onClose();
+            }}
+          >
+            <ListItemIcon>
+              <KeyIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>چاپ پاسخنامه</ListItemText>
+          </MenuItem>
+        </>
       )}
 
       {(capabilities.can_publish ||

@@ -18,6 +18,8 @@ import PeopleIcon from "@mui/icons-material/People";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import { useRouter } from "next/navigation";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { hoverLiftSx } from "@/theme/motion";
 import type { ExamListItem } from "@/services/exams/ExamService";
 import {
   formatExamScheduleSummary,
@@ -31,6 +33,7 @@ interface ExamCardProps {
 export function ExamCard({ exam }: ExamCardProps) {
   const theme = useTheme();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
   const chips = getExamStatusChips(exam);
   const schedule = formatExamScheduleSummary(exam);
 
@@ -52,8 +55,7 @@ export function ExamCard({ exam }: ExamCardProps) {
       sx={{
         height: "100%",
         borderRadius: 2.5,
-        transition: "box-shadow 0.2s ease, transform 0.15s ease",
-        "&:hover": { boxShadow: 4, transform: "translateY(-2px)" },
+        ...hoverLiftSx(theme, reducedMotion),
       }}
     >
       <CardActionArea

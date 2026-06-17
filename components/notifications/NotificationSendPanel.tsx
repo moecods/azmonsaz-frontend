@@ -22,11 +22,11 @@ import {
   ContentPanel,
   ManageSectionHeader,
 } from "@/components/exams/participants/participant-ui-shared";
-import { Toast } from "@/components/feedback/Alert/Alert";
 import {
   useSendAdminBroadcast,
   useSendGroupMessage,
 } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/useToast";
 import { useGroups, useGroup } from "@/hooks/useGroups";
 import { useUsers } from "@/hooks/useUsers";
 import { getSendableGroups } from "@/lib/notification-display";
@@ -51,11 +51,7 @@ export function NotificationSendPanel({
   const [groupId, setGroupId] = useState<number | "">("");
   const [adminRecipientSelection, setAdminRecipientSelection] = useState<number[] | "all">("all");
   const [groupRecipientSelection, setGroupRecipientSelection] = useState<number[] | "all">("all");
-  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const toast = useToast();
 
   const { data: groups = [] } = useGroups({ enabled: canGroupSend || canAdminBroadcast });
   const sendableGroups = useMemo(
@@ -111,21 +107,15 @@ export function NotificationSendPanel({
       },
       {
         onSuccess: (data) => {
-          setToast({
-            open: true,
-            message: `پیام به ${(data?.sent_count ?? 0).toLocaleString("fa-IR")} کاربر ارسال شد.`,
-            severity: "success",
-          });
+          toast.success(
+            `پیام به ${(data?.sent_count ?? 0).toLocaleString("fa-IR")} کاربر ارسال شد.`
+          );
           setAdminMessage("");
           setTitle("");
           setAdminRecipientSelection("all");
         },
         onError: (err) => {
-          setToast({
-            open: true,
-            message: err instanceof Error ? err.message : "خطا در ارسال پیام",
-            severity: "error",
-          });
+          toast.error(err instanceof Error ? err.message : "خطا در ارسال پیام");
         },
       }
     );
@@ -143,20 +133,14 @@ export function NotificationSendPanel({
       },
       {
         onSuccess: (data) => {
-          setToast({
-            open: true,
-            message: `پیام به ${(data?.sent_count ?? 0).toLocaleString("fa-IR")} عضو گروه ارسال شد.`,
-            severity: "success",
-          });
+          toast.success(
+            `پیام به ${(data?.sent_count ?? 0).toLocaleString("fa-IR")} عضو گروه ارسال شد.`
+          );
           setGroupMessage("");
           setGroupRecipientSelection("all");
         },
         onError: (err) => {
-          setToast({
-            open: true,
-            message: err instanceof Error ? err.message : "خطا در ارسال پیام",
-            severity: "error",
-          });
+          toast.error(err instanceof Error ? err.message : "خطا در ارسال پیام");
         },
       }
     );
@@ -312,14 +296,6 @@ export function NotificationSendPanel({
         </ContentPanel>
       )}
 
-      {toast.open && (
-        <Toast
-          open={toast.open}
-          message={toast.message}
-          severity={toast.severity}
-          onClose={() => setToast((t) => ({ ...t, open: false }))}
-        />
-      )}
     </Stack>
   );
 }

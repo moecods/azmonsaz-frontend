@@ -2,13 +2,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, Chip, Card, Skeleton, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import GroupsIcon from "@mui/icons-material/Groups";
 import PeopleIcon from "@mui/icons-material/People";
 import GroupOffIcon from "@mui/icons-material/GroupOff";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Toast } from "@/components/feedback/Alert/Alert";
+import { useToast } from "@/hooks/useToast";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { GroupFormDialog } from "@/components/groups/GroupFormDialog";
 import { GroupsFiltersPanel } from "@/components/groups/GroupsFiltersPanel";
@@ -18,6 +18,7 @@ import {
   QuestionBankEmptyState,
 } from "@/components/questions/question-bank";
 import { useMainProgress } from "@/components/layout/MainProgressProvider";
+import { AnimatedContent } from "@/components/feedback/AnimatedListBody";
 import { useGroups, useCreateGroup, useUploadGroupAvatar } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks";
 import {
@@ -27,11 +28,7 @@ import {
   type GroupsListFilters,
 } from "@/lib/groups-list-utils";
 
-type AlertState = {
-  open: boolean;
-  message: string;
-  severity: "success" | "error" | "warning";
-};
+type AlertSeverity = "success" | "error" | "warning";
 
 const DEFAULT_FILTERS: GroupsListFilters = {
   search: "",
@@ -40,6 +37,35 @@ const DEFAULT_FILTERS: GroupsListFilters = {
   creatorId: "",
 };
 
+function GroupListSkeleton() {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          xl: "repeat(3, 1fr)",
+        },
+        gap: 2,
+      }}
+    >
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Card key={index} variant="outlined" sx={{ borderRadius: 2.5, p: 2 }}>
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+            <Skeleton variant="rounded" width={52} height={52} />
+            <Box sx={{ flex: 1 }}>
+              <Skeleton variant="text" height={28} width="70%" />
+              <Skeleton variant="text" width="90%" />
+              <Skeleton variant="text" width="60%" />
+            </Box>
+          </Stack>
+        </Card>
+      ))}
+    </Box>
+  );
+}
+
 export default function GroupsPage() {
   const router = useRouter();
   const [filters, setFilters] = useState<GroupsListFilters>(DEFAULT_FILTERS);
@@ -47,11 +73,7 @@ export default function GroupsPage() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
-  const [alert, setAlert] = useState<AlertState>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const toast = useToast();
 
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
@@ -68,9 +90,14 @@ export default function GroupsPage() {
     [groups, filters]
   );
 
-  const showAlert = useCallback((message: string, severity: AlertState["severity"]) => {
-    setAlert({ open: true, message, severity });
-  }, []);
+  const showAlert = useCallback(
+    (message: string, severity: AlertSeverity) => {
+      if (severity === "success") toast.success(message);
+      else if (severity === "warning") toast.warning(message);
+      else toast.error(message);
+    },
+    [toast]
+  );
 
   const resetForm = () => {
     setGroupName("");
@@ -164,9 +191,7 @@ export default function GroupsPage() {
         }
       >
         {isLoading ? (
-          <Stack alignItems="center" py={8}>
-            <CircularProgress />
-          </Stack>
+          <GroupListSkeleton />
         ) : filteredGroups.length === 0 ? (
           <QuestionBankEmptyState
             title={groups.length === 0 ? "هنوز گروهی ندارید" : "گروهی با این فیلتر نیست"}
@@ -182,21 +207,26 @@ export default function GroupsPage() {
             }
           />
         ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                xl: "repeat(3, 1fr)",
-              },
-              gap: 2,
-            }}
+          <AnimatedContent
+            animationKey={`${filters.search}-${filters.size}-${filters.sort}-${filters.creatorId}`}
+            loading={isFetching && !isLoading}
           >
-            {filteredGroups.map((group) => (
-              <GroupCard key={group.id} group={group} />
-            ))}
-          </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  xl: "repeat(3, 1fr)",
+                },
+                gap: 2,
+              }}
+            >
+              {filteredGroups.map((group) => (
+                <GroupCard key={group.id} group={group} />
+              ))}
+            </Box>
+          </AnimatedContent>
         )}
       </QuestionBankLayout>
 
@@ -213,15 +243,6 @@ export default function GroupsPage() {
         onDescriptionChange={setGroupDescription}
         onSubmit={handleCreate}
       />
-
-      {alert.open && (
-        <Toast
-          open={alert.open}
-          onClose={() => setAlert((a) => ({ ...a, open: false }))}
-          message={alert.message}
-          severity={alert.severity}
-        />
-      )}
     </Stack>
   );
 }

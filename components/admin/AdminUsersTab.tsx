@@ -18,13 +18,11 @@ import {
   Select,
   Stack,
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableRow,
   TextField,
   Typography,
-  CircularProgress,
   Pagination,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -37,7 +35,13 @@ import {
   useUpdateUser,
   useToggleUserActive,
   useImpersonateUser,
+  useToast,
+  useReducedMotion,
 } from '@/hooks';
+import { LoadingButton } from '@/components/feedback/LoadingButton';
+import { useConfirmDialog } from '@/components/feedback/ConfirmDialog';
+import { AnimatedListBody } from '@/components/feedback/AnimatedListBody';
+import { dialogTransitionProps, pressableSx } from '@/theme/motion';
 import { User } from '@/types';
 import UserAvatar from '@/components/ui/UserAvatar';
 import {
@@ -52,6 +56,7 @@ import {
   AdminFilterPanel,
   AdminSectionHeader,
   AdminTableShell,
+  AdminTableSkeleton,
   adminTableHeadSx,
   adminTableRowSx,
 } from '@/components/admin/admin-shared';
@@ -169,6 +174,9 @@ function SubscriptionCell({ user }: { user: User }) {
 
 export function AdminUsersTab() {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [userOpen, setUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userPage, setUserPage] = useState(1);
@@ -245,18 +253,29 @@ export function AdminUsersTab() {
   };
 
   const handleToggleUserActive = (user: User) => {
-    toggleUserActiveMutation.mutate(user.id);
+    toggleUserActiveMutation.mutate(user.id, {
+      onSuccess: (data) => {
+        toast.success(data.is_active ? 'کاربر فعال شد' : 'کاربر غیرفعال شد');
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : 'خطا در تغییر وضعیت');
+      },
+    });
   };
 
-  const handleImpersonateUser = (user: User) => {
-    if (window.confirm(`آیا می‌خواهید با اکانت ${user.name} وارد شوید؟`)) {
-      impersonateUserMutation.mutate(user.id, {
-        onError: (error: unknown) => {
-          const err = error as { message?: string };
-          alert(err.message || 'خطا در ورود به اکانت کاربر');
-        },
-      });
-    }
+  const handleImpersonateUser = async (user: User) => {
+    const ok = await confirm({
+      title: 'ورود به اکانت کاربر',
+      message: `آیا می‌خواهید با اکانت ${user.name} وارد شوید؟`,
+      confirmLabel: 'ورود',
+      confirmColor: 'primary',
+    });
+    if (!ok) return;
+    impersonateUserMutation.mutate(user.id, {
+      onError: (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'خطا در ورود به اکانت کاربر');
+      },
+    });
   };
 
   const handleCloseUser = () => {
@@ -289,7 +308,15 @@ export function AdminUsersTab() {
       }
       updateUserMutation.mutate(
         { id: editingUser.id, data: updateData },
-        { onSuccess: handleCloseUser }
+        {
+          onSuccess: () => {
+            toast.success('کاربر به‌روزرسانی شد');
+            handleCloseUser();
+          },
+          onError: (error) => {
+            toast.error(error instanceof Error ? error.message : 'خطا در به‌روزرسانی');
+          },
+        }
       );
     } else {
       if (!data.password || data.password.trim() === '') {
@@ -303,7 +330,15 @@ export function AdminUsersTab() {
           password: data.password,
           roles: (data.roles ?? []) as string[],
         },
-        { onSuccess: handleCloseUser }
+        {
+          onSuccess: () => {
+            toast.success('کاربر ایجاد شد');
+            handleCloseUser();
+          },
+          onError: (error) => {
+            toast.error(error instanceof Error ? error.message : 'خطا در ایجاد کاربر');
+          },
+        }
       );
     }
   };
@@ -395,9 +430,7 @@ export function AdminUsersTab() {
         </AdminFilterPanel>
 
         {usersLoading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
+          <AdminTableSkeleton rows={6} />
         ) : users.length === 0 ? (
           <AdminEmptyState
             icon={<PeopleOutlineIcon />}
@@ -421,9 +454,9 @@ export function AdminUsersTab() {
                   <TableCell align="center" sx={{ width: 132 }}>عملیات</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <AnimatedListBody animationKey={`${userPage}-${filters.search}-${filters.role}`}>
                 {users.map((user, index) => (
-                  <TableRow key={user.id} hover sx={adminTableRowSx(theme, index)}>
+                  <TableRow key={user.id} hover sx={adminTableRowSx(theme, index, reducedMotion)}>
                     <TableCell sx={{ py: 1.75 }}>
                       <UserIdentityCell user={user} />
                     </TableCell>
@@ -453,6 +486,7 @@ export function AdminUsersTab() {
                           onClick={() => handleOpenEditUser(user)}
                           title="ویرایش کاربر"
                           aria-label="ویرایش کاربر"
+                          sx={pressableSx(reducedMotion)}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -484,7 +518,7 @@ export function AdminUsersTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </AnimatedListBody>
             </Table>
           </AdminTableShell>
         )}
@@ -503,7 +537,13 @@ export function AdminUsersTab() {
         )}
       </Stack>
 
-      <Dialog open={userOpen} onClose={handleCloseUser} maxWidth="sm" fullWidth>
+      <Dialog
+        open={userOpen}
+        onClose={handleCloseUser}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={dialogTransitionProps(reducedMotion)}
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {editingUser ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}
         </DialogTitle>
@@ -616,19 +656,18 @@ export function AdminUsersTab() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseUser}>لغو</Button>
-          <Button
+          <LoadingButton
             onClick={userForm.handleSubmit(onSubmitUser)}
             variant="contained"
-            disabled={createUserMutation.isPending || updateUserMutation.isPending}
+            loading={createUserMutation.isPending || updateUserMutation.isPending}
+            loadingText="در حال ذخیره..."
+            successFlash={editingUser ? 'به‌روز شد' : 'ایجاد شد'}
           >
-            {createUserMutation.isPending || updateUserMutation.isPending
-              ? 'در حال ذخیره...'
-              : editingUser
-                ? 'به‌روزرسانی'
-                : 'ایجاد'}
-          </Button>
+            {editingUser ? 'به‌روزرسانی' : 'ایجاد'}
+          </LoadingButton>
         </DialogActions>
       </Dialog>
+      {confirmDialog}
     </>
   );
 }

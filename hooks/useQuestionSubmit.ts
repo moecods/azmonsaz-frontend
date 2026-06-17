@@ -47,6 +47,10 @@ export function useQuestionSubmit({
           ...built,
           order: examQuestionPayload?.order ?? built.order,
           points: examQuestionPayload?.points ?? built.points,
+          print_settings:
+            (data.print_settings as Record<string, unknown> | undefined) ??
+            examQuestionPayload?.print_settings ??
+            built.print_settings,
         };
         await updateExamQuestionMutation.mutateAsync({
           examId,

@@ -23,6 +23,8 @@ export { getQuestionPlugin, plugins } from './plugins';
 export type { DisplaySettings, OptionLabelStyle } from './display-settings';
 export { mergeDisplaySettings, getOptionLabel, DEFAULT_DISPLAY_SETTINGS } from './display-settings';
 export { normalizeQuestion, normalizeFromQuestion, optionText } from './normalize-question';
+export { formatTeacherKeyAnswer, resolvePrintQuestionId } from './print';
+export type { PrintQuestionVariant, StudentPrintContext } from './print/types';
 export { formValuesToBankSource } from './preview-answer';
 export { getQuestionTypeDefaults } from './type-defaults';
 export {
@@ -33,3 +35,19 @@ export {
 } from './type-appearance';
 export type { QuestionViewMode, QuestionViewOptions } from './view-options';
 export { DEFAULT_VIEW_OPTIONS, mergeViewOptions } from './view-options';
+export type {
+  AnswerLineStyle,
+  AnswerLineSpacing,
+  MatchingPrintLayout,
+  OrderingPrintLayout,
+  QuestionPrintSettings,
+  ExamPrintSettings,
+} from './print-settings';
+export {
+  mergeQuestionPrintSettings,
+  mergeExamPrintSettings,
+  resolveQuestionPrintSettings,
+  getDefaultQuestionPrintSettings,
+  hasCustomPrintSettings,
+  lineHeightPx,
+} from './print-settings';

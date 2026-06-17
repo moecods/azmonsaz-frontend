@@ -36,6 +36,21 @@
 - **متادیتا و کمکی‌ها**: از `registry.ts` یا `@/lib/question-types`: `getQuestionTypeConfig(type)`, `getQuestionTypeLabel(type)`, `getQuestionTypeKind(type)`, `isOptionsBased(type)`, `isEssay(type)` و مشابه.
 - **ساخت payload**: از `getDescriptor(type)` در `descriptors` استفاده کنید: `buildExamPayload(data, categories)`, `buildBankPayload(data)`.
 
+## چاپ (Print)
+
+استراتژی چاپ در دو لایه:
+
+| لایه | مسیر | نقش |
+|------|------|-----|
+| منطق پاسخ معلم | `lib/question-types/print/registry.ts` | `teacherKeyByKind` — متن فشرده بر اساس `kind` |
+| رندر برگه دانش‌آموز | `components/exam-print/print-strategy.tsx` | `getPrintStrategy(kind)` — `renderStudentPrint` + همان formatter |
+| تنظیمات چاپ | `lib/question-types/print-settings.ts` | `QuestionPrintSettings` / `ExamPrintSettings` + `resolveQuestionPrintSettings` |
+
+- **برگه دانش‌آموز:** `QuestionPrintBody` → `StudentPrintContent` → `renderStudentPrint()` — فضای پاسخ از `resolveQuestionPrintSettings` (payload → بانک → پیش‌فرض kind)
+- **پاسخنامه معلم:** `TeacherAnswerKeySheet` — layout ثابت؛ فقط `formatTeacherKeyAnswer()` از registry
+- **ذخیره‌سازی:** `questions.print_settings` (پیش‌فرض بانک)؛ `exam_questions.payload.print_settings` (override آزمون)؛ `exams.print_settings.footerNote` (یادداشت پاورقی)
+- **UI:** `QuestionPrintSettingsPanel` — صفحه سوالات آزمون (drawer) و صفحه چاپ (کلیک روی سوال + فیلد پاورقی)
+
 ## اضافه کردن نوع جدید
 
 1. **ثابت‌ها**: در `constants.ts` شناسهٔ جدید را به آرایهٔ `QUESTION_TYPE_IDS` اضافه کنید.
@@ -44,5 +59,6 @@
 4. **اعتبارسنجی**: در `lib/validation.ts` اگر قانون نوع‌خاص جدید لازم است، در `superRefine` بر اساس `getQuestionTypeKind(type)` شرط مناسب را اضافه کنید (ترجیحاً با استفاده از `kind` تا افزودن نوع جدید فقط با رجیستری و دسکریپتور ممکن شود).
 5. **فرم و پیش‌نمایش**: در `CreateQuestionContent.tsx` در `renderTypeSpecificForm` و در `QuestionPreview` (useMemo) بلوک شرطی برای نوع جدید اضافه کنید؛ یا در آینده با FormSection/PreviewSection از دسکریپتور یکپارچه شود.
 6. **صفحات آزمون و نتیجه**: اگر نوع جدید نیاز به ویجت پاسخ دارد، در `QuestionAnswerInput` و `QuestionResultDisplay` بر اساس `getQuestionTypeKind(type)` یا `type` شاخهٔ رندر مناسب را اضافه کنید.
+7. **چاپ**: در `lib/question-types/print/registry.ts` formatter پاسخ معلم و در `components/exam-print/print-strategy.tsx` رندر برگه دانش‌آموز را برای `kind` جدید اضافه کنید.
 
 بک‌اند نیازی به تغییر ندارد؛ نام نوع‌ها باید با Strategyهای Laravel یکسان باشند.

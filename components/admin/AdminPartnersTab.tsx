@@ -18,26 +18,28 @@ import {
   Select,
   Stack,
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableRow,
   TextField,
   Typography,
-  CircularProgress,
   Pagination,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { partnerSchema, PartnerFormData } from '@/lib/validation';
-import { usePartners, useCreatePartner, useUpdatePartner, useTogglePartnerActive } from '@/hooks';
+import { usePartners, useCreatePartner, useUpdatePartner, useTogglePartnerActive, useToast, useReducedMotion } from '@/hooks';
+import { LoadingButton } from '@/components/feedback/LoadingButton';
+import { AnimatedListBody } from '@/components/feedback/AnimatedListBody';
+import { dialogTransitionProps } from '@/theme/motion';
 import { Partner } from '@/types';
 import {
   AdminEmptyState,
   AdminFilterPanel,
   AdminSectionHeader,
   AdminTableShell,
+  AdminTableSkeleton,
   adminTableHeadSx,
   adminTableRowSx,
 } from '@/components/admin/admin-shared';
@@ -67,6 +69,8 @@ function formatCreatedDate(iso: string): string {
 
 export function AdminPartnersTab() {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const toast = useToast();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [partnerPage, setPartnerPage] = useState(1);
@@ -145,7 +149,13 @@ export function AdminPartnersTab() {
             callback_url: data.callback_url,
           },
         },
-        { onSuccess: handleClosePartner }
+        {
+          onSuccess: () => {
+            toast.success('شریک به‌روزرسانی شد');
+            handleClosePartner();
+          },
+          onError: (e) => toast.error(e instanceof Error ? e.message : 'خطا در به‌روزرسانی'),
+        }
       );
     } else {
       createPartnerMutation.mutate(
@@ -154,7 +164,13 @@ export function AdminPartnersTab() {
           website_url: data.website_url || null,
           callback_url: data.callback_url,
         },
-        { onSuccess: handleClosePartner }
+        {
+          onSuccess: () => {
+            toast.success('شریک ایجاد شد');
+            handleClosePartner();
+          },
+          onError: (e) => toast.error(e instanceof Error ? e.message : 'خطا در ایجاد'),
+        }
       );
     }
   };
@@ -218,9 +234,7 @@ export function AdminPartnersTab() {
         </AdminFilterPanel>
 
         {partnersLoading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
+          <AdminTableSkeleton rows={5} />
         ) : partners.length === 0 ? (
           <AdminEmptyState
             icon={<BusinessIcon />}
@@ -244,9 +258,9 @@ export function AdminPartnersTab() {
                   <TableCell align="center">عملیات</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+              <AnimatedListBody animationKey={`${partnerPage}-${filters.search}`}>
                 {partners.map((partner, index) => (
-                  <TableRow key={partner.id} hover sx={adminTableRowSx(theme, index)}>
+                  <TableRow key={partner.id} hover sx={adminTableRowSx(theme, index, reducedMotion)}>
                     <TableCell>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Box
@@ -307,7 +321,15 @@ export function AdminPartnersTab() {
                         <IconButton
                           size="small"
                           color={partner.is_active ? 'warning' : 'success'}
-                          onClick={() => togglePartnerActiveMutation.mutate(partner.id)}
+                          onClick={() =>
+                            togglePartnerActiveMutation.mutate(partner.id, {
+                              onSuccess: (data) => {
+                                toast.success(data.is_active ? 'شریک فعال شد' : 'شریک غیرفعال شد');
+                              },
+                              onError: (e) =>
+                                toast.error(e instanceof Error ? e.message : 'خطا در تغییر وضعیت'),
+                            })
+                          }
                           disabled={togglePartnerActiveMutation.isPending}
                           title={partner.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
                           aria-label={partner.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
@@ -318,7 +340,7 @@ export function AdminPartnersTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </AnimatedListBody>
             </Table>
           </AdminTableShell>
         )}
@@ -337,7 +359,13 @@ export function AdminPartnersTab() {
         )}
       </Stack>
 
-      <Dialog open={partnerOpen} onClose={handleClosePartner} maxWidth="sm" fullWidth>
+      <Dialog
+        open={partnerOpen}
+        onClose={handleClosePartner}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={dialogTransitionProps(reducedMotion)}
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {editingPartner ? 'ویرایش شریک' : 'ایجاد شریک جدید'}
         </DialogTitle>
@@ -389,17 +417,14 @@ export function AdminPartnersTab() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleClosePartner}>لغو</Button>
-          <Button
+          <LoadingButton
             onClick={partnerForm.handleSubmit(onSubmitPartner)}
             variant="contained"
-            disabled={createPartnerMutation.isPending || updatePartnerMutation.isPending}
+            loading={createPartnerMutation.isPending || updatePartnerMutation.isPending}
+            loadingText="در حال ذخیره..."
           >
-            {createPartnerMutation.isPending || updatePartnerMutation.isPending
-              ? 'در حال ذخیره...'
-              : editingPartner
-                ? 'به‌روزرسانی'
-                : 'ایجاد'}
-          </Button>
+            {editingPartner ? 'به‌روزرسانی' : 'ایجاد'}
+          </LoadingButton>
         </DialogActions>
       </Dialog>
     </>

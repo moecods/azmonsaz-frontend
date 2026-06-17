@@ -29,6 +29,9 @@ export function baseExamPayload(
     displaySettings.matchingMode = data.matching_mode;
   }
   base.display_settings = displaySettings;
+  if (data.print_settings && Object.keys(data.print_settings).length > 0) {
+    base.print_settings = data.print_settings;
+  }
   return base;
 }
 
@@ -41,6 +44,9 @@ export function baseBankFields(data: QuestionFormData): Record<string, unknown> 
     tags: data.tags ?? [],
     difficulty: data.difficulty,
     display_settings: data.display_settings ?? {},
+    ...(data.print_settings && Object.keys(data.print_settings).length > 0
+      ? { print_settings: data.print_settings }
+      : {}),
   };
 }
 

@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  Grow,
   IconButton,
   Menu,
   MenuItem,
@@ -22,6 +23,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { UserParticipant } from "@/components/exams/ParticipantManagement.types";
 import { useParticipantAction } from "@/hooks/useExams";
 import { getErrorMessage } from "@/lib/error-handler";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { dialogTransitionProps, pressableSx } from "@/theme/motion";
 
 type ParticipantActionType =
   | "mark_absent"
@@ -49,6 +52,7 @@ export function ParticipantActionsMenu({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const actionMutation = useParticipantAction();
+  const reducedMotion = useReducedMotion();
 
   const open = Boolean(anchorEl);
   const status = participant.status ?? "registered";
@@ -105,12 +109,19 @@ export function ParticipantActionsMenu({
           size="small"
           aria-label="اقدامات شرکت‌کننده"
           onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={pressableSx(reducedMotion)}
         >
           <MoreVertIcon fontSize="small" />
         </IconButton>
       </Tooltip>
 
-      <Menu anchorEl={anchorEl} open={open} onClose={closeMenu}>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={closeMenu}
+        TransitionComponent={Grow}
+        transitionDuration={reducedMotion ? 0 : "auto"}
+      >
         {status === "registered" && (
           <>
             <MenuItem onClick={() => openConfirmAction("mark_absent")}>
@@ -152,7 +163,13 @@ export function ParticipantActionsMenu({
         )}
       </Menu>
 
-      <Dialog open={confirmAction !== null} onClose={closeConfirmDialog} maxWidth="xs" fullWidth>
+      <Dialog
+        open={confirmAction !== null}
+        onClose={closeConfirmDialog}
+        maxWidth="xs"
+        fullWidth
+        TransitionProps={dialogTransitionProps(reducedMotion)}
+      >
         <DialogTitle>{confirmAction ? confirmLabels[confirmAction] : ""}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
